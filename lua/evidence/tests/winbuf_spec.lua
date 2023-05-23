@@ -1,0 +1,20 @@
+local WinBuf = require("evidence.view.win_buf")
+WinBuf:setup({})
+
+local eq = function(a, b)
+  assert.are.same(a, b)
+end
+
+describe("WinBuf", function()
+  it("openSplitWin", function()
+    WinBuf:openSplitWin()
+  end)
+  it("openFloatWin", function()
+    WinBuf:openFloatWin()
+  end)
+  it("getInfo", function()
+    local info = WinBuf:getInfo()
+    assert.is_number(info.buf)
+    assert.is_number(info.win)
+  end)
+end)
