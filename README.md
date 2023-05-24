@@ -1,5 +1,9 @@
 # NVIM-EVIDENCE
 
+## Status
+
+under development
+
 ## Purpose
 
 fsrs plugin for nvim
@@ -58,6 +62,10 @@ fsrs plugin for nvim
 
 删除当前卡片
 
+- o: viewAnser
+
+显示答案
+
 - s: switchTable
 
 切换 table
@@ -95,8 +103,6 @@ Views (WinBuf, Telescope, Hydra)
 - 所有牌组随机抽
 
 - 撤销
-
-- 双面buffer显示答案
 
 - hydra outer 
 
