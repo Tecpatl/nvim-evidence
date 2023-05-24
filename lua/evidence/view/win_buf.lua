@@ -119,13 +119,13 @@ function WinBufImpl:setup(data)
   if data.win ~= nil then
     self.win = data.win
   end
-  print("setup")
 end
 
 ---@class WinBuf
 ---@field _ WinBufImpl
 ---@field is_setup boolean
 ---@field instance WinBuf
+---@field divider string
 local WinBuf = {}
 
 WinBuf.__index = function(self, key)
@@ -146,17 +146,21 @@ end
 function WinBuf:getInstance()
   if not self.instance then
     self._ = WinBufImpl:new()
-    self.instance = setmetatable({ is_setup = false }, self)
+    self.instance = setmetatable({ is_setup = false, divider = "================" }, self)
   end
   return self.instance
 end
 
 ---@param data table<string,number>
-function WinBuf:setup(data)
+---@param divider? string
+function WinBuf:setup(data, divider)
   if self.is_setup then
     error("cannot setup twice")
   end
   self.is_setup = true
+  if divider then
+    self.divider = divider
+  end
   WinBuf.__index = WinBuf
   self._:setup(data)
 end
@@ -179,10 +183,35 @@ function WinBuf:openFloatWin()
   self._:openFloatWin()
 end
 
+function WinBuf:extractString(inputString)
+  local startIndex, endIndex = string.find(inputString, self.divider)
+  if endIndex then
+    local extractedString = string.sub(inputString, 1, endIndex)
+    return extractedString
+  else
+    return inputString
+  end
+end
+
 ---@param item CardItem
-function WinBuf:viewContent(item)
+---@param is_fold? boolean
+function WinBuf:viewContent(item, is_fold)
+  is_fold = is_fold or true
   self._.item = item
-  self._:viewContent(item.content)
+  local content = item.content
+  if is_fold then
+    content = self:extractString(content)
+  end
+  self._:viewContent(content)
+end
+
+---@param is_fold boolean
+function WinBuf:switchFold(is_fold) 
+  local content = self._.item.content
+  if is_fold then
+    content = self:extractString(content)
+  end
+  self._:viewContent(content)
 end
 
 function WinBuf:openSplitWin()
