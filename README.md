@@ -50,45 +50,25 @@ fsrs plugin for nvim
 
 ### Hydra + Telescope
 
-- a: add
+- a: add   将缓冲区内容添加到数据库
 
-将缓冲区内容添加到数据库
+- x: start  开始学习, 弹出最新需要复习卡片
 
-- x: start
+- d: del  删除当前卡片
 
-初始化 FSRS
+- o: viewAnser 显示答案
 
-- d: del
+- s: switchTable  切换 table
 
-删除当前卡片
+- e: edit  将缓冲区的内容更新到当前卡片里
 
-- o: viewAnser
+- i: info  打印当前缓冲区卡片信息
 
-显示答案
+- s: score  给当前卡片打分
 
-- s: switchTable
+- f: fuzzyFind  开启根据卡片内容的模糊搜索
 
-切换 table
-
-- e: edit
-
-将缓冲区的内容更新到当前卡片里
-
-- i: info
-
-打印当前缓冲区卡片和对应表的详细信息
-
-- s: score
-
-给当前卡片打分
-
-- f: fuzzyFind
-
-开启根据卡片内容的模糊搜索
-
-- m: minFind
-
-开启根据最近需要复习卡片的搜索
+- m: minFind  开启根据最近需要复习卡片的搜索
 
 ## Module
 
@@ -104,8 +84,6 @@ Views (WinBuf, Telescope, Hydra)
 
 - 撤销
 
-- hydra outer 
-
-- hydra change to modern menu
+- 自定义hydra 或者 将hydra 换成 modern search menu
 
 - lru最近访问过的卡片

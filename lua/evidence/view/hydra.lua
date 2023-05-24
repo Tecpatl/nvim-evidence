@@ -63,7 +63,7 @@ end
 local evidence_hint = [[
  _x_: start _s_: score _t_: switchTable
  _o_: viewAnswer _f_: fuzzyFind _m_: minFind
- _e_: edit _d_: delete _a_: add
+ _e_: edit _d_: delete _a_: add _i_: info
  ^
      _<Esc>_: exit  _q_: exit
 ]]
@@ -195,6 +195,13 @@ local function answer()
   win_buf:switchFold(false)
 end
 
+local function info()
+  if is_start_ == false then
+    return
+  end
+  tools.printDump(getNowItem().card)
+end
+
 ---@param data ModelTableInfo
 local setup = function(data)
   user_data = data
@@ -221,6 +228,7 @@ local setup = function(data)
       { "e", edit },
       { "d", delete },
       { "o", answer },
+      { "i", info },
       { "t", switchTable, { exit = true, nowait = true, desc = "exit" } },
       { "q", nil, { exit = true, nowait = true, desc = "exit" } },
       { "<Esc>", nil, { exit = true, nowait = true } },

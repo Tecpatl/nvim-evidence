@@ -112,7 +112,6 @@ end
 ---@param limit_num? number
 ---@return CardItem[]|nil
 function Model:getMinDueItem(limit_num)
-	print("getMinDueItem")
 	local item = self.tbl:min("due", nil, limit_num)
 	if item ~= nil then
 		local arr = {}

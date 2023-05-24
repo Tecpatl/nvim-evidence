@@ -119,7 +119,6 @@ function WinBufImpl:setup(data)
   if data.win ~= nil then
     self.win = data.win
   end
-  print("setup")
 end
 
 ---@class WinBuf
