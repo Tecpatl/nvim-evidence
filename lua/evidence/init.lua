@@ -32,7 +32,7 @@ end
 local function work(arg)
   local command = command_list[arg]
   if command == nil then
-    print("not match command for spectre")
+    print("not match command for evidence")
     return
   end
   command()

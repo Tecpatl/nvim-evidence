@@ -152,7 +152,7 @@ function SqlTable:min(column, statement, limit_num)
   limit_num = limit_num or 1
   local query = ""
   if limit_num ~= 1 then
-    query = "SELECT * FROM " .. self.now_table_id .. " order by " .. column
+    query = "SELECT * FROM " .. self.now_table_id
   else
     query = "SELECT *, MIN(" .. column .. ") AS `rowmin` FROM " .. self.now_table_id
   end
@@ -160,7 +160,7 @@ function SqlTable:min(column, statement, limit_num)
     query = query .. " where " .. statement
   end
   if limit_num ~= -1 then
-    query = query .. " LIMIT " .. limit_num
+    query = query .. " order by " .. column .. " LIMIT " .. limit_num
   end
   local ret = self:eval(query)
   if ret ~= nil then
