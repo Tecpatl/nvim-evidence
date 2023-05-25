@@ -86,7 +86,6 @@ local function setup()
   is_start_ = true
   model:setup(user_data)
   win_buf:setup({}, "## answer")
-  win_buf:openSplitWin()
 end
 
 local function next()
@@ -95,6 +94,7 @@ local function next()
     print("empty table")
     return
   end
+  win_buf:openSplitWin()
   win_buf:viewContent(item[1])
 end
 
