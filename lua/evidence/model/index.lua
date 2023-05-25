@@ -112,7 +112,14 @@ end
 ---@param limit_num? number
 ---@return CardItem[]|nil
 function Model:getMinDueItem(limit_num)
-	local item = self.tbl:min("due", nil, limit_num)
+	local item = self.tbl:min("due", "info NOT LIKE '%reps=0%'", limit_num)
+  return self:convertFsrsTableField2CardItem(item)
+end
+
+---@param limit_num number
+---@return CardItem[]|nil
+function Model:getNewItem(limit_num)
+	local item = self.tbl:find(limit_num, "info LIKE '%reps=0%'")
   return self:convertFsrsTableField2CardItem(item)
 end
 
