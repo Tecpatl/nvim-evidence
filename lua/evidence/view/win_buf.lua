@@ -1,14 +1,12 @@
 local tools = require("evidence.util.tools")
 
 ---@class WinBufImpl
----@field win number
 ---@field buf number
 ---@field item CardItem | {}
 local WinBufImpl = {}
 WinBufImpl.__index = WinBufImpl
 
 function WinBufImpl:new()
-  self.win = -1
   self.buf = -1
   self.item = {}
   return setmetatable({}, self)
@@ -58,22 +56,48 @@ function WinBufImpl:openFloatWin()
     border = "rounded",
   }
 
-  self.win = vim.api.nvim_open_win(self.buf, true, opts)
-  vim.api.nvim_win_set_option(self.win, "cursorline", true)
+  local win = vim.api.nvim_open_win(self.buf, true, opts)
+  vim.api.nvim_win_set_option(win, "cursorline", true)
+end
+
+local cmd_by_split_mode_list = {
+  new_horizontal = string.format("34split"),
+  new_vertical = string.format("vsplit"),
+  old_horizontal = string.format("belowright sb "),
+  old_vertical = string.format("vertical belowright sb "),
+}
+
+---@return boolean
+function WinBufImpl:checkBufValid()
+  return self.buf ~= -1 and vim.api.nvim_buf_is_valid(self.buf)
+end
+
+function WinBufImpl:getSplitCmd()
+  if not self:checkBufValid() then
+    return {
+      horizontal = cmd_by_split_mode_list.new_horizontal,
+      vertical = cmd_by_split_mode_list.new_vertical,
+    }
+  else
+    return {
+      horizontal = cmd_by_split_mode_list.old_horizontal .. self.buf,
+      vertical = cmd_by_split_mode_list.old_vertical .. self.buf,
+    }
+  end
+end
+
+function WinBufImpl:BufferClose()
+  for _, winid in ipairs(vim.api.nvim_list_wins()) do
+    local bufnr = vim.api.nvim_win_get_buf(winid)
+    if bufnr == self.buf then
+      vim.api.nvim_win_close(winid, true)
+    end
+  end
 end
 
 function WinBufImpl:openSplitWin()
-  if self.win ~= -1 then
-    local wininfo = vim.fn.getwininfo(self.win)[1]
-    if wininfo ~= nil then
-      vim.api.nvim_win_close(self.win, true)
-      -- vim.cmd(":call nvim_win_close(" .. win .. ", v:true)")
-    end
-  end
-  local cmd_by_split_mode = {
-    horizontal = string.format("34split"),
-    vertical = string.format("vsplit"),
-  }
+  self:BufferClose()
+  local cmd_by_split_mode = self:getSplitCmd()
 
   local winwidth = self:getWinWidth()
   if (winwidth / 2) >= 80 then
@@ -83,9 +107,11 @@ function WinBufImpl:openSplitWin()
     vim.cmd(cmd_by_split_mode.horizontal)
     vim.w.org_window_split_mode = "horizontal"
   end
-  self.win = vim.api.nvim_get_current_win()
-  self.buf = vim.api.nvim_create_buf(true, true)
-  vim.api.nvim_win_set_buf(self.win, self.buf)
+  if not self:checkBufValid() then
+    self.buf = vim.api.nvim_create_buf(true, true)
+    local win = vim.api.nvim_get_current_win()
+    vim.api.nvim_win_set_buf(win, self.buf)
+  end
   vim.keymap.set("n", "q", ":call nvim_win_close(win_getid(), v:true)<CR>", { buffer = self.buf, silent = true })
 end
 
@@ -206,7 +232,7 @@ function WinBuf:viewContent(item, is_fold)
 end
 
 ---@param is_fold boolean
-function WinBuf:switchFold(is_fold) 
+function WinBuf:switchFold(is_fold)
   local content = self._.item.content
   if is_fold then
     content = self:extractString(content)
