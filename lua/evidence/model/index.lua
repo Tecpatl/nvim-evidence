@@ -113,21 +113,7 @@ end
 ---@return CardItem[]|nil
 function Model:getMinDueItem(limit_num)
 	local item = self.tbl:min("due", nil, limit_num)
-	if item ~= nil then
-		local arr = {}
-		for _, v in ipairs(item) do
-			table.insert(arr, {
-				id = v.id,
-				content = v.content,
-				due = v.due,
-				file_type = v.file_type,
-				card = self:convertRealCard(v),
-			})
-		end
-		return arr
-	else
-		return nil
-	end
+  return self:convertFsrsTableField2CardItem(item)
 end
 
 ---@param id number
@@ -143,12 +129,35 @@ end
 
 ---@param content string
 ---@param lim? number
+---@return CardItem[]|nil
 function Model:fuzzyFind(content, lim)
 	lim = lim or 10
+  local item = nil
 	if content ~= "" then
-		return self.tbl:find(lim, "content like '%" .. content .. "%'")
+		item = self.tbl:find(lim, "content like '%" .. content .. "%'")
 	else
-		return self.tbl:find(lim)
+		item = self.tbl:find(lim)
+	end
+  return self:convertFsrsTableField2CardItem(item)
+end
+
+---@param item FsrsTableField[] | nil
+---@return CardItem[]|nil
+function Model:convertFsrsTableField2CardItem(item)
+	if item ~= nil then
+		local arr = {}
+		for _, v in ipairs(item) do
+			table.insert(arr, {
+				id = v.id,
+				content = v.content,
+				due = v.due,
+				file_type = v.file_type,
+				card = self:convertRealCard(v),
+			})
+		end
+		return arr
+	else
+		return nil
 	end
 end
 
