@@ -87,3 +87,5 @@ Views (WinBuf, Telescope, Hydra)
 - 自定义hydra 或者 将hydra 换成 modern search menu
 
 - lru最近访问过的卡片
+
+- record 统计
