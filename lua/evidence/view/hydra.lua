@@ -88,8 +88,28 @@ local function setup()
   win_buf:setup({}, "## answer")
 end
 
+---@return CardItem[]|nil
+local function calcNextList()
+  -- TODO: custom
+  local new_ratio = 30
+  local item=nil
+  if math.floor(math.random(0, 100)) < new_ratio then
+    item = model:getMinDueItem(1)
+    if item == nil then
+      item = model:getNewItem(1)
+    end
+  else
+    item = model:getNewItem(1)
+    if item == nil then
+      item = model:getMinDueItem(1)
+    end
+  end
+  return item
+end
+
 local function next()
-  local item = model:getMinDueItem(1)
+  local item = calcNextList()
+
   if item == nil then
     print("empty table")
     return
