@@ -145,14 +145,15 @@ function Menu:search_menu(data)
   end
 
   local handler = function(choice)
-    if not choice then
-      return
-    end
+    print(choice)
+    --if not choice then
+    --  return
+    --end
 
-    local option = options_by_label[choice]
-    if option.action then
-      option.action()
-    end
+    --local option = options_by_label[choice]
+    --if option.action then
+    --  option.action()
+    --end
   end
 
   vim.ui.select(options, {

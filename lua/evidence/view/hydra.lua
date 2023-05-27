@@ -3,6 +3,7 @@ local Hydra = require("hydra")
 local model = require("evidence.model.index")
 local win_buf = require("evidence.view.win_buf")
 local telescope = require("evidence.view.telescope")
+local select = require("evidence.view.select")
 local Menu = require("evidence.view.menu")
 
 ---@type ModelTableInfo
@@ -94,7 +95,7 @@ end
 local function calcNextList()
   -- TODO: custom
   local new_ratio = 30
-  local item=nil
+  local item = nil
   if math.floor(math.random(0, 100)) < new_ratio then
     item = model:getMinDueItem(1)
     if item == nil then
@@ -224,21 +225,38 @@ local function info()
   tools.printDump(getNowItem().card)
 end
 
-
 local function test()
+  select.find()
+end
+
+local function test_old()
   local menu = Menu:new({
-    title = 'Press key for an agenda command',
-    prompt = 'Press key for an agenda command',
+    title = "Press key for an agenda command",
+    prompt = "Press key for an agenda command",
   })
 
   menu:add_option({
-    label = 'Agenda for current week or day',
-    key = 'a',
+    label = "add",
+    key = "a",
     action = function()
-      print("asdf")
+      print("add")
     end,
   })
-  menu:add_separator({ icon = ' ', length = 1 })
+  menu:add_option({
+    label = "edit",
+    key = "e",
+    action = function()
+      print("edit")
+    end,
+  })
+  menu:add_option({
+    label = "next",
+    key = "n",
+    action = function()
+      print("next")
+    end,
+  })
+  menu:add_separator({ icon = " ", length = 1 })
 
   menu:open()
 end
