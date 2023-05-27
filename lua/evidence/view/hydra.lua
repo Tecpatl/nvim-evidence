@@ -3,6 +3,7 @@ local Hydra = require("hydra")
 local model = require("evidence.model.index")
 local win_buf = require("evidence.view.win_buf")
 local telescope = require("evidence.view.telescope")
+local Menu = require("evidence.view.menu")
 
 ---@type ModelTableInfo
 local user_data = nil
@@ -64,6 +65,7 @@ local evidence_hint = [[
  _x_: start _s_: score _t_: switchTable
  _o_: viewAnswer _f_: fuzzyFind _m_: minFind
  _e_: edit _d_: delete _a_: add _i_: info
+ _y_: test
  ^
      _<Esc>_: exit  _q_: exit
 ]]
@@ -222,6 +224,22 @@ local function info()
   tools.printDump(getNowItem().card)
 end
 
+
+local function test()
+  local menu = Menu:new({
+    title = 'Press key for an agenda command',
+    prompt = 'Press key for an agenda command',
+  })
+
+  menu:add_option({
+    label = 'Agenda for current week or day',
+    key = 'a',
+    action = function()
+      print("asdf")
+    end,
+  })
+end
+
 ---@param data ModelTableInfo
 local setup = function(data)
   user_data = data
@@ -249,6 +267,7 @@ local setup = function(data)
       { "d", delete },
       { "o", answer },
       { "i", info },
+      { "y", test },
       { "t", switchTable, { exit = true, nowait = true, desc = "exit" } },
       { "q", nil, { exit = true, nowait = true, desc = "exit" } },
       { "<Esc>", nil, { exit = true, nowait = true } },

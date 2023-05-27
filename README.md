@@ -8,6 +8,10 @@ under development
 
 fsrs plugin for nvim
 
+orgmode 适用于安排有风险不稳定的计划或短期任务. (指南针)
+
+evidence 适用于确定待执行的长久稳定且需要重复记忆任务. (船桨)
+
 ## Reference
 
 [free-spaced-repetition-scheduler](https://github.com/open-spaced-repetition/free-spaced-repetition-scheduler)
@@ -80,8 +84,6 @@ Views (WinBuf, Telescope, Hydra)
 
 - 支持多 winbuf
 
-- 所有牌组随机抽
-
 - 撤销
 
 - 自定义hydra 或者 将hydra 换成 modern search menu
@@ -89,3 +91,7 @@ Views (WinBuf, Telescope, Hydra)
 - lru最近访问过的卡片
 
 - record 统计
+
+- tags
+
+- 超前学习提示下
