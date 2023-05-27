@@ -25,7 +25,7 @@ function Menu:new(data)
   opts.title = data.title
   opts.prompt = data.prompt
   opts.items = data.items or {}
-  opts.separator = vim.tbl_deep_extend('force', { icon = '-', length = 80 }, data.separator or {})
+  opts.separator = vim.tbl_deep_extend("force", { icon = "-", length = 80 }, data.separator or {})
 
   setmetatable(opts, self)
   self.__index = self
@@ -35,16 +35,16 @@ end
 ---@param option MenuOption
 function Menu:_validate_option(option)
   vim.validate({
-    label = { option.label, 'string' },
-    key = { option.key, 'string' },
-    action = { option.action, 'function', true },
+    label = { option.label, "string" },
+    key = { option.key, "string" },
+    action = { option.action, "function", true },
   })
 end
 
 ---@param items MenuItem[]?
 function Menu:_validate_items(items)
   vim.validate({
-    items = { items, 'table', true },
+    items = { items, "table", true },
   })
   if not items then
     return
@@ -64,12 +64,12 @@ end
 ---@param separator MenuSeparator?
 function Menu:_validate_separator(separator)
   vim.validate({
-    separator = { separator, 'table', true },
+    separator = { separator, "table", true },
   })
   if separator then
     vim.validate({
-      icon = { separator.icon, 'string', true },
-      length = { separator.length, 'number', true },
+      icon = { separator.icon, "string", true },
+      length = { separator.length, "number", true },
     })
   end
 end
@@ -77,8 +77,8 @@ end
 ---@param data Menu
 function Menu:_validate_data(data)
   vim.validate({
-    title = { data.title, 'string' },
-    prompt = { data.prompt, 'string' },
+    title = { data.title, "string" },
+    prompt = { data.prompt, "string" },
   })
   self:_validate_items(data.items)
   self:_validate_separator(data.separator)
@@ -93,7 +93,7 @@ end
 ---@param separator MenuSeparator
 function Menu:add_separator(separator)
   self:_validate_separator(separator)
-  table.insert(self.items, vim.tbl_deep_extend('force', self.separator, separator or {}))
+  table.insert(self.items, vim.tbl_deep_extend("force", self.separator, separator or {}))
 end
 
 ---@class MenuData
@@ -103,7 +103,7 @@ end
 
 ---@param data MenuData
 function Menu._default_menu(data)
-  local content = { data.title, string.rep('-', #data.title) }
+  local content = { data.title, string.rep("-", #data.title) }
   local valid_keys = {}
 
   for _, item in ipairs(data.items) do
@@ -113,15 +113,15 @@ function Menu._default_menu(data)
     else
       ---@cast item MenuOption
       valid_keys[item.key] = item
-      table.insert(content, string.format('%s %s', item.key, item.label))
+      table.insert(content, string.format("%s %s", item.key, item.label))
     end
   end
 
-  table.insert(content, data.prompt .. ': ')
+  table.insert(content, data.prompt .. ": ")
 
-  vim.cmd(string.format('echon "%s"', table.concat(content, '\\n')))
+  vim.cmd(string.format('echon "%s"', table.concat(content, "\\n")))
   local char = vim.fn.nr2char(vim.fn.getchar())
-  vim.cmd('redraw!')
+  vim.cmd("redraw!")
 
   local entry = valid_keys[char]
   if not entry or not entry.action then
@@ -130,13 +130,44 @@ function Menu._default_menu(data)
   return entry.action()
 end
 
+function Menu:search_menu(data)
+  -- your handler here, for example:
+  local options = {}
+  local options_by_label = {}
+
+  for _, item in ipairs(data.items) do
+    -- Only MenuOption has `key`
+    -- Also we don't need `Quit` option because we can close the menu with ESC
+    if item.key and item.label:lower() ~= "quit" then
+      table.insert(options, item.label)
+      options_by_label[item.label] = item
+    end
+  end
+
+  local handler = function(choice)
+    if not choice then
+      return
+    end
+
+    local option = options_by_label[choice]
+    if option.action then
+      option.action()
+    end
+  end
+
+  vim.ui.select(options, {
+    propmt = data.propmt,
+  }, handler)
+end
+
 function Menu:open()
   local menu_data = {
     title = self.title,
     items = self.items,
     prompt = self.prompt,
   }
-  return Menu._default_menu(menu_data)
+  self:search_menu(menu_data)
+  --return Menu._default_menu(menu_data)
 end
 
 return Menu

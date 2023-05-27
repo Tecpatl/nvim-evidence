@@ -238,6 +238,9 @@ local function test()
       print("asdf")
     end,
   })
+  menu:add_separator({ icon = ' ', length = 1 })
+
+  menu:open()
 end
 
 ---@param data ModelTableInfo
