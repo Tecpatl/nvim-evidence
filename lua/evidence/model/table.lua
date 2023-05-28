@@ -4,85 +4,143 @@ local now_time = os.time()
 
 ---@class SqlInfo
 ---@field uri string
----@field all_table_id table<string>
----@field now_table_id string
 local SqlInfo = {}
 
----@class FsrsTableField
+---@class CardField
 ---@field id number
 ---@field content string
 ---@field due Timestamp
 ---@field info string fsrs data
 ---@field file_type string "markdown" | "org"
-local FsrsTableField = {
-  id = 0, -- same as { type = "integer", required = true, primary = true }
-  content = "text",
-  due = now_time,
-  info = "",
-  file_type = "markdown",
+
+---@class TagField
+---@field id number
+---@field name string
+
+---@class CardTagField
+---@field card_id number
+---@field tag_id number
+
+---@alias TablesType string
+local Tables = {
+  card = "card",
+  tag = "tag",
+  card_tag = "card_tag",
 }
 
 ---@class SqlTable
----@field sqlite any
----@field tbl any
+---@field sql any
+---@field db any
 ---@field uri string sql path
----@field all_table_id table<string>
----@field now_table_id string
----@field now_table any
----@field all_table table<string,any>
----@field table_field table<string,any>
 local SqlTable = {}
 SqlTable.__index = SqlTable
 
 function SqlTable:new()
-  self.sqlite = require("sqlite.db")
-  self.tbl = require("sqlite.tbl")
+  --- !! attention sql command only db:eval db:execute due to "sqlite.db" not support composite primary key and foreign keys
+  self.sql = require("sqlite.db")
+  self.db = nil
   self.uri = ""
-  self.all_table_id = {}
-  self.now_table_id = ""
-  self.now_table = nil
-  self.table_field = {
-    id = true, -- same as { type = "integer", required = true, primary = true }
-    content = { "text" },
-    due = { "number" },
-    info = { "text", required = true },
-    file_type = { "text" },
-  }
-  self.all_table = {}
   return setmetatable({}, self)
 end
 
 function SqlTable:dump()
   return {
     uri = self.uri,
-    all_table_id = self.all_table_id,
-    now_table_id = self.now_table_id,
   }
 end
 
 ---@param data SqlInfo
 function SqlTable:setup(data)
   assert(data.uri ~= nil, "uri required")
-  assert(type(data.all_table_id) == "table", "all_table_id required table")
-  assert(type(data.now_table_id) == "string", "now_table_id required string")
   self.uri = data.uri
-  self.all_table_id = data.all_table_id
-  self.now_table_id = data.now_table_id
 
-  for _k, item in pairs(self.all_table_id) do
-    local tb = self.tbl(item, self.table_field)
-    self.all_table[item] = tb
-  end
+  self.db = self.sql:open(self.uri)
 
-  self.now_table = self.all_table[self.now_table_id]
+  self.db:execute("PRAGMA foreign_keys = ON;")
 
-  local uri_map = { uri = self.uri }
-  self.sqlite(tools.merge(uri_map, self.all_table))
+  self.db:execute([[
+    create table if not exists card(
+      id INTEGER primary KEY AUTOINCREMENT,
+      content text NOT NULL,
+      due int NOT NULL,
+      info text NOT NULL,
+      file_type text NOT NULL
+    )]])
+
+  self.db:execute([[
+    create table if not exists tag(
+      id INTEGER primary KEY AUTOINCREMENT,
+      name text NOT NULL
+    )]])
+
+  self.db:execute([[
+    create table if not exists card_tag(
+      tag_id int NOT NULL,
+      card_id int NOT NULL,
+      PRIMARY KEY (card_id, tag_id),
+      FOREIGN KEY (card_id) REFERENCES card(id),
+      FOREIGN KEY (tag_id) REFERENCES tag(id)
+    )]])
 end
 
----@return table<string>
-function SqlTable:getTableIds()
-  return self.all_table_id
+---@param query string
+---@return nil | table
+function SqlTable:eval(query)
+  local item = self.db:eval(query)
+  if tools.isTableEmpty(item) then
+    return nil
+  end
+  return item
+end
+
+---@param tbl TablesType
+---@param data table
+---@param statement? string
+function SqlTable:update(tbl, data, statement)
+  if tools.isTableEmpty(data) then
+    error("update data not table")
+  end
+  local str = ""
+  for key, val in pairs(data) do
+    if str ~= "" then
+      str = str .. ","
+    end
+    local val_ = val
+    if type(val_) == "string" then
+      val_ = "'" .. val_ .. "'"
+    end
+    local kv = key .. " = " .. val_
+    str = str .. kv
+  end
+  local cmd = "update " .. tbl .. " set " .. str
+  if statement then
+    cmd = cmd .. " where " .. statement
+  end
+  self.db:execute(cmd)
+end
+
+---@param tbl TablesType
+---@param data table
+function SqlTable:insert(tbl, data)
+  if tools.isTableEmpty(data) then
+    error("insert data not table")
+  end
+  local key_str = ""
+  local val_str = ""
+  for key, val in pairs(data) do
+    if key_str ~= "" then
+      key_str = key_str .. ","
+      val_str = val_str .. ","
+    end
+    key_str = key_str .. key
+    local val_ = val
+    if type(val_) == "string" then
+      val_ = "'" .. val_ .. "'"
+    end
+    val_str = val_str .. val_
+  end
+  local cmd = "insert into " .. tbl .. " (" .. key_str .. ") values (" .. val_str .. ")"
+  self.db:execute(cmd)
 end
 
 ---@param content string
@@ -93,68 +151,128 @@ function SqlTable:insertCard(content, info, due, file_type)
   if not file_type or file_type == "" then
     file_type = "markdown"
   end
-  self.now_table:insert({ content = content, info = info, due = due, file_type = file_type })
+  self:insert(Tables.card, { content = content, info = info, due = due, file_type = file_type })
+end
+
+---@param name string
+function SqlTable:insertTag(name)
+  self:insert(Tables.tag, { name = name })
 end
 
 ---@param id number
----@param row FsrsTableField
----@return boolean
-function SqlTable:editById(id, row)
-  row["id"] = nil
-  return self.now_table:update({
-    where = { id = id },
-    set = row,
-  })
+---@param data TagField
+function SqlTable:editTag(id, data)
+  self:update(Tables.tag, data, "id=" .. id)
 end
 
----@param query string
----@return nil | table
-function SqlTable:eval(query)
-  local item = self.now_table:eval(query)
-  if tools.isTableEmpty(item) then
-    return nil
+---@param card_id number
+---@param tag_id number
+function SqlTable:insertCardTag(card_id, tag_id)
+  self:insert(Tables.card_tag, { card_id = card_id, tag_id = tag_id })
+end
+
+---@param id number
+---@param data CardField
+function SqlTable:editCard(id, data)
+  self:update(Tables.card, data, "id=" .. id)
+end
+
+---@param card_id number
+---@return nil | TagField[]
+function SqlTable:findTagsByCard(card_id)
+  local query = "SELECT t.* FROM "
+      .. Tables.card_tag
+      .. " AS ct JOIN "
+      .. Tables.tag
+      .. " AS t ON ct.tag_id = t.id WHERE ct.card_id = "
+      .. card_id
+  return self:eval(query)
+end
+
+---@param tag_ids number[]
+---@param is_and? boolean
+---@return nil | CardField[]
+function SqlTable:findCardsByTags(tag_ids, is_and)
+  if is_and == nil then
+    is_and = true
   end
-  return item
+  if type(tag_ids) ~= "table" then
+    return
+  end
+  local tag_str = ""
+  local cnt = #tag_ids
+  for key, val in pairs(tag_ids) do
+    if tag_str ~= "" then
+      tag_str = tag_str .. ","
+    end
+    tag_str = tag_str .. val
+  end
+  local query = "SELECT c.* FROM "
+      .. Tables.card
+      .. " AS c JOIN "
+      .. Tables.card_tag
+      .. " AS ct ON c.id = ct.card_id JOIN "
+      .. Tables.tag
+      .. " AS t ON ct.tag_id = t.id WHERE t.id IN ("
+      .. tag_str
+      .. ") GROUP BY c.id"
+  if is_and then
+    query = query .. " HAVING COUNT(DISTINCT t.id) = " .. cnt
+  end
+  return self:eval(query)
 end
 
-function SqlTable:clear()
-  return self:eval("delete from " .. self.now_table_id)
-end
-
----@param limit_num number
----@param statement string | nil
----@return nil | FsrsTableField[]
-function SqlTable:find(limit_num, statement)
-  local query = "SELECT * FROM " .. self.now_table_id
+---@param statement? string | nil
+---@return nil | TagField[]
+function SqlTable:findTag(statement)
+  local query = "SELECT * FROM " .. Tables.tag
   if statement ~= nil then
     query = query .. " where " .. statement
   end
-  if limit_num ~= -1 then
+  return self:eval(query)
+end
+
+---@param limit_num? number
+---@param statement? string | nil
+---@return nil | CardField[]
+function SqlTable:findCard(limit_num, statement)
+  local query = "SELECT * FROM " .. Tables.card
+  if statement ~= nil then
+    query = query .. " where " .. statement
+  end
+  if limit_num ~= nil and limit_num ~= -1 then
     query = query .. " LIMIT " .. limit_num
   end
-  local ret = self:eval(query)
-  if type(ret) ~= "table" then
-    return nil
-  end
-  return ret
+  return self:eval(query)
 end
 
 ---@param id number
-function SqlTable:del(id)
-  self.now_table:remove({ id = id })
+function SqlTable:delTag(id)
+  local query = "delete from " .. Tables.card_tag .. " where tag_id=" .. id
+  self.db:execute(query)
+  query = "delete from " .. Tables.tag .. " where id=" .. id
+  self.db:execute(query)
+end
+
+---@param id number
+function SqlTable:delCard(id)
+  local query = "delete from " .. Tables.card_tag .. " where card_id=" .. id
+  self.db:execute(query)
+  query = "delete from " .. Tables.card .. " where id=" .. id
+  self.db:execute(query)
 end
 
 ---@param column string
 ---@param statement? string
 ---@param limit_num? number
----@return nil | FsrsTableField[]
-function SqlTable:min(column, statement, limit_num)
+---@return nil | CardField[]
+function SqlTable:minCard(column, statement, limit_num)
   limit_num = limit_num or 1
   local query = ""
   if limit_num ~= 1 then
-    query = "SELECT * FROM " .. self.now_table_id
+    query = "SELECT * FROM " .. Tables.card
   else
-    query = "SELECT *, MIN(" .. column .. ") AS `rowmin` FROM " .. self.now_table_id
+    query = "SELECT *, MIN(" .. column .. ") AS `rowmin` FROM " .. Tables.card
   end
   if statement ~= nil then
     query = query .. " where " .. statement
@@ -162,23 +280,11 @@ function SqlTable:min(column, statement, limit_num)
   if limit_num ~= -1 then
     query = query .. " order by " .. column .. " LIMIT " .. limit_num
   end
-  local ret = self:eval(query)
-  if ret ~= nil then
-    return ret
-  else
-    return nil
-  end
+  return self:eval(query)
 end
 
----@param table_id string
----@return boolean
-function SqlTable:setTable(table_id)
-  if tools.isInTable(table_id, self.all_table_id) then
-    self.now_table_id = table_id
-    self.now_table = self.all_table[table_id]
-    return true
-  end
-  return false
+function SqlTable:close()
+  self.db:close()
 end
 
 return SqlTable
