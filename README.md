@@ -16,6 +16,8 @@ evidence 适用于确定待执行的长久稳定且需要重复记忆任务. (�
 
 [free-spaced-repetition-scheduler](https://github.com/open-spaced-repetition/free-spaced-repetition-scheduler)
 
+[nvim-orgmode](https://github.com/nvim-orgmode/orgmode)
+
 ## Usage Scene
 
 ### Install && Setup (lazy for example) 
@@ -50,35 +52,43 @@ evidence 适用于确定待执行的长久稳定且需要重复记忆任务. (�
 }
 ```
 
-`<Leader>E` 启动hydra
+### 当前卡片card操作   `<leader>Ec` 弹出搜索框
 
-### Hydra + Telescope
+- addCard: 将缓冲区内容生成新卡片
 
-- a: add   将缓冲区内容添加到数据库
+- nextCard: 弹出最新需要复习卡片
 
-- x: start  开始学习, 弹出最新需要复习卡片
+- delCard: 删除当前卡片
 
-- d: del  删除当前卡片
+- answer: 显示答案
 
-- o: viewAnser 显示答案
+- findTags:  列表展示拥有的tags 
 
-- s: switchTable  切换 table
+- addTags:  先展示出所有非直系亲缘tags, 支持多选添加, 并且如果没有匹配项自动生成一个新的, 个数限制
 
-- e: edit  将缓冲区的内容更新到当前卡片里
+- delTags:  列表展示拥有的tags, 支持多选删除 
 
-- i: info  打印当前缓冲区卡片信息
+- editCard:  将缓冲区的内容更新到当前卡片里
 
-- s: score  给当前卡片打分
+- infoCard:  打印当前卡片信息
 
-- f: fuzzyFind  开启根据卡片内容的模糊搜索
+- scoreCard:  给当前卡片打分
 
-- m: minFind  开启根据最近需要复习卡片的搜索
+- fuzzyFind:  开启根据卡片内容的模糊搜索弹出作为当前卡片
 
-## Module
+- minFind:  开启根据最近需要复习卡片的搜索弹出作为当前卡片
 
-Models (FSRS, SqlTable)
-Controller
-Views (WinBuf, Telescope, Hydra)
+### 对tags操作   `<leader>Et` 弹出搜索框
+
+- rename:  先展示出所有tags, 选中一个(不能多选),左下角输入新名字
+
+- switch( And/Or ):  telescope标题是当前已选tags, 然后展示出所有tags, 支持多选开启新的搜索路径 
+
+- find( And/Or ): telescope标题是当前已选tags, 然后展示出所有满足tags要求cards
+
+- findFather: 打印父tags 
+
+- findSon: 打印子tags
 
 ## Todo
 
