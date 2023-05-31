@@ -12,12 +12,12 @@ local tools = require("evidence.util.tools")
 --
 ---@class ModelTableInfo
 ---@field uri string
----@field paramter Parameters
+---@field parameter Parameters
 
 ---@class Model
 ---@field tbl SqlTable
 ---@field is_setup boolean
----@field paramter Parameters
+---@field parameter Parameters
 ---@field instance Model
 local Model = {}
 
@@ -38,8 +38,7 @@ end
 function Model:getInstance()
   if not self.instance then
     self.tbl = SqlTable:new()
-    self.paramter = {}
-    self.instance = setmetatable({ is_setup = false }, self)
+    self.instance = setmetatable({ is_setup = false, parameter = {} }, self)
   end
   return self.instance
 end
@@ -50,7 +49,7 @@ function Model:setup(data)
     error("cannot setup twice")
   end
   self.is_setup = true
-  self.paramter = _.Parameters:new(data.paramter)
+  self.parameter = _.Parameters:new(data.parameter)
   local sql_info = {
     uri = data.uri,
   }
@@ -159,7 +158,7 @@ end
 
 ---@return Parameters
 function Model:getParameter()
-  return self.paramter
+  return self.parameter
 end
 
 ---@return FSRS
@@ -190,6 +189,10 @@ function Model:ratingCard(id, rating, now_time)
   sql_card.due = new_card.due
   sql_card.info = new_card:dumpStr()
   self:editCard(id, sql_card)
+end
+
+function Model:findTag()
+  return self.tbl:findTag()
 end
 
 return Model:getInstance()

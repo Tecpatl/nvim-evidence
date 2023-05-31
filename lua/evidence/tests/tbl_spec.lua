@@ -5,7 +5,7 @@ local SqlTable = require("evidence.model.table")
 local db = SqlTable:new()
 
 describe("sqlite.db", function()
-  local path = "~/sql/v2"
+  local path = "~/sql/v4"
   db:setup({ uri = path })
 
   it("Insert", function()
