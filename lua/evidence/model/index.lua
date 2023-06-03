@@ -56,7 +56,6 @@ function Model:setup(data)
   self.tbl:setup(sql_info)
 end
 
-
 ---@class ModelTableInfo
 ---@field sql_table table
 ---@field parameter Parameters
@@ -139,7 +138,7 @@ end
 ---@param item CardField[] | nil
 ---@return CardItem[]|nil
 function Model:convertFsrsTableField2CardItem(item)
-  if item ~= nil then
+  if type(item) == "table" then
     local arr = {}
     for _, v in ipairs(item) do
       table.insert(arr, {

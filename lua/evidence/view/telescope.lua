@@ -14,9 +14,6 @@ local tools = require("evidence.util.tools")
 ---@class SimpleMenu
 ---@field name string
 ---@field foo? function
---
-local fn
-local s_prompt = ""
 
 ---@class MenuData
 ---@field prompt_title string
@@ -68,7 +65,6 @@ local async_job = setmetatable({
   entry_maker = entry_maker,
 }, {
   __call = function(_, prompt, process_result, process_complete)
-    s_prompt = prompt
     local work = menu_data_.process_work or process_work_default
     work(prompt, process_result, process_complete)
   end,
@@ -95,19 +91,18 @@ local function live_fd(option)
             local picker = action_state.get_current_picker(prompt_bufnr)
             local single = action_state.get_selected_entry().value
             local res = nil
-            local info = {
-              prompt = s_prompt,
-            }
             if menu_data_.main_foo ~= nil then
               local multi = picker:get_multi_selection()
-              res = menu_data_.main_foo(convertValueArray(multi), info)
+              res = menu_data_.main_foo(convertValueArray(multi))
             elseif not tools.isTableEmpty(single) and single.foo ~= nil then
-              res = single.foo(info)
+              res = single.foo()
             end
             if res ~= nil then
               assert(res.prompt_title ~= nil)
               assert(res.menu_item ~= nil)
               menu_data_ = res
+
+              picker.prompt_border:change_title(res.prompt_title)
               local finder = picker.finder
               picker:refresh(finder, { reset_prompt = true, multi = picker._multi })
 
