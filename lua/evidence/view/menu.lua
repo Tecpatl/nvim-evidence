@@ -38,24 +38,8 @@ local function getNowItem()
 end
 
 ---@return MenuData
-local function findTag()
-  local res = model:findTag()
-  local items = {}
-  if type(res) == "table" then
-    for _, v in ipairs(res) do
-      table.insert(items, { name = v.name, foo = nil })
-    end
-  end
-  return {
-    prompt_title = "Evidence FindTag",
-    menu_item = items,
-    main_foo = nil,
-  }
-end
-
----@return MenuData
 local function fuzzyFind()
-  local res = model:fuzzyFind("", 50)
+  local res = model:fuzzyFindCard("", 50)
   return {
     prompt_title = "Evidence FuzzyFind",
     menu_item = {},
@@ -86,6 +70,52 @@ local function answer()
   winBuf:switchFold(false)
 end
 
+local function addTag()
+  local card_id = getNowItem().id
+  local res = model:findExcludeTagsByCard(card_id)
+  local items = {}
+  if type(res) == "table" then
+    for _, v in ipairs(res) do
+      table.insert(items, {
+        name = v.name,
+        foo = function()
+          model:findIncludeTagsByCard(v.id)
+        end,
+      })
+    end
+  end
+  return {
+    prompt_title = "Evidence AddTag",
+    menu_item = items,
+    main_foo = function(value)
+      local typename = type(value)
+      if typename == "table" then
+        for _, v in ipairs(value) do
+          model:insertCardTagById(card_id, v.id)
+        end
+      elseif typename == "string" then
+        model:insertCardTagByName(card_id, value)
+      end
+    end,
+  }
+end
+
+---@return MenuData
+local function findTag()
+  local res = model:findAllTags()
+  local items = {}
+  if type(res) == "table" then
+    for _, v in ipairs(res) do
+      table.insert(items, { name = v.name, foo = nil })
+    end
+  end
+  return {
+    prompt_title = "Evidence FindTag",
+    menu_item = items,
+    main_foo = nil,
+  }
+end
+
 ---@type SimpleMenu[]
 local menuItem = {
   {
@@ -107,6 +137,10 @@ local menuItem = {
   {
     name = "findTags",
     foo = findTag,
+  },
+  {
+    name = "addTag",
+    foo = addTag,
   },
   {
     name = "fuzzyFind",

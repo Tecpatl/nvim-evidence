@@ -70,7 +70,7 @@ function SqlTable:setup(data)
   self.db:execute([[
     create table if not exists tag(
       id INTEGER primary KEY AUTOINCREMENT,
-      name text NOT NULL
+      name text NOT NULL UNIQUE
     )]])
 
   self.db:execute([[
@@ -87,6 +87,9 @@ end
 ---@return nil | table
 function SqlTable:eval(query)
   local item = self.db:eval(query)
+  if type(item) ~= "table" then
+    item = nil
+  end
   if tools.isTableEmpty(item) then
     return nil
   end
@@ -178,14 +181,26 @@ function SqlTable:editCard(id, data)
 end
 
 ---@param card_id number
+---@param is_include boolean
 ---@return nil | TagField[]
-function SqlTable:findTagsByCard(card_id)
-  local query = "SELECT t.* FROM "
-      .. Tables.card_tag
-      .. " AS ct JOIN "
-      .. Tables.tag
-      .. " AS t ON ct.tag_id = t.id WHERE ct.card_id = "
-      .. card_id
+function SqlTable:findTagsByCard(card_id, is_include)
+  local query = ""
+  if is_include == true then
+    query = "SELECT t.* FROM "
+        .. Tables.card_tag
+        .. " AS ct JOIN "
+        .. Tables.tag
+        .. " AS t ON "
+        .. "ct.tag_id = t.id"
+        .. " WHERE ct.card_id = "
+        .. card_id
+  else
+    query = "SELECT * FROM "
+        .. Tables.tag
+        .. " WHERE id NOT IN ( SELECT tag_id FROM card_tag WHERE card_id = "
+        .. card_id
+        .. " )"
+  end
   return self:eval(query)
 end
 
@@ -222,12 +237,16 @@ function SqlTable:findCardsByTags(tag_ids, is_and)
   return self:eval(query)
 end
 
+---@param limit_num? number
 ---@param statement? string | nil
 ---@return nil | TagField[]
-function SqlTable:findTag(statement)
+function SqlTable:findTag(limit_num, statement)
   local query = "SELECT * FROM " .. Tables.tag
   if statement ~= nil then
     query = query .. " where " .. statement
+  end
+  if limit_num ~= nil and limit_num ~= -1 then
+    query = query .. " LIMIT " .. limit_num
   end
   return self:eval(query)
 end

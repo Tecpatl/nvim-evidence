@@ -100,7 +100,7 @@ function MenuHelper:createCardProcessWork()
   return function(prompt, process_result, process_complete)
     self.prompt = prompt
     --	if now_search_mode == SearchMode.fuzzy then
-    local x = self.model:fuzzyFind(prompt, 50)
+    local x = self.model:fuzzyFindCard(prompt, 50)
     --	elseif now_search_mode == SearchMode.min_due then
     --		x = model:getMinDueItem(50)
     --	end

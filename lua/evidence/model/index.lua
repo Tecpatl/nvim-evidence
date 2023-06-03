@@ -121,10 +121,24 @@ function Model:findById(id)
   end
 end
 
+---@param name string
+---@param lim? number
+---@return CardItem[]|nil
+function Model:fuzzyFindTag(name, lim)
+  lim = lim or 10
+  local item = nil
+  if name ~= "" then
+    item = self.tbl:findTag(lim, "name like '%" .. name .. "%'")
+  else
+    item = self.tbl:findTag(lim)
+  end
+  return item
+end
+
 ---@param content string
 ---@param lim? number
 ---@return CardItem[]|nil
-function Model:fuzzyFind(content, lim)
+function Model:fuzzyFindCard(content, lim)
   lim = lim or 10
   local item = nil
   if content ~= "" then
@@ -195,8 +209,47 @@ function Model:ratingCard(id, rating, now_time)
   self:editCard(id, sql_card)
 end
 
-function Model:findTag()
+function Model:findAllTags()
   return self.tbl:findTag()
+end
+
+---@param name string
+function Model:addTag(name)
+  self.tbl:insertTag(name)
+end
+
+---@param card_id number
+---@param tag_id number
+function Model:insertCardTagById(card_id, tag_id)
+  self.tbl:insertCardTag(card_id, tag_id)
+end
+
+---@param card_id number
+---@param tag_name string
+function Model:insertCardTagByName(card_id, tag_name)
+  local tag_item = self:fuzzyFindTag(tag_name, 1)
+  if type(tag_item) ~= "table" then
+    self:addTag(tag_name)
+    tag_item = self:fuzzyFindTag(tag_name, 1)
+  end
+  if tag_item == nil then
+    error("failed insertCardTagByName card_id:" .. card_id .. " tag_name:" .. tag_name)
+    return
+  end
+  tag_item = tag_item[1]
+  self.tbl:insertCardTag(card_id, tag_item.id)
+end
+
+---@param card_id number
+---@return nil | TagField[]
+function Model:findExcludeTagsByCard(card_id)
+  return self.tbl:findTagsByCard(card_id, false)
+end
+
+---@param card_id number
+---@return nil | TagField[]
+function Model:findIncludeTagsByCard(card_id)
+  return self.tbl:findTagsByCard(card_id, true)
 end
 
 return Model:getInstance()

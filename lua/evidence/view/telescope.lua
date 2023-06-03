@@ -89,13 +89,24 @@ local function live_fd(option)
         attach_mappings = function(prompt_bufnr, map)
           actions.select_default:replace(function()
             local picker = action_state.get_current_picker(prompt_bufnr)
-            local single = action_state.get_selected_entry().value
+            local select_item = action_state.get_selected_entry()
+            local single = nil
             local res = nil
-            if menu_data_.main_foo ~= nil then
-              local multi = picker:get_multi_selection()
-              res = menu_data_.main_foo(convertValueArray(multi))
-            elseif not tools.isTableEmpty(single) and single.foo ~= nil then
-              res = single.foo()
+            if select_item == nil then
+              local value = picker:_get_prompt()
+              if menu_data_.main_foo ~= nil then
+                menu_data_.main_foo(value)
+              end
+            else
+              single = select_item.value
+              if menu_data_.main_foo ~= nil then
+                local multi = picker:get_multi_selection()
+                if not tools.isTableEmpty(multi) then
+                  res = menu_data_.main_foo(convertValueArray(multi))
+                end
+              elseif not tools.isTableEmpty(single) and single.foo ~= nil then
+                res = single.foo()
+              end
             end
             if res ~= nil then
               assert(res.prompt_title ~= nil)

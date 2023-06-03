@@ -7,7 +7,8 @@ local eq = function(a, b)
 end
 
 local data = {
-  uri = "~/sql/v4",
+  --uri = "~/sql/v4",
+  uri = "",
   parameter = {
     request_retention = 0.7,
     maximum_interval = 100,
@@ -25,7 +26,7 @@ local reset = function(n)
   model:clear()
   n = n or lim
   for i = 1, n do
-    model:addNewCard("* mock" .. i .. "abc")
+    model:addNewCard("# mock\n\n ## answer \n\n" .. i .. "abc")
   end
   return n
 end
@@ -64,16 +65,30 @@ describe("card", function()
   it("ratingCard", function()
     reset(1)
     local data = model:findAll()
-    tools.printDump(data)
+    --tools.printDump(data)
     model:ratingCard(1, _.Rating.Again, os.time() + 5 * 24 * 60 * 60)
     data = model:findAll()
-    tools.printDump(data)
+    --tools.printDump(data)
   end)
   it("min", function()
     local item = model:getMinDueItem(1)
-    print(vim.inspect(item))
   end)
-  it("reset", function()
-    reset(100)
+end)
+
+describe("tag", function()
+  it("addTag", function()
+    reset(3)
+    model:addTag("a")
+    model:addTag("b")
+    model:addTag("c")
+    model:insertCardTagById(1, 1)
+    model:insertCardTagById(1, 2)
+    local q = model:findIncludeTagsByCard(1)
+    --print(vim.inspect(q))
+    q = model:findExcludeTagsByCard(1)
+    --print(vim.inspect(q))
+    model:insertCardTagByName(1, "x")
+    q = model:findIncludeTagsByCard(1)
+    --print(vim.inspect(q))
   end)
 end)
