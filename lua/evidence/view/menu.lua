@@ -25,15 +25,29 @@ local function del()
   print("del")
 end
 
-local function findTags()
+---@return MenuData
+local function findTag()
   local res = model:findTag()
-  print(vim.inspect(res))
   local items = {}
   for _, v in ipairs(res) do
     table.insert(items, { name = v.name, foo = nil })
   end
   return {
-    prompt_title = "EvidenceFindTags",
+    prompt_title = "EvidenceFindTag",
+    menu_item = items,
+    main_foo = nil,
+  }
+end
+
+---@return MenuData
+local function findCard()
+  local res = model:findCard()
+  local items = {}
+  for _, v in ipairs(res) do
+    table.insert(items, { name = v.name, foo = nil })
+  end
+  return {
+    prompt_title = "EvidenceFindCard",
     menu_item = items,
     main_foo = nil,
   }
@@ -42,11 +56,11 @@ end
 ---@type SimpleMenu[]
 local menuItem = {
   {
-    name = "findTags",
-    foo = findTags,
+    name = "findTag",
+    foo = findTag,
   },
   {
-    name = "add",
+    name = "findCard",
     foo = add,
   },
   {

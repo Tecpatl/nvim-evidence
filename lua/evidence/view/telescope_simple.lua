@@ -22,12 +22,14 @@ local s_prompt = ""
 ---@field prompt_title string
 ---@field menu_item SimpleMenu[]
 ---@field main_foo? function
+---@field previewer? function
 
 ---@type MenuData
 local menu_data_ = {
   prompt_title = "Evidence",
   menu_item = {},
   main_foo = nil,
+  previewer = nil,
 }
 
 ---@class EntryMaker
@@ -81,6 +83,7 @@ local function live_fd(option)
         prompt_title = menu_data_.prompt_title,
         finder = async_job,
         sorter = conf.generic_sorter(option), -- shouldn't this be default?
+        previewer = menu_data_.previewer,
         attach_mappings = function(prompt_bufnr, map)
           actions.select_default:replace(function()
             local picker = action_state.get_current_picker(prompt_bufnr)
@@ -98,6 +101,16 @@ local function live_fd(option)
               local finder = picker.finder
               menu_data_ = res
               picker:refresh(finder, { reset_prompt = true, multi = picker._multi })
+
+              local last_previewer = picker.previewer
+              if res.previewer ~= nil then
+                picker.previewer = res.previewer
+              else
+                picker.previewer = nil
+              end
+              if last_previewer ~= picker.previewer then
+                picker:full_layout_update()
+              end
             else
               actions.close(prompt_bufnr)
             end
