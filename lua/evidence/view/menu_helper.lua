@@ -2,6 +2,7 @@ local model = require("evidence.model.index")
 local tools = require("evidence.util.tools")
 local previewers = require("telescope.previewers")
 local putils = require("telescope.previewers.utils")
+local winBuf = require("evidence.view.win_buf")
 
 ---@class MenuHelper
 ---@field instance MenuHelper
@@ -109,6 +110,9 @@ function MenuHelper:createCardProcessWork()
       return
     end
     for _, v in ipairs(x) do
+      v.foo = function()
+        winBuf:viewContent(v)
+      end
       process_result(card_entry_maker(v))
     end
     process_complete()
@@ -124,6 +128,25 @@ function MenuHelper:confirmCheck(name)
     return false
   end
   return true
+end
+
+---@return CardItem[]|nil
+function MenuHelper:calcNextList()
+  -- TODO: custom
+  local new_ratio = 30
+  local item = nil
+  if math.floor(math.random(0, 100)) < new_ratio then
+    item = self.model:getMinDueItem(1)
+    if item == nil then
+      item = model:getNewItem(1)
+    end
+  else
+    item = self.model:getNewItem(1)
+    if item == nil then
+      item = self.model:getMinDueItem(1)
+    end
+  end
+  return item
 end
 
 return MenuHelper:getInstance()

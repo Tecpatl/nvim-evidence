@@ -8,6 +8,16 @@ local menuHelper = require("evidence.view.menu_helper")
 local user_data = nil
 local is_start_ = false
 
+local function nextCard()
+  local item = menuHelper:calcNextList()
+
+  if item == nil then
+    print("empty table")
+    return
+  end
+  winBuf:viewContent(item[1])
+end
+
 ---@param data ModelTableParam
 local function setup(data)
   if is_start_ == true then
@@ -19,10 +29,12 @@ local function setup(data)
   winBuf:setup({}, "## answer")
   menuHelper:setup(model)
   winBuf:openSplitWin()
+  nextCard()
 end
 
-local function add()
-  print("add")
+---@return CardItem
+local function getNowItem()
+  return winBuf:getInfo().item
 end
 
 ---@return MenuData
@@ -62,11 +74,35 @@ local function addCard()
   model:addNewCard(content_str)
 end
 
+local function delCard()
+  if not menuHelper:confirmCheck("delCard") then
+    return
+  end
+  model:delCard(getNowItem().id)
+  nextCard()
+end
+
+local function answer()
+  winBuf:switchFold(false)
+end
+
 ---@type SimpleMenu[]
 local menuItem = {
   {
     name = "addCard",
     foo = addCard,
+  },
+  {
+    name = "nextCard",
+    foo = nextCard,
+  },
+  {
+    name = "delCard",
+    foo = delCard,
+  },
+  {
+    name = "answer",
+    foo = answer,
   },
   {
     name = "findTags",
