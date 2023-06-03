@@ -23,6 +23,7 @@ local s_prompt = ""
 ---@field menu_item SimpleMenu[]
 ---@field main_foo? function
 ---@field previewer? function
+---@field process_work? function
 
 ---@type MenuData
 local menu_data_ = {
@@ -30,6 +31,7 @@ local menu_data_ = {
   menu_item = {},
   main_foo = nil,
   previewer = nil,
+  process_work = nil,
 }
 
 ---@class EntryMaker
@@ -48,7 +50,10 @@ local entry_maker = function(entry)
   }
 end
 
-local process_work = function(prompt, process_result, process_complete)
+---@class MenuInfo
+---@field prompt string
+
+local process_work_default = function(prompt, process_result, process_complete)
   for _, v in ipairs(menu_data_.menu_item) do
     process_result(entry_maker(v))
   end
@@ -64,7 +69,8 @@ local async_job = setmetatable({
 }, {
   __call = function(_, prompt, process_result, process_complete)
     s_prompt = prompt
-    process_work(prompt, process_result, process_complete)
+    local work = menu_data_.process_work or process_work_default
+    work(prompt, process_result, process_complete)
   end,
 })
 
@@ -89,17 +95,20 @@ local function live_fd(option)
             local picker = action_state.get_current_picker(prompt_bufnr)
             local single = action_state.get_selected_entry().value
             local res = nil
+            local info = {
+              prompt = s_prompt,
+            }
             if menu_data_.main_foo ~= nil then
               local multi = picker:get_multi_selection()
-              res = menu_data_.main_foo(convertValueArray(multi))
+              res = menu_data_.main_foo(convertValueArray(multi), info)
             elseif not tools.isTableEmpty(single) and single.foo ~= nil then
-              res = single.foo()
+              res = single.foo(info)
             end
             if res ~= nil then
               assert(res.prompt_title ~= nil)
               assert(res.menu_item ~= nil)
-              local finder = picker.finder
               menu_data_ = res
+              local finder = picker.finder
               picker:refresh(finder, { reset_prompt = true, multi = picker._multi })
 
               local last_previewer = picker.previewer
