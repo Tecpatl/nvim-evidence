@@ -287,4 +287,25 @@ function SqlTable:close()
   self.db:close()
 end
 
+function SqlTable:clear()
+  local query = "delete from "
+      .. Tables.card_tag
+      .. "; VACUUM; UPDATE SQLITE_SEQUENCE SET seq = 0 WHERE name = '"
+      .. Tables.card_tag
+      .. "'"
+  self.db:execute(query)
+  query = "delete from "
+      .. Tables.tag
+      .. "; VACUUM; UPDATE SQLITE_SEQUENCE SET seq = 0 WHERE name = '"
+      .. Tables.tag
+      .. "'"
+  self.db:execute(query)
+  query = "delete from "
+      .. Tables.card
+      .. "; VACUUM; UPDATE SQLITE_SEQUENCE SET seq = 0 WHERE name = '"
+      .. Tables.card
+      .. "'"
+  self.db:execute(query)
+end
+
 return SqlTable

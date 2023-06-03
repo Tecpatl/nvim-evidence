@@ -5,7 +5,7 @@ local SqlTable = require("evidence.model.table")
 local db = SqlTable:new()
 
 describe("sqlite.db", function()
-  local path = "~/sql/v4"
+  local path = ""
   db:setup({ uri = path })
 
   it("Insert", function()
@@ -24,7 +24,9 @@ describe("sqlite.db", function()
     local q2 = db:findCardsByTags({ 1, 2 }, false)
     local q3 = db:findCardsByTags({ 1, 2 }, true)
     local q4 = db:minCard("due")
-    print(vim.inspect(q4))
+    --print(vim.inspect(q4))
+    local c1 = db:findCard(1, "id=" .. 2)
+    print(vim.inspect(c1))
   end)
 
   it("Update", function()

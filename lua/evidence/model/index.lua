@@ -10,7 +10,7 @@ local tools = require("evidence.util.tools")
 ---@field card Card
 ---@field file_type string "markdown" | "org"
 --
----@class ModelTableInfo
+---@class ModelTableParam
 ---@field uri string
 ---@field parameter Parameters
 
@@ -43,7 +43,7 @@ function Model:getInstance()
   return self.instance
 end
 
----@param data ModelTableInfo
+---@param data ModelTableParam
 function Model:setup(data)
   if self.is_setup then
     error("cannot setup twice")
@@ -56,10 +56,15 @@ function Model:setup(data)
   self.tbl:setup(sql_info)
 end
 
+
+---@class ModelTableInfo
+---@field sql_table table
+---@field parameter Parameters
+
 ---@return ModelTableInfo
 function Model:getAllInfo()
   return {
-    uri = self.tbl.uri,
+    parameter = self.parameter,
     sql_table = self.tbl:dump(),
   }
 end
@@ -166,9 +171,9 @@ function Model:getFsrs()
   return _FSRS_.fsrs:new(self:getParameter())
 end
 
---function Model:clear()
---return self.tbl:clear()
---end
+function Model:clear()
+  return self.tbl:clear()
+end
 
 ---@param sql_card CardField
 ---@return Card
