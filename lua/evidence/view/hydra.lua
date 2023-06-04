@@ -3,70 +3,12 @@ local Hydra = require("hydra")
 local model = require("evidence.model.index")
 local win_buf = require("evidence.view.win_buf")
 local telescope = require("evidence.view.telescope")
+local select = require("evidence.view.select")
+local Menu = require("evidence.view.menu")
 
 ---@type ModelTableInfo
 local user_data = nil
 local is_start_ = false
-
-local function hint_list(name, list)
-  local res = [[
-  # ]] .. name .. [[
-
-
-  ]]
-  for id = 1, #list do
-    res = res .. [[_]] .. id .. [[_: ]] .. list[id] .. [[
-
-  ]]
-  end
-  res = res .. [[
-
-  _<Esc>_: exit  _q_: exit
-  ]]
-  return res
-end
-
-local function WrapHydra(name, hint, heads)
-  return Hydra({
-    name = name,
-    hint = hint,
-    config = {
-      timeout = 30000,
-      color = "teal",
-      invoke_on_body = true,
-      hint = {
-        position = "middle",
-        border = "rounded",
-      },
-    },
-    heads = tools.table_concat(heads, {
-      { "q", nil, { exit = true, nowait = true, desc = "exit" } },
-      { "<Esc>", nil, { exit = true, nowait = true } },
-    }),
-  })
-end
-
-local function WrapListHeads(list, func)
-  local res = {}
-  for i = 1, #list do
-    local id = tostring(i)
-    table.insert(res, {
-      id,
-      function()
-        func(i)
-      end,
-    })
-  end
-  return res
-end
-
-local evidence_hint = [[
- _x_: start _s_: score _t_: switchTable
- _o_: viewAnswer _f_: fuzzyFind _m_: minFind
- _e_: edit _d_: delete _a_: add _i_: info
- ^
-     _<Esc>_: exit  _q_: exit
-]]
 
 ---@param foo_name string
 ---@return boolean
@@ -92,7 +34,7 @@ end
 local function calcNextList()
   -- TODO: custom
   local new_ratio = 30
-  local item=nil
+  local item = nil
   if math.floor(math.random(0, 100)) < new_ratio then
     item = model:getMinDueItem(1)
     if item == nil then
@@ -222,6 +164,42 @@ local function info()
   tools.printDump(getNowItem().card)
 end
 
+local function test()
+  select.find()
+end
+
+local function test_old()
+  local menu = Menu:new({
+    title = "Press key for an agenda command",
+    prompt = "Press key for an agenda command",
+  })
+
+  menu:add_option({
+    label = "add",
+    key = "a",
+    action = function()
+      print("add")
+    end,
+  })
+  menu:add_option({
+    label = "edit",
+    key = "e",
+    action = function()
+      print("edit")
+    end,
+  })
+  menu:add_option({
+    label = "next",
+    key = "n",
+    action = function()
+      print("next")
+    end,
+  })
+  menu:add_separator({ icon = " ", length = 1 })
+
+  menu:open()
+end
+
 ---@param data ModelTableInfo
 local setup = function(data)
   user_data = data
@@ -249,6 +227,7 @@ local setup = function(data)
       { "d", delete },
       { "o", answer },
       { "i", info },
+      { "y", test },
       { "t", switchTable, { exit = true, nowait = true, desc = "exit" } },
       { "q", nil, { exit = true, nowait = true, desc = "exit" } },
       { "<Esc>", nil, { exit = true, nowait = true } },

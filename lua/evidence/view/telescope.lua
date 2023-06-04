@@ -9,144 +9,138 @@ local entry_display = require("telescope.pickers.entry_display")
 local action_state = require("telescope.actions.state")
 local ns_previewer = vim.api.nvim_create_namespace("telescope.previewers")
 local status1, telescope = pcall(require, "telescope")
-local defer = require("evidence.util.throttle-debounce")
 local tools = require("evidence.util.tools")
-local model = require("evidence.model.index")
-local win_buf = require("evidence.view.win_buf")
 
-vim.api.nvim_command("highlight EvidenceWord guibg=red")
+---@class SimpleMenu
+---@field name string
+---@field foo? function
+---@field info? any custom
 
-local entry_maker = function(entry)
-	local content = entry.content:gsub("\n", "\\n")
-	return {
-		value = entry,
-		ordinal = content,
-		display = content,
-	}
-end
+---@class MenuData
+---@field prompt_title string
+---@field menu_item SimpleMenu[]
+---@field main_foo? function
+---@field previewer? function
+---@field process_work? function
 
-local empty_maker = function(entry)
-	return {
-		value = entry,
-		ordinal = entry,
-		display = "",
-	}
-end
-
-local fn, timer
-local s_prompt = ""
-
---- @alias SearchModeType integer
---- @class SearchMode
-local SearchMode = {
-	fuzzy = 0,
-	min_due = 1,
+---@type MenuData
+local menu_data_ = {
+  prompt_title = "Evidence",
+  menu_item = {},
+  main_foo = nil,
+  previewer = nil,
+  process_work = nil,
 }
 
-local now_search_mode = SearchMode.fuzzy
+---@class EntryMaker
+---@field value any
+---@field ordinal any
+---@field display any
 
-local process_work = function(prompt, process_result, process_complete)
-	local x = nil
-	if now_search_mode == SearchMode.fuzzy then
-		x = model:fuzzyFind(prompt, 50)
-	elseif now_search_mode == SearchMode.min_due then
-		x = model:getMinDueItem(50)
-	end
-	if type(x) ~= "table" then
-		--s_prompt = ""
-		process_result(empty_maker(s_prompt))
-		process_complete()
-		return
-	end
-	for _, v in ipairs(x) do
-		process_result(entry_maker(v))
-	end
-	process_complete()
+---@param entry SimpleMenu
+---@return EntryMaker
+local entry_maker = function(entry)
+  local name = entry.name
+  return {
+    value = entry,
+    ordinal = name,
+    display = name,
+  }
+end
+
+---@class MenuInfo
+---@field prompt string
+
+local process_work_default = function(prompt, process_result, process_complete)
+  for _, v in ipairs(menu_data_.menu_item) do
+    process_result(entry_maker(v))
+  end
+  process_complete()
 end
 
 local async_job = setmetatable({
-	close = function()
-		if timer ~= nil then
-			timer:close()
-		end
-		--print("close")
-	end,
-	results = {},
-	entry_maker = entry_maker,
+  close = function()
+    --print("close")
+  end,
+  results = {},
+  entry_maker = entry_maker,
 }, {
-	__call = function(_, prompt, process_result, process_complete)
-		s_prompt = prompt
-		process_work(prompt, process_result, process_complete)
-		-- TODO: throttle
-		--if timer ~= nil then
-		--  timer:close()
-		--end
-		--fn, timer = defer.throttle_trailing(process_work, 500)
-		--fn(prompt, process_result, process_complete)
-	end,
+  __call = function(_, prompt, process_result, process_complete)
+    local work = menu_data_.process_work or process_work_default
+    work(prompt, process_result, process_complete)
+  end,
 })
 
-local function clear_match()
-	vim.api.nvim_exec(
-		[[
-       for m in filter(getmatches(), { i, v -> l:v.group is? 'EvidenceWord' })
-       call matchdelete(m.id)
-       endfor
-     ]],
-		true
-	)
+---@param maker EntryMaker[]
+local function convertValueArray(maker)
+  local result = {}
+  for _, v in ipairs(maker) do
+    table.insert(result, v.value)
+  end
+  return result
 end
 
-local function live_fd(opts)
-	pickers
-		.new(opts, {
-			prompt_title = "evidence",
-			finder = async_job,
-			sorter = conf.generic_sorter(opts), -- shouldn't this be default?
-			previewer = previewers.new_buffer_previewer({
-				keep_last_buf = true,
-				get_buffer_by_name = function(_, entry)
-					return entry.value.id
-				end,
-				define_preview = function(self, entry, status)
-					--print(vim.inspect(entry))
-					local formTbl = tools.str2table(entry.display)
-					vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, formTbl)
-					local file_type = entry.value.file_type
-					if not file_type or file_type == "" then
-						file_type = "markdown"
-					end
-					putils.highlighter(self.state.bufnr, file_type)
-					vim.schedule(function()
-						vim.api.nvim_buf_call(self.state.bufnr, function()
-							clear_match()
-							vim.api.nvim_command("call matchadd('EvidenceWord','" .. s_prompt .. "')")
-						end)
-					end)
-				end,
-			}),
-			attach_mappings = function(prompt_bufnr, map)
-				actions.select_default:replace(function()
-					actions.close(prompt_bufnr)
-					local selection = action_state.get_selected_entry()
-					--print(vim.inspect(selection))
-					win_buf:viewContent(selection.value)
-				end)
-				return true
-			end,
-		})
-		:find()
+local function live_fd(option)
+  pickers
+      .new(option, {
+        prompt_title = menu_data_.prompt_title,
+        finder = async_job,
+        sorter = conf.generic_sorter(option), -- shouldn't this be default?
+        previewer = menu_data_.previewer,
+        attach_mappings = function(prompt_bufnr, map)
+          actions.select_default:replace(function()
+            local picker = action_state.get_current_picker(prompt_bufnr)
+            local select_item = action_state.get_selected_entry()
+            local single = nil
+            local res = nil
+            if select_item == nil then
+              local value = picker:_get_prompt()
+              if menu_data_.main_foo ~= nil then
+                menu_data_.main_foo(value)
+              end
+            else
+              single = select_item.value
+              local multi = picker:get_multi_selection()
+              if not tools.isTableEmpty(multi) and menu_data_.main_foo ~= nil then
+                res = menu_data_.main_foo(convertValueArray(multi))
+              elseif not tools.isTableEmpty(single) and single.foo ~= nil then
+                res = single.foo()
+              end
+            end
+            if res ~= nil then
+              assert(res.prompt_title ~= nil)
+              assert(res.menu_item ~= nil)
+              menu_data_ = res
+
+              picker.prompt_border:change_title(res.prompt_title)
+              local finder = picker.finder
+              picker:refresh(finder, { reset_prompt = true, multi = picker._multi })
+
+              local last_previewer = picker.previewer
+              if res.previewer ~= nil then
+                picker.previewer = res.previewer
+              else
+                picker.previewer = nil
+              end
+              if last_previewer ~= picker.previewer then
+                picker:full_layout_update()
+              end
+            else
+              actions.close(prompt_bufnr)
+            end
+          end)
+          return true
+        end,
+      })
+      :find()
 end
 
----@param mode? SearchModeType
-local function find(mode)
-	mode = mode or SearchMode.fuzzy
-	now_search_mode = mode
-	local opts = {}
-	return live_fd(opts)
+---@param data MenuData
+local function setup(data)
+  menu_data_ = data
+  return live_fd({})
 end
 
 return {
-	find = find,
-	SearchMode = SearchMode,
+  setup = setup,
 }

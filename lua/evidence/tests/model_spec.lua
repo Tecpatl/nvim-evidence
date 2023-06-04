@@ -7,18 +7,15 @@ local eq = function(a, b)
 end
 
 local data = {
-  uri = "~/.config/nvim/sql/v2",
-  all_table = {
-    t1 = {},
-    t2 = {
-      request_retention = 0.7,
-      maximum_interval = 100,
-      easy_bonus = 1.0,
-      hard_factor = 0.8,
-      w = { 1.0, 1.0, 5.0, -0.5, -0.5, 0.2, 1.4, -0.12, 0.8, 2.0, -0.2, 0.2, 1.0 },
-    },
+  --uri = "~/sql/v4",
+  uri = "",
+  parameter = {
+    request_retention = 0.7,
+    maximum_interval = 100,
+    easy_bonus = 1.0,
+    hard_factor = 0.8,
+    w = { 1.0, 1.0, 5.0, -0.5, -0.5, 0.2, 1.4, -0.12, 0.8, 2.0, -0.2, 0.2, 1.0 },
   },
-  now_table_id = "t1",
 }
 
 model:setup(data)
@@ -29,12 +26,12 @@ local reset = function(n)
   model:clear()
   n = n or lim
   for i = 1, n do
-    model:addNewCard("* mock" .. i .. "abc")
+    model:addNewCard("# mock\n\n ## answer \n\n" .. i .. "abc")
   end
   return n
 end
 
-describe("fsrs_sql_model", function()
+describe("card", function()
   it("info", function()
     local info = model:getAllInfo()
     --print(vim.inspect(info))
@@ -52,7 +49,7 @@ describe("fsrs_sql_model", function()
     eq(1, #data)
   end)
   it("findById", function()
-    reset()
+    reset(3)
     local ret = model:findById(1)
     assert(ret ~= nil)
     eq(1, ret.id)
@@ -61,38 +58,49 @@ describe("fsrs_sql_model", function()
     reset()
     local content = "xx"
     local ret = model:editCard(1, { content = content })
-    eq(ret, true)
     local obj = model:findById(1)
     assert(obj ~= nil)
     eq(content, obj.content)
   end)
-  it("setTable", function()
-    local ret = model:switchTable("t1")
-    eq(true, ret)
-    model:clear()
-    ret = model:switchTable("t2")
-    eq(true, ret)
-    local n = reset()
-    local data = model:findAll()
-    eq(n, #data)
-    ret = model:switchTable("t1")
-    eq(true, ret)
-    data = model:findAll()
-    eq(nil, data)
-  end)
   it("ratingCard", function()
     reset(1)
     local data = model:findAll()
-    tools.printDump(data)
+    --tools.printDump(data)
     model:ratingCard(1, _.Rating.Again, os.time() + 5 * 24 * 60 * 60)
     data = model:findAll()
-    tools.printDump(data)
+    --tools.printDump(data)
   end)
-  it("min", function()
-    local item = model:getMinDueItem(1)
-    print(vim.inspect(item))
-  end)
-  it("reset", function()
-    reset(100)
+end)
+
+describe("tag", function()
+  it("add_del_Tag", function()
+    reset(3)
+    model:addTag("a")
+    model:addTag("b")
+    model:addTag("c")
+    model:insertCardTagById(1, 1)
+    model:insertCardTagById(1, 2)
+    model:insertCardTagById(2, 1)
+    model:insertCardTagById(2, 2)
+    model:insertCardTagById(3, 1)
+    model:insertCardTagById(3, 2)
+    local q = model:findIncludeTagsByCard(1)
+    --print(vim.inspect(q))
+    q = model:findExcludeTagsByCard(1)
+    --print(vim.inspect(q))
+    --model:insertCardTagByName(1, "x")
+    q = model:findIncludeTagsByCard(1)
+    --print(vim.inspect(q))
+
+    model:delCardTag(1, 2)
+    q = model:findIncludeTagsByCard(1)
+    --print(vim.inspect(q))
+    q = model:findCardBySelectTags({ 1, 2 }, true, 1)
+    --print(vim.inspect(q))
+    q = model:findCardBySelectTags({ 1, 2 }, false, 2)
+    --print(vim.inspect(q))
+    model:ratingCard(2, _.Rating.Again, os.time() + 5 * 24 * 60 * 60)
+    q = model:getMinDueItem({ 1, 2, 3 }, false, 1)
+    print(vim.inspect(q))
   end)
 end)

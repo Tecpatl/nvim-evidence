@@ -8,9 +8,15 @@ under development
 
 fsrs plugin for nvim
 
+orgmode 适用于安排有风险不稳定的计划或短期任务. (指南针)
+
+evidence 适用于确定待执行的长久稳定且需要重复记忆任务. (船桨)
+
 ## Reference
 
 [free-spaced-repetition-scheduler](https://github.com/open-spaced-repetition/free-spaced-repetition-scheduler)
+
+[nvim-orgmode](https://github.com/nvim-orgmode/orgmode)
 
 ## Usage Scene
 
@@ -46,46 +52,70 @@ fsrs plugin for nvim
 }
 ```
 
-`<Leader>E` 启动hydra
+`<leader>E` 弹出搜索框
 
-### Hydra + Telescope
+### 当前卡片card操作   
 
-- a: add   将缓冲区内容添加到数据库
+- addCard: 将缓冲区内容生成新卡片
 
-- x: start  开始学习, 弹出最新需要复习卡片
+- nextCard: 弹出下一个待处理卡片(30%新卡片,70%旧卡片), 如果有select_tags, 会在tags集合中选中下一个
 
-- d: del  删除当前卡片
+- nextNewCard: 弹出最新需要复习卡片, 如果有select_tags, 会在tags集合中选中下一个
 
-- o: viewAnser 显示答案
+- nextReviewCard: 弹出新卡片, 如果有select_tags, 会在tags集合中选中下一个
 
-- s: switchTable  切换 table
+- delCard: 删除多个卡片(第一项是当前卡片)
 
-- e: edit  将缓冲区的内容更新到当前卡片里
+- answer: 显示答案
 
-- i: info  打印当前缓冲区卡片信息
+- editCard:  将缓冲区的内容更新到当前卡片里
 
-- s: score  给当前卡片打分
+- infoCard:  打印多个卡片信息(第一项是当前卡片)
 
-- f: fuzzyFind  开启根据卡片内容的模糊搜索
+- scoreCard:  给当前卡片打分
 
-- m: minFind  开启根据最近需要复习卡片的搜索
+- findCard:  开启根据卡片内容的模糊搜索弹出作为当前卡片
 
-## Module
+- findReviewCard:  开启根据最近需要"复习"卡片且满足select_tags的搜索弹出作为当前卡片
 
-Models (FSRS, SqlTable)
-Controller
-Views (WinBuf, Telescope, Hydra)
+- findNewCard:  开启新卡片且满足select_tags的搜索弹出作为当前卡片
+
+### 对tags操作 
+
+- findTags:  开启根据tag name的模糊搜索
+
+- findTagsByNowCard:  列表展示当前卡片所拥有的tags 
+
+- addTagsForNowCard:  先展示出当前卡片拥有所有(todo非直系亲缘)tags, 支持多选添加, 并且如果没有匹配项自动生成一个新的, 个数限制
+
+- delTagsForNowCard:  列表展示当前卡片拥有的tags, 支持多选删除 
+
+- addTag:  全局添加一个tag
+
+- renameTag:  全局修改一个tag名字
+
+- delTags:  全局删除一些tag
+
+- setSelectTags( And/Or ): telescope标题是当前已选tags, 然后可以设置全局选择的tags
+
+- findCardBySelectTags( And/Or ): telescope标题是当前已选tags, 然后展示出所有满足tags要求cards
+
+- findFather: 打印父tags 
+
+- findSon: 打印子tags
 
 ## Todo
 
 - 支持多 winbuf
 
-- 所有牌组随机抽
-
 - 撤销
 
-- 自定义hydra 或者 将hydra 换成 modern search menu
-
-- lru最近访问过的卡片
-
 - record 统计
+
+- 超前学习提示下
+
+### Tag
+
+- 多种tag合并到另一种tag中
+
+- 指向父子级依赖关系(树状根节点虚点)
