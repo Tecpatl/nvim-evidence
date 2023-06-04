@@ -439,18 +439,16 @@ local function convertTagFatherEnd(tag_ids)
     for _, v in ipairs(res) do
       table.insert(items, {
         name = v.name,
-        foo = function() end,
+        foo = function()
+          model:convertFatherTag(tag_ids, v.id)
+        end,
       })
     end
   end
   return {
-    prompt_title = "Evidence convertTagFather select end tags",
+    prompt_title = "Evidence convertTagFather select father tag",
     menu_item = items,
-    main_foo = function(value)
-      local typename = type(value)
-      if typename == "table" then
-      end
-    end,
+    main_foo = nil,
   }
 end
 
@@ -462,16 +460,26 @@ local function convertTagFatherStart()
     for _, v in ipairs(res) do
       table.insert(items, {
         name = v.name,
-        foo = function() end,
+        info = {
+          id = v.id,
+        },
+        foo = function()
+          return convertTagFatherEnd({ v.id })
+        end,
       })
     end
   end
   return {
-    prompt_title = "Evidence convertTagFather select start tags",
+    prompt_title = "Evidence convertTagFather select son tags",
     menu_item = items,
     main_foo = function(value)
       local typename = type(value)
       if typename == "table" then
+        local ids = {}
+        for _, v in ipairs(value) do
+          table.insert(ids, v.info.id)
+        end
+        return convertTagFatherEnd(ids)
       end
     end,
   }
