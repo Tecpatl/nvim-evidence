@@ -21,6 +21,26 @@ local function nextCard()
   winBuf:viewContent(item[1])
 end
 
+local function nextReviewCard()
+  local item = model:getMinDueItem(select_tags, is_select_tag_and, 1)
+
+  if item == nil then
+    print("empty table")
+    return
+  end
+  winBuf:viewContent(item[1])
+end
+
+local function nextNewCard()
+  local item = model:getNewItem(select_tags, is_select_tag_and, 1)
+
+  if item == nil then
+    print("empty table")
+    return
+  end
+  winBuf:viewContent(item[1])
+end
+
 ---@param data ModelTableParam
 local function setup(data)
   if is_start_ == true then
@@ -337,6 +357,42 @@ local function findCardBySelectTags()
   }
 end
 
+---@return MenuData
+local function findReviewCard()
+  local status_msg = "AND"
+  if is_select_tag_and == false then
+    status_msg = "OR"
+  end
+  local foo = function()
+    return model:getMinDueItem(select_tags, is_select_tag_and, 50)
+  end
+  return {
+    prompt_title = "Evidence findReviewCard " .. status_msg .. " current:" .. tools.array2Str(select_tags),
+    menu_item = {},
+    main_foo = nil,
+    previewer = menuHelper:createCardPreviewer(),
+    process_work = menuHelper:createCardProcessWork(foo),
+  }
+end
+
+---@return MenuData
+local function findNewCard()
+  local status_msg = "AND"
+  if is_select_tag_and == false then
+    status_msg = "OR"
+  end
+  local foo = function()
+    return model:getNewItem(select_tags, is_select_tag_and, 50)
+  end
+  return {
+    prompt_title = "Evidence findNewCard " .. status_msg .. " current:" .. tools.array2Str(select_tags),
+    menu_item = {},
+    main_foo = nil,
+    previewer = menuHelper:createCardPreviewer(),
+    process_work = menuHelper:createCardProcessWork(foo),
+  }
+end
+
 ---@type SimpleMenu[]
 local menuItem = {
   {
@@ -414,6 +470,22 @@ local menuItem = {
   {
     name = "findCardBySelectTags",
     foo = findCardBySelectTags,
+  },
+  {
+    name = "findReviewCard",
+    foo = findReviewCard,
+  },
+  {
+    name = "findNewCard",
+    foo = findNewCard,
+  },
+  {
+    name = "nextReviewCard",
+    foo = nextReviewCard,
+  },
+  {
+    name = "nextNewCard",
+    foo = nextNewCard,
   },
 }
 
