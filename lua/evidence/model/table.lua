@@ -276,6 +276,45 @@ function SqlTable:findCard(limit_num, statement)
   return self:eval(query)
 end
 
+---@param tag_ids number[]
+---@param is_and boolean
+---@param limit_num number
+---@param statement? string | nil
+---@return CardItem[]|nil
+function SqlTable:findCardWithTags(tag_ids, is_and, limit_num, statement)
+  if type(tag_ids) ~= "table" or tools.isTableEmpty(tag_ids) then
+    return self:findCard(limit_num, statement)
+  else
+    local tag_str = ""
+    local cnt = #tag_ids
+    for key, val in pairs(tag_ids) do
+      if tag_str ~= "" then
+        tag_str = tag_str .. ","
+      end
+      tag_str = tag_str .. val
+    end
+    query = "SELECT c.* FROM "
+        .. Tables.card
+        .. " AS c JOIN "
+        .. Tables.card_tag
+        .. " AS ct ON c.id = ct.card_id JOIN "
+        .. Tables.tag
+        .. " AS t ON ct.tag_id = t.id WHERE t.id IN ("
+        .. tag_str
+        .. ") "
+        .. " AND "
+        .. statement
+        .. " GROUP BY c.id "
+    if is_and then
+      query = query .. " HAVING COUNT(DISTINCT t.id) = " .. cnt
+    end
+    if limit_num ~= -1 then
+      query = query .. " LIMIT " .. limit_num
+    end
+    return self:eval(query)
+  end
+end
+
 ---@param id number
 function SqlTable:delTag(id)
   local query = "delete from " .. Tables.card_tag .. " where tag_id=" .. id
@@ -292,24 +331,57 @@ function SqlTable:delCard(id)
   self.db:execute(query)
 end
 
+---@param tag_ids number[]
+---@param is_and boolean
 ---@param column string
 ---@param statement? string
 ---@param limit_num? number
 ---@return nil | CardField[]
-function SqlTable:minCard(column, statement, limit_num)
+function SqlTable:minCardWithTags(tag_ids, is_and, column, statement, limit_num)
   limit_num = limit_num or 1
   local query = ""
-  if limit_num ~= 1 then
-    query = "SELECT * FROM " .. Tables.card
+  if type(tag_ids) ~= "table" or tools.isTableEmpty(tag_ids) then
+    if limit_num ~= 1 then
+      query = "SELECT * FROM " .. Tables.card
+    else
+      query = "SELECT *, MIN(" .. column .. ") AS `rowmin` FROM " .. Tables.card
+    end
+    if statement ~= nil then
+      query = query .. " where " .. statement
+    end
+    if limit_num ~= -1 then
+      query = query .. " order by " .. column .. " LIMIT " .. limit_num
+    end
   else
-    query = "SELECT *, MIN(" .. column .. ") AS `rowmin` FROM " .. Tables.card
+    local tag_str = ""
+    local cnt = #tag_ids
+    for key, val in pairs(tag_ids) do
+      if tag_str ~= "" then
+        tag_str = tag_str .. ","
+      end
+      tag_str = tag_str .. val
+    end
+    query = "SELECT c.* FROM "
+        .. Tables.card
+        .. " AS c JOIN "
+        .. Tables.card_tag
+        .. " AS ct ON c.id = ct.card_id JOIN "
+        .. Tables.tag
+        .. " AS t ON ct.tag_id = t.id WHERE t.id IN ("
+        .. tag_str
+        .. ") "
+        .. " AND "
+        .. statement
+        .. " GROUP BY c.id "
+    if is_and then
+      query = query .. " HAVING COUNT(DISTINCT t.id) = " .. cnt
+    end
+    query = query .. " ORDER BY c." .. column .. " ASC "
+    if limit_num ~= -1 then
+      query = query .. " LIMIT " .. limit_num
+    end
   end
-  if statement ~= nil then
-    query = query .. " where " .. statement
-  end
-  if limit_num ~= -1 then
-    query = query .. " order by " .. column .. " LIMIT " .. limit_num
-  end
+  --print(query)
   return self:eval(query)
 end
 

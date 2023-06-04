@@ -12,7 +12,7 @@ local select_tags = {}
 local is_select_tag_and = true
 
 local function nextCard()
-  local item = menuHelper:calcNextList()
+  local item = menuHelper:calcNextList(select_tags, is_select_tag_and)
 
   if item == nil then
     print("empty table")
@@ -100,7 +100,7 @@ local function scoreCard()
     print("input format error (0,1,2,3)")
     return
   end
-  print(rating)
+  --print(rating)
   model:ratingCard(getNowItem().id, rating)
   nextCard()
 end
@@ -414,10 +414,6 @@ local menuItem = {
   {
     name = "findCardBySelectTags",
     foo = findCardBySelectTags,
-  },
-  {
-    name = "setNextByTags",
-    foo = setNextByTags,
   },
 }
 

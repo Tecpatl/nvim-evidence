@@ -102,17 +102,21 @@ function Model:findAll()
   return self.tbl:findCard()
 end
 
+---@param tag_ids number[]
+---@param is_and boolean
 ---@param limit_num? number
 ---@return CardItem[]|nil
-function Model:getMinDueItem(limit_num)
-  local item = self.tbl:minCard("due", "info NOT LIKE '%reps=0%'", limit_num)
+function Model:getMinDueItem(tag_ids, is_and, limit_num)
+  local item = self.tbl:minCardWithTags(tag_ids, is_and, "due", "info NOT LIKE '%reps=0%'", limit_num)
   return self:convertFsrsTableField2CardItem(item)
 end
 
+---@param tag_ids number[]
+---@param is_and boolean
 ---@param limit_num number
 ---@return CardItem[]|nil
-function Model:getNewItem(limit_num)
-  local item = self.tbl:findCard(limit_num, "info LIKE '%reps=0%'")
+function Model:getNewItem(tag_ids, is_and, limit_num)
+  local item = self.tbl:findCardWithTags(tag_ids, is_and, limit_num, "info LIKE '%reps=0%'")
   return self:convertFsrsTableField2CardItem(item)
 end
 

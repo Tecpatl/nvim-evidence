@@ -120,20 +120,21 @@ function MenuHelper:createCardProcessWork(foo)
   end
 end
 
+---@param select_tags number[]
+---@param is_select_tag_and boolean
 ---@return CardItem[]|nil
-function MenuHelper:calcNextList()
-  -- TODO: custom
+function MenuHelper:calcNextList(select_tags, is_select_tag_and)
   local new_ratio = 30
   local item = nil
   if math.floor(math.random(0, 100)) < new_ratio then
-    item = self.model:getMinDueItem(1)
+    item = self.model:getMinDueItem(select_tags, is_select_tag_and, 1)
     if item == nil then
-      item = model:getNewItem(1)
+      item = model:getNewItem(select_tags, is_select_tag_and, 1)
     end
   else
-    item = self.model:getNewItem(1)
+    item = self.model:getNewItem(select_tags, is_select_tag_and, 1)
     if item == nil then
-      item = self.model:getMinDueItem(1)
+      item = self.model:getMinDueItem(select_tags, is_select_tag_and, 1)
     end
   end
   return item

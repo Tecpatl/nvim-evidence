@@ -58,7 +58,7 @@ evidence 适用于确定待执行的长久稳定且需要重复记忆任务. (�
 
 - addCard: 将缓冲区内容生成新卡片
 
-- nextCard: 弹出最新需要复习卡片
+- nextCard: 弹出最新需要复习卡片, 如果有select_tags, 会在tags集合中选中下一个
 
 - delCard: 删除多个卡片(第一项是当前卡片)
 
@@ -93,8 +93,6 @@ evidence 适用于确定待执行的长久稳定且需要重复记忆任务. (�
 - setSelectTags( And/Or ): telescope标题是当前已选tags, 然后可以设置全局选择的tags
 
 - findCardBySelectTags( And/Or ): telescope标题是当前已选tags, 然后展示出所有满足tags要求cards
-
-- setNextByTags( And/Or ):  telescope标题是当前已选tags, 然后展示出所有tags, 支持多选开启新的搜索路径 
 
 - findFather: 打印父tags 
 
