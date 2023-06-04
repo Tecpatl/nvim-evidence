@@ -87,7 +87,7 @@ local function infoCard()
 end
 
 local function scoreCard()
-  local rating = tonumber(tools.uiInput("score(0,1,2,3):", ""))
+  local rating = tonumber(tools.uiInput("scoreCard(0,1,2,3):", ""))
   if type(rating) ~= "number" or not menuHelper:checkScore(rating) then
     print("input format error (0,1,2,3)")
     return
@@ -136,7 +136,6 @@ local function addTagsForNowCard()
         name = v.name,
         info = { id = v.id },
         foo = function()
-          print(card_id, v.id)
           model:insertCardTagById(card_id, v.id)
         end,
       })
@@ -191,6 +190,90 @@ local function findTagsByNowCard()
   }
 end
 
+---@return MenuData
+local function delTagsForNowCard()
+  local card_id = getNowItem().id
+  local res = model:findIncludeTagsByCard(card_id)
+  local items = {}
+  if type(res) == "table" then
+    for _, v in ipairs(res) do
+      table.insert(items, {
+        name = v.name,
+        info = { id = v.id },
+        foo = function()
+          model:delCardTag(card_id, v.id)
+        end,
+      })
+    end
+  end
+  return {
+    prompt_title = "Evidence delTagsForNowCard",
+    menu_item = items,
+    main_foo = function(value)
+      local typename = type(value)
+      if typename == "table" then
+        for _, v in ipairs(value) do
+          model:delCardTag(card_id, v.info.id)
+        end
+      end
+    end,
+  }
+end
+
+---@return MenuData
+local function delTags()
+  local res = model:findAllTags()
+  local items = {}
+  if type(res) == "table" then
+    for _, v in ipairs(res) do
+      table.insert(items, {
+        name = v.name,
+        info = { id = v.id },
+        foo = function()
+          model:delTag(v.id)
+        end,
+      })
+    end
+  end
+  return {
+    prompt_title = "Evidence delTags",
+    menu_item = items,
+    main_foo = function(value)
+      local typename = type(value)
+      if typename == "table" then
+        for _, v in ipairs(value) do
+          model:delTag(v.info.id)
+        end
+      end
+    end,
+  }
+end
+
+---@return MenuData
+local function renameTag()
+  local res = model:findAllTags()
+  local items = {}
+  if type(res) == "table" then
+    for _, v in ipairs(res) do
+      table.insert(items, {
+        name = v.name,
+        info = { id = v.id },
+        foo = function()
+          local new_name = tools.uiInput("renameTag old_name:" .. v.name .. " new_name:", "")
+          if new_name ~= nil then
+            model:editTag(getNowItem().id, { name = new_name })
+          end
+        end,
+      })
+    end
+  end
+  return {
+    prompt_title = "Evidence renameTag",
+    menu_item = items,
+    main_foo = nil,
+  }
+end
+
 ---@type SimpleMenu[]
 local menuItem = {
   {
@@ -222,10 +305,6 @@ local menuItem = {
     foo = scoreCard,
   },
   {
-    name = "addTag",
-    foo = addTag,
-  },
-  {
     name = "fuzzyFindTag",
     foo = fuzzyFindTag,
   },
@@ -240,6 +319,22 @@ local menuItem = {
   {
     name = "addTagsForNowCard",
     foo = addTagsForNowCard,
+  },
+  {
+    name = "delTagsForNowCard",
+    foo = delTagsForNowCard,
+  },
+  {
+    name = "addTag",
+    foo = addTag,
+  },
+  {
+    name = "renameTag",
+    foo = renameTag,
+  },
+  {
+    name = "delTags",
+    foo = delTags,
   },
 }
 

@@ -91,6 +91,12 @@ function Model:editCard(id, row)
   self.tbl:editCard(id, row)
 end
 
+---@param id number
+---@param row table
+function Model:editTag(id, row)
+  self.tbl:editTag(id, row)
+end
+
 ---@return nil | CardField[]
 function Model:findAll()
   return self.tbl:findCard()
@@ -253,6 +259,17 @@ end
 ---@return nil | TagField[]
 function Model:findIncludeTagsByCard(card_id)
   return self.tbl:findTagsByCard(card_id, true)
+end
+
+---@param card_id number
+---@param tag_id number
+function Model:delCardTag(card_id, tag_id)
+  return self.tbl:delCardTag(card_id, tag_id)
+end
+
+---@param tag_id number
+function Model:delTag(tag_id)
+  return self.tbl:delTag(tag_id)
 end
 
 return Model:getInstance()

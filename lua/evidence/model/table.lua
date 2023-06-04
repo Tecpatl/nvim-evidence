@@ -174,6 +174,13 @@ function SqlTable:insertCardTag(card_id, tag_id)
   self:insert(Tables.card_tag, { card_id = card_id, tag_id = tag_id })
 end
 
+---@param card_id number
+---@param tag_id number
+function SqlTable:delCardTag(card_id, tag_id)
+  local query = "delete from " .. Tables.card_tag .. " where card_id=" .. card_id .. " and tag_id=" .. tag_id
+  self.db:execute(query)
+end
+
 ---@param id number
 ---@param data CardField
 function SqlTable:editCard(id, data)

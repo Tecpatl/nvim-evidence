@@ -90,8 +90,6 @@ evidence 适用于确定待执行的长久稳定且需要重复记忆任务. (�
 
 - delTags:  全局删除一些tag
 
-- rename:  先展示出所有tags, 选中一个(不能多选),左下角输入新名字
-
 - switch( And/Or ):  telescope标题是当前已选tags, 然后展示出所有tags, 支持多选开启新的搜索路径 
 
 - find( And/Or ): telescope标题是当前已选tags, 然后展示出所有满足tags要求cards
