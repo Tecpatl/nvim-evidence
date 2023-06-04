@@ -96,11 +96,12 @@ local empty_maker = function(entry)
   }
 end
 
-function MenuHelper:createCardProcessWork()
+---@param foo function
+function MenuHelper:createCardProcessWork(foo)
   return function(prompt, process_result, process_complete)
     self.prompt = prompt
     --	if now_search_mode == SearchMode.fuzzy then
-    local x = self.model:fuzzyFindCard(prompt, 50)
+    local x = foo(prompt)
     --	elseif now_search_mode == SearchMode.min_due then
     --		x = model:getMinDueItem(50)
     --	end

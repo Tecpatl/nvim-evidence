@@ -272,4 +272,16 @@ function Model:delTag(tag_id)
   return self.tbl:delTag(tag_id)
 end
 
+---@param tag_ids number[]
+---@param is_and boolean
+---@param lim? number
+---@return nil | CardField[]
+function Model:findCardBySelectTags(tag_ids, is_and, lim)
+  lim = lim or 10
+  if tools.isTableEmpty(tag_ids) then
+    return self:fuzzyFindCard("", lim)
+  end
+  return self.tbl:findCardsByTags(tag_ids, lim, is_and)
+end
+
 return Model:getInstance()

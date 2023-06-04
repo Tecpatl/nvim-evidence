@@ -7,6 +7,9 @@ local menuHelper = require("evidence.view.menu_helper")
 ---@type ModelTableParam
 local user_data = nil
 local is_start_ = false
+---@type number[]
+local select_tags = {}
+local is_select_tag_and = true
 
 local function nextCard()
   local item = menuHelper:calcNextList()
@@ -25,6 +28,8 @@ local function setup(data)
   end
   user_data = data
   is_start_ = true
+  is_select_tag_and = true
+  select_tags = {}
   model:setup(data)
   winBuf:setup({}, "## answer")
   menuHelper:setup(model)
@@ -39,12 +44,15 @@ end
 
 ---@return MenuData
 local function fuzzyFindCard()
+  local foo = function(prompt)
+    return model:fuzzyFindCard(prompt, 50)
+  end
   return {
     prompt_title = "Evidence FuzzyFindCard",
     menu_item = {},
     main_foo = nil,
     previewer = menuHelper:createCardPreviewer(),
-    process_work = menuHelper:createCardProcessWork(),
+    process_work = menuHelper:createCardProcessWork(foo),
   }
 end
 
@@ -274,6 +282,61 @@ local function renameTag()
   }
 end
 
+---@pararm  is_and boolean
+---@return MenuData
+local function setSelectTags(is_and)
+  is_select_tag_and = is_and
+  local status_msg = "AND"
+  if is_select_tag_and == false then
+    status_msg = "OR"
+  end
+  local res = model:findAllTags()
+  local items = {}
+  if type(res) == "table" then
+    for _, v in ipairs(res) do
+      table.insert(items, {
+        name = v.name,
+        info = { id = v.id },
+        foo = function()
+          select_tags = {}
+          table.insert(select_tags, v.id)
+        end,
+      })
+    end
+  end
+  return {
+    prompt_title = "Evidence setSelectTags " .. status_msg .. " current:" .. tools.array2Str(select_tags),
+    menu_item = items,
+    main_foo = function(value)
+      local typename = type(value)
+      if typename == "table" then
+        select_tags = {}
+        for _, v in ipairs(value) do
+          table.insert(select_tags, v.info.id)
+        end
+      end
+    end,
+  }
+end
+
+---@return MenuData
+local function findCardBySelectTags()
+  local status_msg = "AND"
+  if is_select_tag_and == false then
+    status_msg = "OR"
+  end
+  local foo = function()
+    return model:findCardBySelectTags(select_tags, is_select_tag_and, 50)
+  end
+  return {
+    prompt_title = "Evidence findCardBySelectTags " .. status_msg .. " current:" .. tools.array2Str(select_tags),
+    menu_item = {},
+    main_foo = nil,
+    previewer = menuHelper:createCardPreviewer(),
+    process_work = menuHelper:createCardProcessWork(foo),
+  }
+end
+
 ---@type SimpleMenu[]
 local menuItem = {
   {
@@ -305,11 +368,11 @@ local menuItem = {
     foo = scoreCard,
   },
   {
-    name = "fuzzyFindTag",
+    name = "findTag",
     foo = fuzzyFindTag,
   },
   {
-    name = "fuzzyFindCard",
+    name = "findCard",
     foo = fuzzyFindCard,
   },
   {
@@ -335,6 +398,26 @@ local menuItem = {
   {
     name = "delTags",
     foo = delTags,
+  },
+  {
+    name = "setSelectTagsAnd",
+    foo = function()
+      return setSelectTags(true)
+    end,
+  },
+  {
+    name = "setSelectTagsOr",
+    foo = function()
+      return setSelectTags(false)
+    end,
+  },
+  {
+    name = "findCardBySelectTags",
+    foo = findCardBySelectTags,
+  },
+  {
+    name = "setNextByTags",
+    foo = setNextByTags,
   },
 }
 

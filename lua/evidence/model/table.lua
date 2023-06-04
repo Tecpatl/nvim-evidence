@@ -212,13 +212,14 @@ function SqlTable:findTagsByCard(card_id, is_include)
 end
 
 ---@param tag_ids number[]
+---@param limit_num? number
 ---@param is_and? boolean
 ---@return nil | CardField[]
-function SqlTable:findCardsByTags(tag_ids, is_and)
+function SqlTable:findCardsByTags(tag_ids, limit_num, is_and)
   if is_and == nil then
     is_and = true
   end
-  if type(tag_ids) ~= "table" then
+  if type(tag_ids) ~= "table" or tools.isTableEmpty(tag_ids) then
     return
   end
   local tag_str = ""
@@ -240,6 +241,9 @@ function SqlTable:findCardsByTags(tag_ids, is_and)
       .. ") GROUP BY c.id"
   if is_and then
     query = query .. " HAVING COUNT(DISTINCT t.id) = " .. cnt
+  end
+  if limit_num ~= nil and limit_num ~= -1 then
+    query = query .. " LIMIT " .. limit_num
   end
   return self:eval(query)
 end

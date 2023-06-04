@@ -41,6 +41,20 @@ local function merge(t1, t2)
   return t1
 end
 
+---@return string
+local function array2Str(tbl)
+  local str = "{"
+  for i, value in ipairs(tbl) do
+    str = str .. tostring(value)
+    if i ~= #tbl then
+      str = str .. ","
+    end
+  end
+  str = str .. "}"
+  return str
+end
+
+---@return table
 local function str2table(str)
   local lines = {}
   for s in str:gmatch("[^\r\n]+") do
@@ -131,6 +145,7 @@ local function parse(data)
   end
 end
 
+---full info
 ---@return string
 local function stringify(data)
   return DataDumper(data)
@@ -171,4 +186,5 @@ return {
   stringify = stringify,
   uiInput = uiInput,
   confirmCheck = confirmCheck,
+  array2Str = array2Str,
 }

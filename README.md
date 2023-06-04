@@ -70,13 +70,13 @@ evidence 适用于确定待执行的长久稳定且需要重复记忆任务. (�
 
 - scoreCard:  给当前卡片打分
 
-- fuzzyFindCard:  开启根据卡片内容的模糊搜索弹出作为当前卡片
+- findCard:  开启根据卡片内容的模糊搜索弹出作为当前卡片
 
 - minFindCard:  开启根据最近需要复习卡片的搜索弹出作为当前卡片
 
 ### 对tags操作 
 
-- fuzzyFindTags:  开启根据tag name的模糊搜索
+- findTags:  开启根据tag name的模糊搜索
 
 - findTagsByNowCard:  列表展示当前卡片所拥有的tags 
 
@@ -90,9 +90,11 @@ evidence 适用于确定待执行的长久稳定且需要重复记忆任务. (�
 
 - delTags:  全局删除一些tag
 
-- switch( And/Or ):  telescope标题是当前已选tags, 然后展示出所有tags, 支持多选开启新的搜索路径 
+- setSelectTags( And/Or ): telescope标题是当前已选tags, 然后可以设置全局选择的tags
 
-- find( And/Or ): telescope标题是当前已选tags, 然后展示出所有满足tags要求cards
+- findCardBySelectTags( And/Or ): telescope标题是当前已选tags, 然后展示出所有满足tags要求cards
+
+- setNextByTags( And/Or ):  telescope标题是当前已选tags, 然后展示出所有tags, 支持多选开启新的搜索路径 
 
 - findFather: 打印父tags 
 
@@ -104,12 +106,6 @@ evidence 适用于确定待执行的长久稳定且需要重复记忆任务. (�
 
 - 撤销
 
-- 自定义hydra 或者 将hydra 换成 modern search menu
-
-- lru最近访问过的卡片
-
 - record 统计
-
-- tags
 
 - 超前学习提示下
