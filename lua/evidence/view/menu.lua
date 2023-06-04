@@ -32,7 +32,7 @@ local function nextReviewCard()
 end
 
 local function nextNewCard()
-  local item = model:getNewItem(select_tags, is_select_tag_and, true,1)
+  local item = model:getNewItem(select_tags, is_select_tag_and, true, 1)
 
   if item == nil then
     print("empty table")
@@ -382,7 +382,7 @@ local function findNewCard()
     status_msg = "OR"
   end
   local foo = function()
-    return model:getNewItem(select_tags, is_select_tag_and, true,50)
+    return model:getNewItem(select_tags, is_select_tag_and, true, 50)
   end
   return {
     prompt_title = "Evidence findNewCard " .. status_msg .. " current:" .. tools.array2Str(select_tags),
@@ -433,7 +433,7 @@ end
 ---@pararm tag_ids number[]
 ---@return MenuData
 local function convertTagFatherEnd(tag_ids)
-  local res = model:findAllTags()
+  local res = model:findAllSonTags(tag_ids, true) -- exclude tags
   local items = {}
   if type(res) == "table" then
     for _, v in ipairs(res) do

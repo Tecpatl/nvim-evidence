@@ -281,6 +281,20 @@ function Model:findSonTags(tag_id)
   return self.tbl:findTag(-1, "father_id=" .. tag_id)
 end
 
+---@param tag_ids number[]
+---@return nil | TagField[]
+function Model:findTagByIds(tag_ids)
+  local tag_str = ""
+  local cnt = #tag_ids
+  for key, val in pairs(tag_ids) do
+    if tag_str ~= "" then
+      tag_str = tag_str .. ","
+    end
+    tag_str = tag_str .. val
+  end
+  return self.tbl:findTag(-1, "id in " .. tag_str)
+end
+
 ---@param tag_id number
 ---@return nil | TagField
 function Model:findTagById(tag_id)
@@ -389,17 +403,17 @@ end
 ---@param card_id number
 ---@return nil | TagField[]
 function Model:findExcludeTagsByCard(card_id)
-  local father_set = self:findFatherTagsInCard(card_id)
   local tags = self.tbl:findTagsByCard(card_id, false)
-  local res = {}
-  if tags ~= nil then
-    for _, tag in ipairs(tags) do
-      if not set.contains(father_set, tag.id) then
-        table.insert(res, tag)
-      end
+  local tag_ids = self:getIdsFromItem(tags)
+  local son_exclude_ids = self:findAllSonTags(tag_ids, true)
+  local exclude_ids = {}
+  local father_set = self:findFatherTagsInCard(card_id)
+  for _, id in ipairs(son_exclude_ids) do
+    if not set.contains(father_set, id) then
+      table.insert(exclude_ids, id)
     end
   end
-  return res
+  return self:findTagByIds(exclude_ids)
 end
 
 ---@param card_id number
@@ -424,8 +438,12 @@ function Model:delTag(tag_id)
 end
 
 ---@param tag_ids number[]
+---@param is_exclude? boolean
 ---@return number[]
-function Model:findAllSonTags(tag_ids)
+function Model:findAllSonTags(tag_ids, is_exclude)
+  if is_exclude == nil then
+    is_exclude = false
+  end
   local tag_set = set.createSetFromArray(tag_ids)
   local res = {}
   local q = {}
@@ -437,10 +455,14 @@ function Model:findAllSonTags(tag_ids)
     local son_tags = self:findSonTags(now_tag_id)
     if son_tags ~= nil then
       for _, son_tag in ipairs(son_tags) do
-        if set.contains(tag_set, son_tag.id) or set.contains(tag_set, son_tag.father_id) then
+        queue.push(q, son_tag.id)
+        local is_need = set.contains(tag_set, son_tag.id) or set.contains(tag_set, son_tag.father_id)
+        if is_exclude then
+          is_need = not is_need
+        end
+        if is_need then
           set.add(tag_set, son_tag.id)
           set.add(res, son_tag.id)
-          queue.push(q, son_tag.id)
         end
       end
     end
