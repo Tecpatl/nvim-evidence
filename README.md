@@ -29,23 +29,18 @@ evidence 适用于确定待执行的长久稳定且需要重复记忆任务. (�
          branch = "main",
          config = function()
              local user_data = {
-                 uri = "~/.config/nvim/sql/v1",
-                 all_table = {
-                     table_name1 = {
-                         request_retention = 0.9,
-                         maximum_interval = 36500,
-                         easy_bonus = 1.3,
-                         hard_factor = 1.2,
-                         w = { 1.0, 1.0, 5.0, -0.5, -0.5, 0.2, 1.4, -0.12, 0.8, 2.0, -0.2, 0.2, 1.0 },
-                     },
-                     table_name2 = {},
-                 },
-                 now_table_id = "table_name1",
+                uri = "~/sql/v1",
+                parameter = {
+                    request_retention = 0.7,
+                    maximum_interval = 100,
+                    easy_bonus = 1.0,
+                    hard_factor = 0.8,
+                    w = { 1.0, 1.0, 5.0, -0.5, -0.5, 0.2, 1.4, -0.12, 0.8, 2.0, -0.2, 0.2, 1.0 },
+                },
              }
              require("evidence").setup(user_data)
          end,
          dependencies = {
-             "anuvyklack/hydra.nvim",
              "ouyangjunyi/sqlite.lua",
              "nvim-telescope/telescope.nvim"
          }
