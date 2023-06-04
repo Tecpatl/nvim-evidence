@@ -485,6 +485,61 @@ local function convertTagFatherStart()
   }
 end
 
+---@pararm tag_ids number[]
+---@return MenuData
+local function mergeTagEnd(tag_ids)
+  local res = model:findAllSonTags(tag_ids, true) -- exclude tags
+  local items = {}
+  if type(res) == "table" then
+    for _, v in ipairs(res) do
+      table.insert(items, {
+        name = v.name,
+        foo = function()
+          model:mergeTags(tag_ids, v.id)
+        end,
+      })
+    end
+  end
+  return {
+    prompt_title = "Evidence mergeTagEnd select new tag",
+    menu_item = items,
+    main_foo = nil,
+  }
+end
+
+---@return MenuData
+local function mergeTagStart()
+  local res = model:findAllTags()
+  local items = {}
+  if type(res) == "table" then
+    for _, v in ipairs(res) do
+      table.insert(items, {
+        name = v.name,
+        info = {
+          id = v.id,
+        },
+        foo = function()
+          return mergeTagEnd({ v.id })
+        end,
+      })
+    end
+  end
+  return {
+    prompt_title = "Evidence mergeTagStart select old tags",
+    menu_item = items,
+    main_foo = function(value)
+      local typename = type(value)
+      if typename == "table" then
+        local ids = {}
+        for _, v in ipairs(value) do
+          table.insert(ids, v.info.id)
+        end
+        return mergeTagEnd(ids)
+      end
+    end,
+  }
+end
+
 ---@type SimpleMenu[]
 local menuItem = {
   {
@@ -588,6 +643,10 @@ local menuItem = {
   {
     name = "convertTagFather",
     foo = convertTagFatherStart,
+  },
+  {
+    name = "mergeTag",
+    foo = mergeTagStart,
   },
 }
 
