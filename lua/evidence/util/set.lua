@@ -28,9 +28,19 @@ local function toArray(set)
   return array
 end
 
+---@pararm any[]
+local function createSetFromArray(arr)
+  local res = {}
+  for _, id in ipairs(arr) do
+    add(res, id)
+  end
+  return res
+end
+
 return {
   add = add,
   remove = remove,
   contains = contains,
   toArray = toArray,
+  createSetFromArray = createSetFromArray,
 }

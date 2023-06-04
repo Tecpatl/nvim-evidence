@@ -3,6 +3,7 @@ local _FSRS_ = require("evidence.model.fsrs")
 local _ = _FSRS_.model
 local tools = require("evidence.util.tools")
 local set = require("evidence.util.set")
+local queue = require("evidence.util.queue")
 
 ---@class CardItem
 ---@field id number
@@ -105,18 +106,26 @@ end
 
 ---@param tag_ids number[]
 ---@param is_and boolean
+---@param contain_son boolean
 ---@param limit_num? number
 ---@return CardItem[]|nil
-function Model:getMinDueItem(tag_ids, is_and, limit_num)
+function Model:getMinDueItem(tag_ids, is_and, contain_son, limit_num)
+  if contain_son == true and is_and == false then
+    tag_ids = self:findAllSonTags(tag_ids)
+  end
   local item = self.tbl:minCardWithTags(tag_ids, is_and, "due", "info NOT LIKE '%reps=0%'", limit_num)
   return self:convertFsrsTableField2CardItem(item)
 end
 
 ---@param tag_ids number[]
 ---@param is_and boolean
+---@param contain_son boolean
 ---@param limit_num number
 ---@return CardItem[]|nil
-function Model:getNewItem(tag_ids, is_and, limit_num)
+function Model:getNewItem(tag_ids, is_and, contain_son, limit_num)
+  if contain_son == true and is_and == false then
+    tag_ids = self:findAllSonTags(tag_ids)
+  end
   local item = self.tbl:findCardWithTags(tag_ids, is_and, limit_num, "info LIKE '%reps=0%'")
   return self:convertFsrsTableField2CardItem(item)
 end
@@ -407,14 +416,47 @@ end
 
 ---@param tag_id number
 function Model:delTag(tag_id)
-  return self.tbl:delTag(tag_id)
+  local now_tag = self:findTagById(tag_id)
+  if now_tag == nil then
+    error("delTag")
+  end
+  self:mergeTags({ tag_id }, now_tag.father_id)
+end
+
+---@param tag_ids number[]
+---@return number[]
+function Model:findAllSonTags(tag_ids)
+  local tag_set = set.createSetFromArray(tag_ids)
+  local res = {}
+  local q = {}
+  local now_tag_id = -1
+  queue.push(q, now_tag_id)
+  while not queue.isEmpty(q) do
+    now_tag_id = queue.front(q)
+    queue.pop(q)
+    local son_tags = self:findSonTags(now_tag_id)
+    if son_tags ~= nil then
+      for _, son_tag in ipairs(son_tags) do
+        if set.contains(tag_set, son_tag.id) or set.contains(tag_set, son_tag.father_id) then
+          set.add(tag_set, son_tag.id)
+          set.add(res, son_tag.id)
+          queue.push(q, son_tag.id)
+        end
+      end
+    end
+  end
+  return set.toArray(res)
 end
 
 ---@param tag_ids number[]
 ---@param is_and boolean
+---@param contain_son boolean
 ---@param lim? number
 ---@return nil | CardField[]
-function Model:findCardBySelectTags(tag_ids, is_and, lim)
+function Model:findCardBySelectTags(tag_ids, is_and, contain_son, lim)
+  if contain_son == true and is_and == false then
+    tag_ids = self:findAllSonTags(tag_ids)
+  end
   lim = lim or 10
   if tools.isTableEmpty(tag_ids) then
     return self:fuzzyFindCard("", lim)

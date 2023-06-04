@@ -22,7 +22,7 @@ local function nextCard()
 end
 
 local function nextReviewCard()
-  local item = model:getMinDueItem(select_tags, is_select_tag_and, 1)
+  local item = model:getMinDueItem(select_tags, is_select_tag_and, true, 1)
 
   if item == nil then
     print("empty table")
@@ -32,7 +32,7 @@ local function nextReviewCard()
 end
 
 local function nextNewCard()
-  local item = model:getNewItem(select_tags, is_select_tag_and, 1)
+  local item = model:getNewItem(select_tags, is_select_tag_and, true,1)
 
   if item == nil then
     print("empty table")
@@ -346,7 +346,7 @@ local function findCardBySelectTags()
     status_msg = "OR"
   end
   local foo = function()
-    return model:findCardBySelectTags(select_tags, is_select_tag_and, 50)
+    return model:findCardBySelectTags(select_tags, is_select_tag_and, true, 50)
   end
   return {
     prompt_title = "Evidence findCardBySelectTags " .. status_msg .. " current:" .. tools.array2Str(select_tags),
@@ -364,7 +364,7 @@ local function findReviewCard()
     status_msg = "OR"
   end
   local foo = function()
-    return model:getMinDueItem(select_tags, is_select_tag_and, 50)
+    return model:getMinDueItem(select_tags, is_select_tag_and, true, 50)
   end
   return {
     prompt_title = "Evidence findReviewCard " .. status_msg .. " current:" .. tools.array2Str(select_tags),
@@ -382,7 +382,7 @@ local function findNewCard()
     status_msg = "OR"
   end
   local foo = function()
-    return model:getNewItem(select_tags, is_select_tag_and, 50)
+    return model:getNewItem(select_tags, is_select_tag_and, true,50)
   end
   return {
     prompt_title = "Evidence findNewCard " .. status_msg .. " current:" .. tools.array2Str(select_tags),
@@ -427,6 +427,53 @@ local function tagTree(now_tag_id)
     prompt_title = "Evidence tagTree",
     menu_item = items,
     main_foo = nil,
+  }
+end
+
+---@pararm tag_ids number[]
+---@return MenuData
+local function convertTagFatherEnd(tag_ids)
+  local res = model:findAllTags()
+  local items = {}
+  if type(res) == "table" then
+    for _, v in ipairs(res) do
+      table.insert(items, {
+        name = v.name,
+        foo = function() end,
+      })
+    end
+  end
+  return {
+    prompt_title = "Evidence convertTagFather select end tags",
+    menu_item = items,
+    main_foo = function(value)
+      local typename = type(value)
+      if typename == "table" then
+      end
+    end,
+  }
+end
+
+---@return MenuData
+local function convertTagFatherStart()
+  local res = model:findAllTags()
+  local items = {}
+  if type(res) == "table" then
+    for _, v in ipairs(res) do
+      table.insert(items, {
+        name = v.name,
+        foo = function() end,
+      })
+    end
+  end
+  return {
+    prompt_title = "Evidence convertTagFather select start tags",
+    menu_item = items,
+    main_foo = function(value)
+      local typename = type(value)
+      if typename == "table" then
+      end
+    end,
   }
 end
 
@@ -529,6 +576,10 @@ local menuItem = {
     foo = function()
       return tagTree(-1)
     end,
+  },
+  {
+    name = "convertTagFather",
+    foo = convertTagFatherStart,
   },
 }
 

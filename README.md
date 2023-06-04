@@ -97,6 +97,8 @@ evidence 适用于确定待执行的长久稳定且需要重复记忆任务. (�
 
 - tagTree: 展示tag间依赖关系
 
+- convertTagFather: 修改tags的父节点指向
+
 - mergeTag: 将指定tags合并到另一个tag中, 且删掉指定旧的tags
 
 ## Todo
@@ -114,5 +116,3 @@ evidence 适用于确定待执行的长久稳定且需要重复记忆任务. (�
 ### Tag
 
 - 多种tag合并到另一种tag中
-
-- 指向父子级依赖关系(fa默认-1)
