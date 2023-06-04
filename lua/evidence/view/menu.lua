@@ -393,6 +393,43 @@ local function findNewCard()
   }
 end
 
+---@param now_tag_id number
+---@return MenuData|nil
+local function tagTree(now_tag_id)
+  local son_tags = model:findSonTags(now_tag_id)
+  local items = {}
+  if now_tag_id ~= -1 then
+    local now_tag = model:findTagById(now_tag_id)
+    if now_tag == nil then
+      error("tagTree findTagById")
+    end
+    table.insert(items, {
+      name = "[father] " .. now_tag.name,
+      info = { id = now_tag.id },
+      foo = function()
+        return tagTree(now_tag.father_id)
+      end,
+    })
+  end
+  --print(vim.inspect(son_tags))
+  if type(son_tags) == "table" then
+    for _, v in ipairs(son_tags) do
+      table.insert(items, {
+        name = v.name,
+        info = { id = v.id },
+        foo = function()
+          return tagTree(v.id)
+        end,
+      })
+    end
+  end
+  return {
+    prompt_title = "Evidence tagTree",
+    menu_item = items,
+    main_foo = nil,
+  }
+end
+
 ---@type SimpleMenu[]
 local menuItem = {
   {
@@ -486,6 +523,12 @@ local menuItem = {
   {
     name = "nextNewCard",
     foo = nextNewCard,
+  },
+  {
+    name = "tagTree",
+    foo = function()
+      return tagTree(-1)
+    end,
   },
 }
 

@@ -2,6 +2,7 @@ local SqlTable = require("evidence.model.table")
 local _FSRS_ = require("evidence.model.fsrs")
 local _ = _FSRS_.model
 local tools = require("evidence.util.tools")
+local set = require("evidence.util.set")
 
 ---@class CardItem
 ---@field id number
@@ -98,7 +99,7 @@ function Model:editTag(id, row)
 end
 
 ---@return nil | CardField[]
-function Model:findAll()
+function Model:findAllCards()
   return self.tbl:findCard()
 end
 
@@ -224,13 +225,131 @@ function Model:findAllTags()
 end
 
 ---@param name string
-function Model:addTag(name)
-  self.tbl:insertTag(name)
+---@param father_id? number
+function Model:addTag(name, father_id)
+  father_id = father_id or -1
+  self.tbl:insertTag(name, father_id)
+end
+
+---@param tag_id number
+---@return TagField[]
+function Model:findFatherTags(tag_id)
+  local now_tag_id = tag_id
+  --print("findFatherTags")
+  local tags = {}
+  while tag_id ~= -1 do
+    local tag_item = self:findTagById(tag_id)
+    if tag_item == nil then
+      error("findFatherTags")
+    end
+    if tag_item.id ~= now_tag_id then
+      table.insert(tags, tag_item)
+    end
+    tag_id = tag_item.father_id
+  end
+  return tags
+end
+
+---@param card_id number
+---@return table set
+function Model:findFatherTagsInCard(card_id)
+  local res = {}
+  local tags = self:findIncludeTagsByCard(card_id)
+  if tags ~= nil then
+    for _, tag in ipairs(tags) do
+      local fathers = self:findFatherTags(tag.id)
+      for __, father in ipairs(fathers) do
+        set.add(res, father.id)
+      end
+    end
+  end
+  return res
+end
+
+---@param tag_id number
+---@return nil | TagField[]
+function Model:findSonTags(tag_id)
+  return self.tbl:findTag(-1, "father_id=" .. tag_id)
+end
+
+---@param tag_id number
+---@return nil | TagField
+function Model:findTagById(tag_id)
+  local res = self.tbl:findTag(1, "id=" .. tag_id)
+  if res ~= nil then
+    return res[1]
+  else
+    return nil
+  end
+end
+
+---@param son_ids number[]
+---@param father_id number
+function Model:convertFatherTag(son_ids, father_id)
+  for _, son_id in ipairs(son_ids) do
+    if son_id ~= father_id then
+      self.tbl:editTag(son_id, { father_id = father_id })
+    else
+      error("convertFatherTag")
+    end
+  end
+end
+
+---@return number[]
+function Model:getIdsFromItem(items)
+  local res = {}
+  for _, item in pairs(items) do
+    table.insert(res, item.id)
+  end
+  return res
+end
+
+---@param old_tag_ids number[] tag would_be_delete
+---@param new_tag_id number
+function Model:mergeTags(old_tag_ids, new_tag_id)
+  for _, old_tag_id in ipairs(old_tag_ids) do
+    local son_tags = self:findSonTags(old_tag_id)
+    --print(vim.inspect(son_tags))
+    if son_tags ~= nil then
+      --print(vim.inspect(son_tags))
+      local son_tag_ids = self:getIdsFromItem(son_tags)
+      self:convertFatherTag(son_tag_ids, new_tag_id)
+    end
+  end
+  self.tbl:mergeTags(old_tag_ids, new_tag_id)
+end
+
+---@param card_id number
+---@param tag_id number
+---@return boolean
+function Model:checkValidCardTagById(card_id, tag_id)
+  --print("checkValidCardTagById")
+  local res = self:findFatherTagsInCard(card_id)
+  local now_tags = self:findIncludeTagsByCard(card_id)
+  local new_fathers = self:findFatherTags(tag_id)
+  if now_tags == nil then
+    return true
+  end
+  --print(vim.inspect(now_tags))
+  --print(vim.inspect(new_fathers))
+  --print(vim.inspect(res))
+  for _, new_father in ipairs(new_fathers) do
+    for __, now_tag in ipairs(now_tags) do
+      if new_father.id == now_tag.id then
+        return false
+      end
+    end
+  end
+  return not set.contains(res, tag_id)
 end
 
 ---@param card_id number
 ---@param tag_id number
 function Model:insertCardTagById(card_id, tag_id)
+  if not self:checkValidCardTagById(card_id, tag_id) then
+    print("insertCardTagById error")
+    return
+  end
   self.tbl:insertCardTag(card_id, tag_id)
 end
 
@@ -250,13 +369,28 @@ function Model:insertCardTagByName(card_id, tag_name)
     return
   end
   tag_item = tag_item[1]
-  self.tbl:insertCardTag(card_id, tag_item.id)
+  local tag_id = tag_item.id
+  if not self:checkValidCardTagById(card_id, tag_id) then
+    print("insertCardTagByName error")
+    return
+  end
+  self.tbl:insertCardTag(card_id, tag_id)
 end
 
 ---@param card_id number
 ---@return nil | TagField[]
 function Model:findExcludeTagsByCard(card_id)
-  return self.tbl:findTagsByCard(card_id, false)
+  local father_set = self:findFatherTagsInCard(card_id)
+  local tags = self.tbl:findTagsByCard(card_id, false)
+  local res = {}
+  if tags ~= nil then
+    for _, tag in ipairs(tags) do
+      if not set.contains(father_set, tag.id) then
+        table.insert(res, tag)
+      end
+    end
+  end
+  return res
 end
 
 ---@param card_id number
