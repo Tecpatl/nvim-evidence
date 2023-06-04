@@ -38,10 +38,9 @@ local function getNowItem()
 end
 
 ---@return MenuData
-local function fuzzyFind()
-  local res = model:fuzzyFindCard("", 50)
+local function fuzzyFindCard()
   return {
-    prompt_title = "Evidence FuzzyFind",
+    prompt_title = "Evidence FuzzyFindCard",
     menu_item = {},
     main_foo = nil,
     previewer = menuHelper:createCardPreviewer(),
@@ -50,7 +49,7 @@ local function fuzzyFind()
 end
 
 local function addCard()
-  if not menuHelper:confirmCheck("addCard") then
+  if not tools.confirmCheck("addCard") then
     return
   end
   local content = vim.api.nvim_buf_get_lines(winBuf:getInfo().buf, 0, -1, false)
@@ -59,7 +58,7 @@ local function addCard()
 end
 
 local function delCard()
-  if not menuHelper:confirmCheck("delCard") then
+  if not tools.confirmCheck("delCard") then
     return
   end
   model:delCard(getNowItem().id)
@@ -70,7 +69,64 @@ local function answer()
   winBuf:switchFold(false)
 end
 
+local function editCard()
+  if not tools.confirmCheck("editCard") then
+    return
+  end
+  local content = vim.api.nvim_buf_get_lines(winBuf:getInfo().buf, 0, -1, false)
+  local content_str = table.concat(content, "\n")
+  local file_type = vim.bo.filetype
+  if not file_type or file_type == "" then
+    file_type = "markdown"
+  end
+  model:editCard(getNowItem().id, { content = content_str, file_type = file_type })
+end
+
+local function infoCard()
+  tools.printDump(getNowItem().card)
+end
+
+local function scoreCard()
+  local rating = tonumber(tools.uiInput("score(0,1,2,3):", ""))
+  if type(rating) ~= "number" or not menuHelper:checkScore(rating) then
+    print("input format error (0,1,2,3)")
+    return
+  end
+  print(rating)
+  model:ratingCard(getNowItem().id, rating)
+  nextCard()
+end
+
+---@return MenuData
 local function addTag()
+  local res = model:findAllTags()
+  local items = {}
+  if type(res) == "table" then
+    for _, v in ipairs(res) do
+      table.insert(items, {
+        name = v.name,
+        foo = function()
+          print("please add a tag not exist")
+        end,
+      })
+    end
+  end
+  return {
+    prompt_title = "Evidence addTag",
+    menu_item = items,
+    main_foo = function(value)
+      local typename = type(value)
+      if typename == "string" then
+        model:addTag(value)
+      else
+        print("please add a tag not exist")
+      end
+    end,
+  }
+end
+
+---@return MenuData
+local function addTagsForNowCard()
   local card_id = getNowItem().id
   local res = model:findExcludeTagsByCard(card_id)
   local items = {}
@@ -78,20 +134,22 @@ local function addTag()
     for _, v in ipairs(res) do
       table.insert(items, {
         name = v.name,
+        info = { id = v.id },
         foo = function()
-          model:findIncludeTagsByCard(v.id)
+          print(card_id, v.id)
+          model:insertCardTagById(card_id, v.id)
         end,
       })
     end
   end
   return {
-    prompt_title = "Evidence AddTag",
+    prompt_title = "Evidence addTagsForNowCard",
     menu_item = items,
     main_foo = function(value)
       local typename = type(value)
       if typename == "table" then
         for _, v in ipairs(value) do
-          model:insertCardTagById(card_id, v.id)
+          model:insertCardTagById(card_id, v.info.id)
         end
       elseif typename == "string" then
         model:insertCardTagByName(card_id, value)
@@ -101,7 +159,7 @@ local function addTag()
 end
 
 ---@return MenuData
-local function findTag()
+local function fuzzyFindTag()
   local res = model:findAllTags()
   local items = {}
   if type(res) == "table" then
@@ -110,7 +168,24 @@ local function findTag()
     end
   end
   return {
-    prompt_title = "Evidence FindTag",
+    prompt_title = "Evidence fuzzyFindTag",
+    menu_item = items,
+    main_foo = nil,
+  }
+end
+
+---@return MenuData
+local function findTagsByNowCard()
+  local card_id = getNowItem().id
+  local res = model:findIncludeTagsByCard(card_id)
+  local items = {}
+  if res ~= nil then
+    for _, v in ipairs(res) do
+      table.insert(items, { name = v.name, foo = nil })
+    end
+  end
+  return {
+    prompt_title = "Evidence findTagsByNowCard",
     menu_item = items,
     main_foo = nil,
   }
@@ -135,16 +210,36 @@ local menuItem = {
     foo = answer,
   },
   {
-    name = "findTags",
-    foo = findTag,
+    name = "editCard",
+    foo = editCard,
+  },
+  {
+    name = "infoCard",
+    foo = infoCard,
+  },
+  {
+    name = "scoreCard",
+    foo = scoreCard,
   },
   {
     name = "addTag",
     foo = addTag,
   },
   {
-    name = "fuzzyFind",
-    foo = fuzzyFind,
+    name = "fuzzyFindTag",
+    foo = fuzzyFindTag,
+  },
+  {
+    name = "fuzzyFindCard",
+    foo = fuzzyFindCard,
+  },
+  {
+    name = "findTagsByNowCard",
+    foo = findTagsByNowCard,
+  },
+  {
+    name = "addTagsForNowCard",
+    foo = addTagsForNowCard,
   },
 }
 

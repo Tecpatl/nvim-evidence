@@ -64,23 +64,31 @@ evidence 适用于确定待执行的长久稳定且需要重复记忆任务. (�
 
 - answer: 显示答案
 
-- findTags:  列表展示拥有的tags 
-
-- addTags:  先展示出所有非直系亲缘tags, 支持多选添加, 并且如果没有匹配项自动生成一个新的, 个数限制
-
-- delTags:  列表展示拥有的tags, 支持多选删除 
-
 - editCard:  将缓冲区的内容更新到当前卡片里
 
 - infoCard:  打印多个卡片信息(第一项是当前卡片)
 
 - scoreCard:  给当前卡片打分
 
-- fuzzyFind:  开启根据卡片内容的模糊搜索弹出作为当前卡片
+- fuzzyFindCard:  开启根据卡片内容的模糊搜索弹出作为当前卡片
 
-- minFind:  开启根据最近需要复习卡片的搜索弹出作为当前卡片
+- minFindCard:  开启根据最近需要复习卡片的搜索弹出作为当前卡片
 
 ### 对tags操作 
+
+- fuzzyFindTags:  开启根据tag name的模糊搜索
+
+- findTagsByNowCard:  列表展示当前卡片所拥有的tags 
+
+- addTagsForNowCard:  先展示出当前卡片拥有所有(todo非直系亲缘)tags, 支持多选添加, 并且如果没有匹配项自动生成一个新的, 个数限制
+
+- delTagsForNowCard:  列表展示当前卡片拥有的tags, 支持多选删除 
+
+- addTag:  全局添加一个tag
+
+- renameTag:  全局修改一个tag名字
+
+- delTags:  全局删除一些tag
 
 - rename:  先展示出所有tags, 选中一个(不能多选),左下角输入新名字
 

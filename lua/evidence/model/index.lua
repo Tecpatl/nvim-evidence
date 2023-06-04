@@ -229,6 +229,9 @@ end
 function Model:insertCardTagByName(card_id, tag_name)
   local tag_item = self:fuzzyFindTag(tag_name, 1)
   if type(tag_item) ~= "table" then
+    if not tools.confirmCheck("create new tag name:" .. tag_name) then
+      return
+    end
     self:addTag(tag_name)
     tag_item = self:fuzzyFindTag(tag_name, 1)
   end

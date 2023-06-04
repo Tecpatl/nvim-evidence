@@ -14,6 +14,7 @@ local tools = require("evidence.util.tools")
 ---@class SimpleMenu
 ---@field name string
 ---@field foo? function
+---@field info? any custom
 
 ---@class MenuData
 ---@field prompt_title string
@@ -99,11 +100,9 @@ local function live_fd(option)
               end
             else
               single = select_item.value
-              if menu_data_.main_foo ~= nil then
-                local multi = picker:get_multi_selection()
-                if not tools.isTableEmpty(multi) then
-                  res = menu_data_.main_foo(convertValueArray(multi))
-                end
+              local multi = picker:get_multi_selection()
+              if not tools.isTableEmpty(multi) and menu_data_.main_foo ~= nil then
+                res = menu_data_.main_foo(convertValueArray(multi))
               elseif not tools.isTableEmpty(single) and single.foo ~= nil then
                 res = single.foo()
               end

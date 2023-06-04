@@ -119,17 +119,6 @@ function MenuHelper:createCardProcessWork()
   end
 end
 
----@param name string
----@return boolean
-function MenuHelper:confirmCheck(name)
-  local confirm = tools.uiInput(name .. "  (y/n):", "")
-  if confirm ~= "y" then
-    print(name .. " failed")
-    return false
-  end
-  return true
-end
-
 ---@return CardItem[]|nil
 function MenuHelper:calcNextList()
   -- TODO: custom
@@ -147,6 +136,11 @@ function MenuHelper:calcNextList()
     end
   end
   return item
+end
+
+---@return boolean
+function MenuHelper:checkScore(score)
+  return score == 0 or score == 1 or score == 2 or score == 3
 end
 
 return MenuHelper:getInstance()
