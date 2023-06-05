@@ -2,6 +2,8 @@ local SqlTable = require("evidence.model.table")
 local _FSRS_ = require("evidence.model.fsrs")
 local _ = _FSRS_.model
 local tools = require("evidence.util.tools")
+local set = require("evidence.util.set")
+local queue = require("evidence.util.queue")
 
 ---@class CardItem
 ---@field id number
@@ -98,24 +100,32 @@ function Model:editTag(id, row)
 end
 
 ---@return nil | CardField[]
-function Model:findAll()
+function Model:findAllCards()
   return self.tbl:findCard()
 end
 
 ---@param tag_ids number[]
 ---@param is_and boolean
+---@param contain_son boolean
 ---@param limit_num? number
 ---@return CardItem[]|nil
-function Model:getMinDueItem(tag_ids, is_and, limit_num)
+function Model:getMinDueItem(tag_ids, is_and, contain_son, limit_num)
+  if contain_son == true and is_and == false then
+    tag_ids = self:findAllSonTags(tag_ids)
+  end
   local item = self.tbl:minCardWithTags(tag_ids, is_and, "due", "info NOT LIKE '%reps=0%'", limit_num)
   return self:convertFsrsTableField2CardItem(item)
 end
 
 ---@param tag_ids number[]
 ---@param is_and boolean
+---@param contain_son boolean
 ---@param limit_num number
 ---@return CardItem[]|nil
-function Model:getNewItem(tag_ids, is_and, limit_num)
+function Model:getNewItem(tag_ids, is_and, contain_son, limit_num)
+  if contain_son == true and is_and == false then
+    tag_ids = self:findAllSonTags(tag_ids)
+  end
   local item = self.tbl:findCardWithTags(tag_ids, is_and, limit_num, "info LIKE '%reps=0%'")
   return self:convertFsrsTableField2CardItem(item)
 end
@@ -224,13 +234,147 @@ function Model:findAllTags()
 end
 
 ---@param name string
-function Model:addTag(name)
-  self.tbl:insertTag(name)
+---@param father_id? number
+function Model:addTag(name, father_id)
+  father_id = father_id or -1
+  self.tbl:insertTag(name, father_id)
+end
+
+---@param tag_id number
+---@return TagField[]
+function Model:findFatherTags(tag_id)
+  local now_tag_id = tag_id
+  --print("findFatherTags")
+  local tags = {}
+  while tag_id ~= -1 do
+    local tag_item = self:findTagById(tag_id)
+    if tag_item == nil then
+      error("findFatherTags")
+    end
+    if tag_item.id ~= now_tag_id then
+      table.insert(tags, tag_item)
+    end
+    tag_id = tag_item.father_id
+  end
+  return tags
+end
+
+---@param card_id number
+---@return table set
+function Model:findFatherTagsInCard(card_id)
+  local res = {}
+  local tags = self:findIncludeTagsByCard(card_id)
+  if tags ~= nil then
+    for _, tag in ipairs(tags) do
+      local fathers = self:findFatherTags(tag.id)
+      for __, father in ipairs(fathers) do
+        set.add(res, father.id)
+      end
+    end
+  end
+  return res
+end
+
+---@param tag_id number
+---@return nil | TagField[]
+function Model:findSonTags(tag_id)
+  return self.tbl:findTag(-1, "father_id=" .. tag_id)
+end
+
+---@param tag_ids number[]
+---@return nil | TagField[]
+function Model:findTagByIds(tag_ids)
+  local tag_str = ""
+  local cnt = #tag_ids
+  for key, val in pairs(tag_ids) do
+    if tag_str ~= "" then
+      tag_str = tag_str .. ","
+    end
+    tag_str = tag_str .. val
+  end
+  return self.tbl:findTag(-1, "id in (" .. tag_str .. ")")
+end
+
+---@param tag_id number
+---@return nil | TagField
+function Model:findTagById(tag_id)
+  local res = self.tbl:findTag(1, "id=" .. tag_id)
+  if res ~= nil then
+    return res[1]
+  else
+    return nil
+  end
+end
+
+---@param son_ids number[]
+---@param father_id number
+function Model:convertFatherTag(son_ids, father_id)
+  for _, son_id in ipairs(son_ids) do
+    if son_id ~= father_id then
+      self.tbl:editTag(son_id, { father_id = father_id })
+    else
+      error("convertFatherTag")
+    end
+  end
+end
+
+---@return number[]
+function Model:getIdsFromItem(items)
+  local res = {}
+  if type(items) == "table" then
+    for _, item in pairs(items) do
+      table.insert(res, item.id)
+    end
+  end
+  return res
+end
+
+---@param old_tag_ids number[] tag would_be_delete
+---@param new_tag_id number
+function Model:mergeTags(old_tag_ids, new_tag_id)
+  for _, old_tag_id in ipairs(old_tag_ids) do
+    local son_tags = self:findSonTags(old_tag_id)
+    --print(vim.inspect(son_tags))
+    if son_tags ~= nil then
+      --print(vim.inspect(son_tags))
+      local son_tag_ids = self:getIdsFromItem(son_tags)
+      self:convertFatherTag(son_tag_ids, new_tag_id)
+    end
+  end
+  self.tbl:mergeTags(old_tag_ids, new_tag_id)
+end
+
+---@param card_id number
+---@param tag_id number
+---@return boolean
+function Model:checkValidCardTagById(card_id, tag_id)
+  --print("checkValidCardTagById")
+  local res = self:findFatherTagsInCard(card_id)
+  local now_tags = self:findIncludeTagsByCard(card_id)
+  local new_fathers = self:findFatherTags(tag_id)
+  if now_tags == nil then
+    return true
+  end
+  --print(vim.inspect(now_tags))
+  --print(vim.inspect(new_fathers))
+  --print(vim.inspect(res))
+  for _, new_father in ipairs(new_fathers) do
+    for __, now_tag in ipairs(now_tags) do
+      if new_father.id == now_tag.id then
+        return false
+      end
+    end
+  end
+  return not set.contains(res, tag_id)
 end
 
 ---@param card_id number
 ---@param tag_id number
 function Model:insertCardTagById(card_id, tag_id)
+  if not self:checkValidCardTagById(card_id, tag_id) then
+    print("insertCardTagById error")
+    return
+  end
   self.tbl:insertCardTag(card_id, tag_id)
 end
 
@@ -250,13 +394,30 @@ function Model:insertCardTagByName(card_id, tag_name)
     return
   end
   tag_item = tag_item[1]
-  self.tbl:insertCardTag(card_id, tag_item.id)
+  local tag_id = tag_item.id
+  if not self:checkValidCardTagById(card_id, tag_id) then
+    print("insertCardTagByName error")
+    return
+  end
+  self.tbl:insertCardTag(card_id, tag_id)
 end
 
 ---@param card_id number
 ---@return nil | TagField[]
 function Model:findExcludeTagsByCard(card_id)
-  return self.tbl:findTagsByCard(card_id, false)
+  local tags = self.tbl:findTagsByCard(card_id, true)
+  local tag_ids = self:getIdsFromItem(tags)
+  --print(vim.inspect(tag_ids))
+  local son_exclude_ids = self:findAllSonTags(tag_ids, true)
+  --print(vim.inspect(son_exclude_ids))
+  local exclude_ids = {}
+  local father_set = self:findFatherTagsInCard(card_id)
+  for _, id in ipairs(son_exclude_ids) do
+    if not set.contains(father_set, id) then
+      table.insert(exclude_ids, id)
+    end
+  end
+  return self:findTagByIds(exclude_ids)
 end
 
 ---@param card_id number
@@ -273,14 +434,59 @@ end
 
 ---@param tag_id number
 function Model:delTag(tag_id)
-  return self.tbl:delTag(tag_id)
+  local now_tag = self:findTagById(tag_id)
+  if now_tag == nil then
+    error("delTag")
+  end
+  self:mergeTags({ tag_id }, now_tag.father_id)
+end
+
+---@param tag_ids number[]
+---@param is_exclude? boolean
+---@return number[]
+function Model:findAllSonTags(tag_ids, is_exclude)
+  if is_exclude == nil then
+    is_exclude = false
+  end
+  local tag_set = set.createSetFromArray(tag_ids)
+  local res = {}
+  local q = {}
+  local now_tag_id = -1
+  queue.push(q, now_tag_id)
+  while not queue.isEmpty(q) do
+    now_tag_id = queue.front(q)
+    --print(">>> id:" .. now_tag_id)
+    queue.pop(q)
+    local son_tags = self:findSonTags(now_tag_id)
+    if son_tags ~= nil then
+      for _, son_tag in ipairs(son_tags) do
+        queue.push(q, son_tag.id)
+        local is_need = set.contains(tag_set, son_tag.id) or set.contains(tag_set, son_tag.father_id)
+        --print("is_need:" .. tostring(is_need))
+        if is_need then
+          set.add(tag_set, son_tag.id)
+        end
+        if is_exclude then
+          is_need = not is_need
+        end
+        if is_need then
+          set.add(res, son_tag.id)
+        end
+      end
+    end
+  end
+  return set.toArray(res)
 end
 
 ---@param tag_ids number[]
 ---@param is_and boolean
+---@param contain_son boolean
 ---@param lim? number
 ---@return nil | CardField[]
-function Model:findCardBySelectTags(tag_ids, is_and, lim)
+function Model:findCardBySelectTags(tag_ids, is_and, contain_son, lim)
+  if contain_son == true and is_and == false then
+    tag_ids = self:findAllSonTags(tag_ids)
+  end
   lim = lim or 10
   if tools.isTableEmpty(tag_ids) then
     return self:fuzzyFindCard("", lim)

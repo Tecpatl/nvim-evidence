@@ -16,6 +16,7 @@ local SqlInfo = {}
 ---@class TagField
 ---@field id number
 ---@field name string
+---@field father_id number
 
 ---@class CardTagField
 ---@field card_id number
@@ -70,7 +71,8 @@ function SqlTable:setup(data)
   self.db:execute([[
     create table if not exists tag(
       id INTEGER primary KEY AUTOINCREMENT,
-      name text NOT NULL UNIQUE
+      name text NOT NULL UNIQUE,
+      father_id int DEFAULT -1
     )]])
 
   self.db:execute([[
@@ -86,6 +88,7 @@ end
 ---@param query string
 ---@return nil | table
 function SqlTable:eval(query)
+  --print(query)
   local item = self.db:eval(query)
   if type(item) ~= "table" then
     item = nil
@@ -158,14 +161,23 @@ function SqlTable:insertCard(content, info, due, file_type)
 end
 
 ---@param name string
-function SqlTable:insertTag(name)
-  self:insert(Tables.tag, { name = name })
+---@param father_id? number
+function SqlTable:insertTag(name, father_id)
+  father_id = father_id or -1
+  self:insert(Tables.tag, { name = name, father_id = father_id })
 end
 
 ---@param id number
 ---@param data TagField
 function SqlTable:editTag(id, data)
   self:update(Tables.tag, data, "id=" .. id)
+end
+
+---@param statement string
+---@param limit_num number
+function SqlTable:findCardTag(statement, limit_num)
+  local query = "select * from " .. Tables.card_tag .. " where " .. statement .. " LIMIT " .. limit_num
+  self.db:execute(query)
 end
 
 ---@param card_id number
@@ -211,14 +223,55 @@ function SqlTable:findTagsByCard(card_id, is_include)
   return self:eval(query)
 end
 
+---@param old_tag_ids number[] tag would_be_delete
+---@param new_tag_id number
+function SqlTable:mergeTags(old_tag_ids, new_tag_id)
+  local tag_str = ""
+  for key, val in pairs(old_tag_ids) do
+    if tag_str ~= "" then
+      tag_str = tag_str .. ","
+    end
+    tag_str = tag_str .. val
+  end
+  local query = "INSERT OR IGNORE INTO "
+      .. Tables.card_tag
+      .. " (card_id, tag_id) SELECT card_id, "
+      .. new_tag_id
+      .. " FROM card_tag WHERE tag_id IN ("
+      .. tag_str
+      .. ") UNION ALL SELECT card_id,"
+      .. new_tag_id
+      .. " from "
+      .. Tables.card_tag
+      .. " where tag_id="
+      .. new_tag_id
+  self.db:execute(query)
+  query = "DELETE FROM "
+      .. Tables.card_tag
+      .. " WHERE tag_id IN ("
+      .. tag_str
+      .. ")"
+      .. " AND card_id IN ( SELECT card_id FROM "
+      .. Tables.card_tag
+      .. " WHERE tag_id IN ("
+      .. tag_str
+      .. ")"
+      .. ")"
+  self.db:execute(query)
+  query = "delete from " .. Tables.tag .. " where id IN (" .. tag_str .. ")"
+  self.db:execute(query)
+end
+
 ---@param tag_ids number[]
 ---@param limit_num? number
 ---@param is_and? boolean
+---@param column? string
 ---@return nil | CardField[]
-function SqlTable:findCardsByTags(tag_ids, limit_num, is_and)
+function SqlTable:findCardsByTags(tag_ids, limit_num, is_and, column)
   if is_and == nil then
     is_and = true
   end
+  column = column or "*"
   if type(tag_ids) ~= "table" or tools.isTableEmpty(tag_ids) then
     return
   end
@@ -230,7 +283,9 @@ function SqlTable:findCardsByTags(tag_ids, limit_num, is_and)
     end
     tag_str = tag_str .. val
   end
-  local query = "SELECT c.* FROM "
+  local query = "SELECT c."
+      .. column
+      .. " FROM "
       .. Tables.card
       .. " AS c JOIN "
       .. Tables.card_tag

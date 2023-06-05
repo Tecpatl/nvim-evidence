@@ -41,7 +41,7 @@ evidence 适用于确定待执行的长久稳定且需要重复记忆任务. (�
              require("evidence").setup(user_data)
          end,
          dependencies = {
-             "ouyangjunyi/sqlite.lua",
+             "kkharji/sqlite.lua",
              "nvim-telescope/telescope.nvim"
          }
 }
@@ -95,9 +95,11 @@ evidence 适用于确定待执行的长久稳定且需要重复记忆任务. (�
 
 - findCardBySelectTags( And/Or ): telescope标题是当前已选tags, 然后展示出所有满足tags要求cards
 
-- findFather: 打印父tags 
+- tagTree: 展示tag间依赖关系
 
-- findSon: 打印子tags
+- convertTagFather: 修改tags的父节点指向
+
+- mergeTag: 将指定tags合并到另一个tag中, 且删掉指定旧的tags
 
 ## Todo
 
@@ -109,8 +111,5 @@ evidence 适用于确定待执行的长久稳定且需要重复记忆任务. (�
 
 - 超前学习提示下
 
-### Tag
+- telescope中直接对条目快捷键操作
 
-- 多种tag合并到另一种tag中
-
-- 指向父子级依赖关系(树状根节点虚点)

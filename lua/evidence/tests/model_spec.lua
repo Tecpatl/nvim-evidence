@@ -26,9 +26,32 @@ local reset = function(n)
   model:clear()
   n = n or lim
   for i = 1, n do
-    model:addNewCard("# mock\n\n ## answer \n\n" .. i .. "abc")
+    model:addNewCard("# mock" .. i .. "\n\n ## answer \n\n" .. i .. "abc")
   end
   return n
+end
+
+local reset_tags_no_insert = function(n)
+  if n == nil or n < 8 then
+    n = 8
+  end
+  reset(n)
+  for i = 1, n do
+    model:addTag("tag_" .. i)
+  end
+  model:convertFatherTag({ 2, 3 }, 1)
+  model:convertFatherTag({ 4, 5 }, 2)
+  model:convertFatherTag({ 6, 7 }, 3)
+end
+
+local reset_tags = function(n)
+  reset_tags_no_insert(n)
+  model:insertCardTagById(1, 1)
+  model:insertCardTagById(2, 2)
+  model:insertCardTagById(2, 6)
+  model:insertCardTagById(3, 3)
+  model:insertCardTagById(3, 4)
+  model:insertCardTagById(3, 5)
 end
 
 describe("card", function()
@@ -39,13 +62,13 @@ describe("card", function()
   it("add_del", function()
     local n = 10
     reset(n)
-    local data = model:findAll()
+    local data = model:findAllCards()
     assert(data ~= nil)
     eq(n, #data)
     for i = 1, n - 1 do
       model:delCard(data[i].id)
     end
-    data = model:findAll()
+    data = model:findAllCards()
     eq(1, #data)
   end)
   it("findById", function()
@@ -64,43 +87,59 @@ describe("card", function()
   end)
   it("ratingCard", function()
     reset(1)
-    local data = model:findAll()
+    local data = model:findAllCards()
     --tools.printDump(data)
     model:ratingCard(1, _.Rating.Again, os.time() + 5 * 24 * 60 * 60)
-    data = model:findAll()
+    data = model:findAllCards()
     --tools.printDump(data)
   end)
 end)
 
 describe("tag", function()
   it("add_del_Tag", function()
-    reset(3)
-    model:addTag("a")
-    model:addTag("b")
-    model:addTag("c")
-    model:insertCardTagById(1, 1)
-    model:insertCardTagById(1, 2)
-    model:insertCardTagById(2, 1)
-    model:insertCardTagById(2, 2)
-    model:insertCardTagById(3, 1)
-    model:insertCardTagById(3, 2)
+    reset_tags_no_insert(8)
+    model:insertCardTagById(1, 4)
+    model:insertCardTagById(1, 6)
     local q = model:findIncludeTagsByCard(1)
-    --print(vim.inspect(q))
     q = model:findExcludeTagsByCard(1)
     --print(vim.inspect(q))
+
     --model:insertCardTagByName(1, "x")
-    q = model:findIncludeTagsByCard(1)
+    --q = model:findIncludeTagsByCard(1)
     --print(vim.inspect(q))
 
-    model:delCardTag(1, 2)
+    model:delCardTag(1, 4)
     q = model:findIncludeTagsByCard(1)
+    model:insertCardTagById(1, 4)
+    model:insertCardTagById(2, 4)
+    model:insertCardTagById(2, 6)
+    model:insertCardTagById(2, 8)
+    model:insertCardTagById(3, 4)
     --print(vim.inspect(q))
-    q = model:findCardBySelectTags({ 1, 2 }, true, 1)
+    q = model:findCardBySelectTags({ 4, 6 }, true, false, -1)
     --print(vim.inspect(q))
-    q = model:findCardBySelectTags({ 1, 2 }, false, 2)
+    q = model:findCardBySelectTags({ 4, 3 }, false, true, -1)
     --print(vim.inspect(q))
     model:ratingCard(2, _.Rating.Again, os.time() + 5 * 24 * 60 * 60)
-    q = model:getMinDueItem({ 1, 2, 3 }, false, 1)
-    print(vim.inspect(q))
+    q = model:getMinDueItem({ 2, 3 }, false, true, -1)
+    --print(vim.inspect(q))
+  end)
+  it("merge_tag", function()
+    local n = 8
+    reset_tags_no_insert(n)
+
+    model:insertCardTagById(1, 4)
+    model:insertCardTagById(2, 4)
+    model:insertCardTagById(2, 6)
+    model:insertCardTagById(2, 8)
+    model:insertCardTagById(3, 4)
+
+    model:mergeTags({ 2, 6 }, 8)
+
+    local q = model:findAllTags()
+    --print(vim.inspect(q))
+  end)
+  it("mock", function()
+    reset_tags()
   end)
 end)

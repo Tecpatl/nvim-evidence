@@ -3,6 +3,7 @@ local tools = require("evidence.util.tools")
 local winBuf = require("evidence.view.win_buf")
 local telescopeMenu = require("evidence.view.telescope")
 local menuHelper = require("evidence.view.menu_helper")
+local set = require("evidence.util.set")
 
 ---@type ModelTableParam
 local user_data = nil
@@ -22,7 +23,7 @@ local function nextCard()
 end
 
 local function nextReviewCard()
-  local item = model:getMinDueItem(select_tags, is_select_tag_and, 1)
+  local item = model:getMinDueItem(select_tags, is_select_tag_and, true, 1)
 
   if item == nil then
     print("empty table")
@@ -32,7 +33,7 @@ local function nextReviewCard()
 end
 
 local function nextNewCard()
-  local item = model:getNewItem(select_tags, is_select_tag_and, 1)
+  local item = model:getNewItem(select_tags, is_select_tag_and, true, 1)
 
   if item == nil then
     print("empty table")
@@ -173,14 +174,15 @@ local function addTagsForNowCard()
     prompt_title = "Evidence addTagsForNowCard",
     menu_item = items,
     main_foo = function(value)
-      local typename = type(value)
-      if typename == "table" then
-        for _, v in ipairs(value) do
-          model:insertCardTagById(card_id, v.info.id)
-        end
-      elseif typename == "string" then
-        model:insertCardTagByName(card_id, value)
-      end
+      print("cannot multiple add tags for direct relations")
+      --local typename = type(value)
+      --if typename == "table" then
+      --  for _, v in ipairs(value) do
+      --    model:insertCardTagById(card_id, v.info.id)
+      --  end
+      --elseif typename == "string" then
+      --  model:insertCardTagByName(card_id, value)
+      --end
     end,
   }
 end
@@ -248,6 +250,20 @@ local function delTagsForNowCard()
   }
 end
 
+---@param del_tag number[] | number
+local function updateSelectTags(del_tag)
+  local s = set.createSetFromArray(select_tags)
+  local typename = type(del_tag)
+  if typename == "table" then
+    for _, id in ipairs(del_tag) do
+      set.remove(s, id)
+    end
+  elseif typename == "number" then
+    set.remove(s, del_tag)
+  end
+  select_tags = set.toArray(s)
+end
+
 ---@return MenuData
 local function delTags()
   local res = model:findAllTags()
@@ -259,6 +275,7 @@ local function delTags()
         info = { id = v.id },
         foo = function()
           model:delTag(v.id)
+          updateSelectTags(v.id)
         end,
       })
     end
@@ -271,6 +288,7 @@ local function delTags()
       if typename == "table" then
         for _, v in ipairs(value) do
           model:delTag(v.info.id)
+          updateSelectTags(v.id)
         end
       end
     end,
@@ -346,7 +364,7 @@ local function findCardBySelectTags()
     status_msg = "OR"
   end
   local foo = function()
-    return model:findCardBySelectTags(select_tags, is_select_tag_and, 50)
+    return model:findCardBySelectTags(select_tags, is_select_tag_and, true, 50)
   end
   return {
     prompt_title = "Evidence findCardBySelectTags " .. status_msg .. " current:" .. tools.array2Str(select_tags),
@@ -364,7 +382,7 @@ local function findReviewCard()
     status_msg = "OR"
   end
   local foo = function()
-    return model:getMinDueItem(select_tags, is_select_tag_and, 50)
+    return model:getMinDueItem(select_tags, is_select_tag_and, true, 50)
   end
   return {
     prompt_title = "Evidence findReviewCard " .. status_msg .. " current:" .. tools.array2Str(select_tags),
@@ -382,7 +400,7 @@ local function findNewCard()
     status_msg = "OR"
   end
   local foo = function()
-    return model:getNewItem(select_tags, is_select_tag_and, 50)
+    return model:getNewItem(select_tags, is_select_tag_and, true, 50)
   end
   return {
     prompt_title = "Evidence findNewCard " .. status_msg .. " current:" .. tools.array2Str(select_tags),
@@ -390,6 +408,157 @@ local function findNewCard()
     main_foo = nil,
     previewer = menuHelper:createCardPreviewer(),
     process_work = menuHelper:createCardProcessWork(foo),
+  }
+end
+
+---@param now_tag_id number
+---@return MenuData|nil
+local function tagTree(now_tag_id)
+  local son_tags = model:findSonTags(now_tag_id)
+  local items = {}
+  if now_tag_id ~= -1 then
+    local now_tag = model:findTagById(now_tag_id)
+    if now_tag == nil then
+      error("tagTree findTagById")
+    end
+    table.insert(items, {
+      name = "[father] " .. now_tag.name,
+      info = { id = now_tag.id },
+      foo = function()
+        return tagTree(now_tag.father_id)
+      end,
+    })
+  end
+  --print(vim.inspect(son_tags))
+  if type(son_tags) == "table" then
+    for _, v in ipairs(son_tags) do
+      table.insert(items, {
+        name = v.name,
+        info = { id = v.id },
+        foo = function()
+          return tagTree(v.id)
+        end,
+      })
+    end
+  end
+  return {
+    prompt_title = "Evidence tagTree",
+    menu_item = items,
+    main_foo = nil,
+  }
+end
+
+---@pararm tag_ids number[]
+---@return MenuData
+local function convertTagFatherEnd(tag_ids)
+  local exclude_son_ids = model:findAllSonTags(tag_ids, true) -- exclude tags
+  local res = model:findTagByIds(exclude_son_ids)
+  local items = {}
+  if type(res) == "table" then
+    for _, v in ipairs(res) do
+      table.insert(items, {
+        name = v.name,
+        foo = function()
+          model:convertFatherTag(tag_ids, v.id)
+          updateSelectTags(tag_ids)
+        end,
+      })
+    end
+  end
+  return {
+    prompt_title = "Evidence convertTagFather select father tag",
+    menu_item = items,
+    main_foo = nil,
+  }
+end
+
+---@return MenuData
+local function convertTagFatherStart()
+  local res = model:findAllTags()
+  local items = {}
+  if type(res) == "table" then
+    for _, v in ipairs(res) do
+      table.insert(items, {
+        name = v.name,
+        info = {
+          id = v.id,
+        },
+        foo = function()
+          return convertTagFatherEnd({ v.id })
+        end,
+      })
+    end
+  end
+  return {
+    prompt_title = "Evidence convertTagFather select son tags",
+    menu_item = items,
+    main_foo = function(value)
+      local typename = type(value)
+      if typename == "table" then
+        local ids = {}
+        for _, v in ipairs(value) do
+          table.insert(ids, v.info.id)
+        end
+        return convertTagFatherEnd(ids)
+      end
+    end,
+  }
+end
+
+---@pararm tag_ids number[]
+---@return MenuData
+local function mergeTagEnd(tag_ids)
+  local exclude_son_ids = model:findAllSonTags(tag_ids, true) -- exclude tags
+  local res = model:findTagByIds(exclude_son_ids)
+  local items = {}
+  if type(res) == "table" then
+    for _, v in ipairs(res) do
+      table.insert(items, {
+        name = v.name,
+        foo = function()
+          model:mergeTags(tag_ids, v.id)
+          updateSelectTags(tag_ids)
+        end,
+      })
+    end
+  end
+  return {
+    prompt_title = "Evidence mergeTagEnd select new tag",
+    menu_item = items,
+    main_foo = nil,
+  }
+end
+
+---@return MenuData
+local function mergeTagStart()
+  local res = model:findAllTags()
+  local items = {}
+  if type(res) == "table" then
+    for _, v in ipairs(res) do
+      table.insert(items, {
+        name = v.name,
+        info = {
+          id = v.id,
+        },
+        foo = function()
+          return mergeTagEnd({ v.id })
+        end,
+      })
+    end
+  end
+  return {
+    prompt_title = "Evidence mergeTagStart select old tags",
+    menu_item = items,
+    main_foo = function(value)
+      local typename = type(value)
+      if typename == "table" then
+        local ids = {}
+        for _, v in ipairs(value) do
+          table.insert(ids, v.info.id)
+        end
+        return mergeTagEnd(ids)
+      end
+    end,
   }
 end
 
@@ -486,6 +655,20 @@ local menuItem = {
   {
     name = "nextNewCard",
     foo = nextNewCard,
+  },
+  {
+    name = "tagTree",
+    foo = function()
+      return tagTree(-1)
+    end,
+  },
+  {
+    name = "convertTagFather",
+    foo = convertTagFatherStart,
+  },
+  {
+    name = "mergeTag",
+    foo = mergeTagStart,
   },
 }
 
