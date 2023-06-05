@@ -3,6 +3,7 @@ local tools = require("evidence.util.tools")
 local winBuf = require("evidence.view.win_buf")
 local telescopeMenu = require("evidence.view.telescope")
 local menuHelper = require("evidence.view.menu_helper")
+local set = require("evidence.util.set")
 
 ---@type ModelTableParam
 local user_data = nil
@@ -173,7 +174,7 @@ local function addTagsForNowCard()
     prompt_title = "Evidence addTagsForNowCard",
     menu_item = items,
     main_foo = function(value)
-      --- cannot multiple add tags for direct relations
+      print("cannot multiple add tags for direct relations")
       --local typename = type(value)
       --if typename == "table" then
       --  for _, v in ipairs(value) do
@@ -249,6 +250,20 @@ local function delTagsForNowCard()
   }
 end
 
+---@param del_tag number[] | number
+local function updateSelectTags(del_tag)
+  local s = set.createSetFromArray(select_tags)
+  local typename = type(del_tag)
+  if typename == "table" then
+    for _, id in ipairs(del_tag) do
+      set.remove(s, id)
+    end
+  elseif typename == "number" then
+    set.remove(s, del_tag)
+  end
+  select_tags = set.toArray(s)
+end
+
 ---@return MenuData
 local function delTags()
   local res = model:findAllTags()
@@ -260,6 +275,7 @@ local function delTags()
         info = { id = v.id },
         foo = function()
           model:delTag(v.id)
+          updateSelectTags(v.id)
         end,
       })
     end
@@ -272,6 +288,7 @@ local function delTags()
       if typename == "table" then
         for _, v in ipairs(value) do
           model:delTag(v.info.id)
+          updateSelectTags(v.id)
         end
       end
     end,
@@ -434,7 +451,8 @@ end
 ---@pararm tag_ids number[]
 ---@return MenuData
 local function convertTagFatherEnd(tag_ids)
-  local res = model:findAllSonTags(tag_ids, true) -- exclude tags
+  local exclude_son_ids = model:findAllSonTags(tag_ids, true) -- exclude tags
+  local res = model:findTagByIds(exclude_son_ids)
   local items = {}
   if type(res) == "table" then
     for _, v in ipairs(res) do
@@ -442,6 +460,7 @@ local function convertTagFatherEnd(tag_ids)
         name = v.name,
         foo = function()
           model:convertFatherTag(tag_ids, v.id)
+          updateSelectTags(tag_ids)
         end,
       })
     end
@@ -489,7 +508,8 @@ end
 ---@pararm tag_ids number[]
 ---@return MenuData
 local function mergeTagEnd(tag_ids)
-  local res = model:findAllSonTags(tag_ids, true) -- exclude tags
+  local exclude_son_ids = model:findAllSonTags(tag_ids, true) -- exclude tags
+  local res = model:findTagByIds(exclude_son_ids)
   local items = {}
   if type(res) == "table" then
     for _, v in ipairs(res) do
@@ -497,6 +517,7 @@ local function mergeTagEnd(tag_ids)
         name = v.name,
         foo = function()
           model:mergeTags(tag_ids, v.id)
+          updateSelectTags(tag_ids)
         end,
       })
     end
