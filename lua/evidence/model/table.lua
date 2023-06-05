@@ -88,6 +88,7 @@ end
 ---@param query string
 ---@return nil | table
 function SqlTable:eval(query)
+  --print(query)
   local item = self.db:eval(query)
   if type(item) ~= "table" then
     item = nil

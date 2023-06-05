@@ -292,7 +292,7 @@ function Model:findTagByIds(tag_ids)
     end
     tag_str = tag_str .. val
   end
-  return self.tbl:findTag(-1, "id in " .. tag_str)
+  return self.tbl:findTag(-1, "id in (" .. tag_str .. ")")
 end
 
 ---@param tag_id number
@@ -321,8 +321,10 @@ end
 ---@return number[]
 function Model:getIdsFromItem(items)
   local res = {}
-  for _, item in pairs(items) do
-    table.insert(res, item.id)
+  if type(items) == "table" then
+    for _, item in pairs(items) do
+      table.insert(res, item.id)
+    end
   end
   return res
 end
@@ -403,9 +405,11 @@ end
 ---@param card_id number
 ---@return nil | TagField[]
 function Model:findExcludeTagsByCard(card_id)
-  local tags = self.tbl:findTagsByCard(card_id, false)
+  local tags = self.tbl:findTagsByCard(card_id, true)
   local tag_ids = self:getIdsFromItem(tags)
+  --print(vim.inspect(tag_ids))
   local son_exclude_ids = self:findAllSonTags(tag_ids, true)
+  --print(vim.inspect(son_exclude_ids))
   local exclude_ids = {}
   local father_set = self:findFatherTagsInCard(card_id)
   for _, id in ipairs(son_exclude_ids) do
@@ -451,17 +455,21 @@ function Model:findAllSonTags(tag_ids, is_exclude)
   queue.push(q, now_tag_id)
   while not queue.isEmpty(q) do
     now_tag_id = queue.front(q)
+    --print(">>> id:" .. now_tag_id)
     queue.pop(q)
     local son_tags = self:findSonTags(now_tag_id)
     if son_tags ~= nil then
       for _, son_tag in ipairs(son_tags) do
         queue.push(q, son_tag.id)
         local is_need = set.contains(tag_set, son_tag.id) or set.contains(tag_set, son_tag.father_id)
+        --print("is_need:" .. tostring(is_need))
+        if is_need then
+          set.add(tag_set, son_tag.id)
+        end
         if is_exclude then
           is_need = not is_need
         end
         if is_need then
-          set.add(tag_set, son_tag.id)
           set.add(res, son_tag.id)
         end
       end

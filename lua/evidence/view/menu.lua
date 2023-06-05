@@ -173,14 +173,15 @@ local function addTagsForNowCard()
     prompt_title = "Evidence addTagsForNowCard",
     menu_item = items,
     main_foo = function(value)
-      local typename = type(value)
-      if typename == "table" then
-        for _, v in ipairs(value) do
-          model:insertCardTagById(card_id, v.info.id)
-        end
-      elseif typename == "string" then
-        model:insertCardTagByName(card_id, value)
-      end
+      --- cannot multiple add tags for direct relations
+      --local typename = type(value)
+      --if typename == "table" then
+      --  for _, v in ipairs(value) do
+      --    model:insertCardTagById(card_id, v.info.id)
+      --  end
+      --elseif typename == "string" then
+      --  model:insertCardTagByName(card_id, value)
+      --end
     end,
   }
 end
