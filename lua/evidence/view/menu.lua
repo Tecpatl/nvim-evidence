@@ -169,6 +169,9 @@ local function addTag()
     main_foo = function(value)
       local typename = type(value)
       if typename == "string" then
+        if not tools.confirmCheck("addTag") then
+          return
+        end
         model:addTag(value)
       else
         print("please add a tag not exist")
@@ -188,6 +191,9 @@ local function addTagsForNowCard()
         name = v.name,
         info = { id = v.id },
         foo = function()
+          if not tools.confirmCheck("addTagsForNowCard") then
+            return
+          end
           model:insertCardTagById(card_id, v.id)
         end,
       })
@@ -254,6 +260,9 @@ local function delTagsForNowCard()
         name = v.name,
         info = { id = v.id },
         foo = function()
+          if not tools.confirmCheck("delTagsForNowCard") then
+            return
+          end
           model:delCardTag(card_id, v.id)
         end,
       })
@@ -297,6 +306,9 @@ local function delTags()
         name = v.name,
         info = { id = v.id },
         foo = function()
+          if not tools.confirmCheck("delTags") then
+            return
+          end
           model:delTag(v.id)
           updateSelectTags(v.id)
         end,
@@ -307,13 +319,14 @@ local function delTags()
     prompt_title = "Evidence delTags",
     menu_item = items,
     main_foo = function(value)
-      local typename = type(value)
-      if typename == "table" then
-        for _, v in ipairs(value) do
-          model:delTag(v.info.id)
-          updateSelectTags(v.id)
-        end
-      end
+      print("cannot multiple del tags for direct relations")
+      --local typename = type(value)
+      --if typename == "table" then
+      --  for _, v in ipairs(value) do
+      --    model:delTag(v.info.id)
+      --    updateSelectTags(v.id)
+      --  end
+      --end
     end,
   }
 end
@@ -482,6 +495,9 @@ local function convertTagFatherEnd(tag_ids)
       table.insert(items, {
         name = v.name,
         foo = function()
+          if not tools.confirmCheck("convertTagFatherEnd") then
+            return
+          end
           model:convertFatherTag(tag_ids, v.id)
           updateSelectTags(tag_ids)
         end,
@@ -539,6 +555,9 @@ local function mergeTagEnd(tag_ids)
       table.insert(items, {
         name = v.name,
         foo = function()
+          if not tools.confirmCheck("mergeTagEnd") then
+            return
+          end
           model:mergeTags(tag_ids, v.id)
           updateSelectTags(tag_ids)
         end,
