@@ -77,6 +77,7 @@ end
 --end
 
 ---@param content string
+---@return number id
 function Model:addNewCard(content)
   local card_info = _.Card:new()
   local file_type = vim.bo.filetype
@@ -84,7 +85,7 @@ function Model:addNewCard(content)
     file_type = "markdown"
   end
 
-  self.tbl:insertCard(content, card_info:dumpStr(), card_info.due, file_type)
+  return self.tbl:insertCard(content, card_info:dumpStr(), card_info.due, file_type)
 end
 
 ---@param id number
@@ -235,9 +236,10 @@ end
 
 ---@param name string
 ---@param father_id? number
+---@return number id
 function Model:addTag(name, father_id)
   father_id = father_id or -1
-  self.tbl:insertTag(name, father_id)
+  return self.tbl:insertTag(name, father_id)
 end
 
 ---@param tag_id number

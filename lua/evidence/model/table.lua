@@ -99,78 +99,98 @@ function SqlTable:eval(query)
   return item
 end
 
----@param tbl TablesType
----@param data table
----@param statement? string
-function SqlTable:update(tbl, data, statement)
-  if tools.isTableEmpty(data) then
-    error("update data not table")
-  end
-  local str = ""
-  for key, val in pairs(data) do
-    if str ~= "" then
-      str = str .. ","
-    end
-    local val_ = val
-    if type(val_) == "string" then
-      val_ = "'" .. val_ .. "'"
-    end
-    local kv = key .. " = " .. val_
-    str = str .. kv
-  end
-  local cmd = "update " .. tbl .. " set " .. str
-  if statement then
-    cmd = cmd .. " where " .. statement
-  end
-  self.db:execute(cmd)
-end
+-----@param tbl TablesType
+-----@param data table
+-----@param statement? string
+--function SqlTable:update(tbl, data, statement)
+--  if tools.isTableEmpty(data) then
+--    error("update data not table")
+--  end
+--  local str = ""
+--  for key, val in pairs(data) do
+--    if str ~= "" then
+--      str = str .. ","
+--    end
+--    local val_ = val
+--    if type(val_) == "string" then
+--      val_ = "'" .. val_ .. "'"
+--    end
+--    local kv = key .. " = " .. val_
+--    str = str .. kv
+--  end
+--  local cmd = "update " .. tbl .. " set " .. str
+--  if statement then
+--    cmd = cmd .. " where " .. statement
+--  end
+--  self.db:execute(cmd)
+--end
 
----@param tbl TablesType
----@param data table
-function SqlTable:insert(tbl, data)
-  if tools.isTableEmpty(data) then
-    error("insert data not table")
+-----@param tbl TablesType
+-----@param data table
+--function SqlTable:insert(tbl, data)
+--  if tools.isTableEmpty(data) then
+--    error("insert data not table")
+--  end
+--  local key_str = ""
+--  local val_str = ""
+--  for key, val in pairs(data) do
+--    if key_str ~= "" then
+--      key_str = key_str .. ","
+--      val_str = val_str .. ","
+--    end
+--    key_str = key_str .. key
+--    local val_ = val
+--    if type(val_) == "string" then
+--      val_ = "'" .. val_ .. "'"
+--    end
+--    val_str = val_str .. val_
+--  end
+--  local cmd = "insert into " .. tbl .. " (" .. key_str .. ") values (" .. val_str .. ")"
+--  print("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
+--  print(cmd)
+--  print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+--  self.db:execute(cmd)
+--end
+
+---@return number id
+function SqlTable:getLastId()
+  local item = self:eval("SELECT last_insert_rowid();")
+  if item == nil then
+    error("getLastId")
   end
-  local key_str = ""
-  local val_str = ""
-  for key, val in pairs(data) do
-    if key_str ~= "" then
-      key_str = key_str .. ","
-      val_str = val_str .. ","
-    end
-    key_str = key_str .. key
-    local val_ = val
-    if type(val_) == "string" then
-      val_ = "'" .. val_ .. "'"
-    end
-    val_str = val_str .. val_
-  end
-  local cmd = "insert into " .. tbl .. " (" .. key_str .. ") values (" .. val_str .. ")"
-  self.db:execute(cmd)
+  return item[1]["last_insert_rowid()"]
 end
 
 ---@param content string
 ---@param info string
 ---@param due Timestamp
 ---@param file_type? string
+---@return number id
 function SqlTable:insertCard(content, info, due, file_type)
   if not file_type or file_type == "" then
     file_type = "markdown"
   end
-  self:insert(Tables.card, { content = content, info = info, due = due, file_type = file_type })
+  self.db:insert(Tables.card, { content = content, info = info, due = due, file_type = file_type })
+  return self:getLastId()
 end
 
 ---@param name string
 ---@param father_id? number
+---@return number id
 function SqlTable:insertTag(name, father_id)
   father_id = father_id or -1
-  self:insert(Tables.tag, { name = name, father_id = father_id })
+  self.db:insert(Tables.tag, { name = name, father_id = father_id })
+  return self:getLastId()
 end
 
 ---@param id number
----@param data TagField
-function SqlTable:editTag(id, data)
-  self:update(Tables.tag, data, "id=" .. id)
+---@param row TagField
+function SqlTable:editTag(id, row)
+  row["id"] = nil
+  return self.db:update(Tables.tag, {
+    where = { id = id },
+    set = row,
+  })
 end
 
 ---@param statement string
@@ -183,7 +203,7 @@ end
 ---@param card_id number
 ---@param tag_id number
 function SqlTable:insertCardTag(card_id, tag_id)
-  self:insert(Tables.card_tag, { card_id = card_id, tag_id = tag_id })
+  self.db:insert(Tables.card_tag, { card_id = card_id, tag_id = tag_id })
 end
 
 ---@param card_id number
@@ -194,9 +214,13 @@ function SqlTable:delCardTag(card_id, tag_id)
 end
 
 ---@param id number
----@param data CardField
-function SqlTable:editCard(id, data)
-  self:update(Tables.card, data, "id=" .. id)
+---@param row CardField
+function SqlTable:editCard(id, row)
+  row["id"] = nil
+  return self.db:update(Tables.card, {
+    where = { id = id },
+    set = row,
+  })
 end
 
 ---@param card_id number
