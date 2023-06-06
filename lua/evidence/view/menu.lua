@@ -42,9 +42,14 @@ local function nextNewCard()
   winBuf:viewContent(item[1])
 end
 
-local function show()
-  winBuf:openSplitWin()
-  nextCard()
+---@return boolean
+local function checkStartInSelfBuf()
+  local start_buf = vim.api.nvim_get_current_buf()
+  if is_start_ == false or not winBuf:checkSelfBuf(start_buf) then
+    print("evidence need in self buf. call flush first if buf is closed")
+    return false
+  end
+  return true
 end
 
 ---@param data ModelTableParam
@@ -59,7 +64,6 @@ local function setup(data)
   model:setup(data)
   winBuf:setup({}, "## answer")
   menuHelper:setup(model)
-  show()
 end
 
 ---@return CardItem
@@ -674,18 +678,23 @@ local menuItem = {
     name = "mergeTag",
     foo = mergeTagStart,
   },
-  {
-    name = "show",
-    foo = show,
-  },
 }
 
----@param data ModelTableParam
-local function start(data)
-  setup(data)
+local function cmd()
+  if not checkStartInSelfBuf() then
+    return
+  end
   telescopeMenu.setup({ prompt_title = "Evidence MainMenu", menu_item = menuItem, main_foo = nil })
 end
 
+---@param data ModelTableParam
+local function flush(data)
+  setup(data)
+  winBuf:openSplitWin()
+  nextCard()
+end
+
 return {
-  start = start,
+  cmd = cmd,
+  flush = flush,
 }

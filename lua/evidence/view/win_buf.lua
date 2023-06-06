@@ -95,6 +95,12 @@ function WinBufImpl:BufferClose()
   end
 end
 
+---@param start_buf number
+---@return boolean
+function WinBufImpl:checkSelfBuf(start_buf)
+  return start_buf ~= -1 and start_buf == self.buf
+end
+
 function WinBufImpl:openSplitWin()
   self:BufferClose()
   local cmd_by_split_mode = self:getSplitCmd()
@@ -242,6 +248,12 @@ end
 
 function WinBuf:openSplitWin()
   self._:openSplitWin()
+end
+
+---@param start_buf number
+---@return boolean
+function WinBuf:checkSelfBuf(start_buf)
+  return self._:checkSelfBuf(start_buf)
 end
 
 return WinBuf:getInstance()

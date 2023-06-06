@@ -9,17 +9,22 @@ local user_data = {
   },
 }
 
-local function start()
-  local menu = require("evidence.view.menu")
-  menu.start(user_data)
-end
+local function cmd() end
 
 return {
   setup = function(data)
     user_data = data or user_data
 
-    vim.api.nvim_create_user_command("Evidence", function()
-      start()
+    vim.api.nvim_create_user_command("EvidenceCmd", function()
+      local menu = require("evidence.view.menu")
+      menu.cmd()
+    end, {
+      nargs = 0,
+    })
+
+    vim.api.nvim_create_user_command("EvidenceFlush", function()
+      local menu = require("evidence.view.menu")
+      menu.flush(user_data)
     end, {
       nargs = 0,
     })
