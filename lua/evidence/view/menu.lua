@@ -42,6 +42,11 @@ local function nextNewCard()
   winBuf:viewContent(item[1])
 end
 
+local function show()
+  winBuf:openSplitWin()
+  nextCard()
+end
+
 ---@param data ModelTableParam
 local function setup(data)
   if is_start_ == true then
@@ -54,8 +59,7 @@ local function setup(data)
   model:setup(data)
   winBuf:setup({}, "## answer")
   menuHelper:setup(model)
-  winBuf:openSplitWin()
-  nextCard()
+  show()
 end
 
 ---@return CardItem
@@ -669,6 +673,10 @@ local menuItem = {
   {
     name = "mergeTag",
     foo = mergeTagStart,
+  },
+  {
+    name = "show",
+    foo = show,
   },
 }
 
