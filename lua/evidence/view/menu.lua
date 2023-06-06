@@ -330,7 +330,7 @@ local function renameTag()
         foo = function()
           local new_name = tools.uiInput("renameTag old_name:" .. v.name .. " new_name:", "")
           if new_name ~= nil then
-            model:editTag(getNowItem().id, { name = new_name })
+            model:editTag(v.id, { name = new_name })
           end
         end,
       })

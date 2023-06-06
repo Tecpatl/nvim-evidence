@@ -138,6 +138,8 @@ describe("tag", function()
 
     local q = model:findAllTags()
     --print(vim.inspect(q))
+    q = model:findIncludeTagsByCard(2)
+    --print(vim.inspect(q))
   end)
   it("mock", function()
     reset_tags()
