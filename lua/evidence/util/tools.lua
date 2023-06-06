@@ -41,10 +41,15 @@ local function merge(t1, t2)
   return t1
 end
 
+---@param tbl table
+---@param item? string
 ---@return string
-local function array2Str(tbl)
+local function array2Str(tbl, item)
   local str = "{"
   for i, value in ipairs(tbl) do
+    if item ~= nil then
+      value = value[item]
+    end
     str = str .. tostring(value)
     if i ~= #tbl then
       str = str .. ","

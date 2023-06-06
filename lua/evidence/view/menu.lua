@@ -12,6 +12,21 @@ local is_start_ = false
 local select_tags = {}
 local is_select_tag_and = true
 
+local function selectTagNameStr()
+  local res = ""
+  if select_tags ~= {} then
+    local status_msg = "AND"
+    if is_select_tag_and == false then
+      status_msg = "OR"
+    end
+    local tags = model:findTagByIds(select_tags)
+    if tags ~= nil then
+      res = status_msg .. " current:" .. tools.array2Str(tags, "name")
+    end
+  end
+  return res
+end
+
 local function nextCard()
   local item = menuHelper:calcNextList(select_tags, is_select_tag_and)
 
@@ -351,7 +366,7 @@ local function setSelectTags(is_and)
     end
   end
   return {
-    prompt_title = "Evidence setSelectTags " .. status_msg .. " current:" .. tools.array2Str(select_tags),
+    prompt_title = "Evidence setSelectTags " .. selectTagNameStr(),
     menu_item = items,
     main_foo = function(value)
       local typename = type(value)
@@ -375,7 +390,7 @@ local function findCardBySelectTags()
     return model:findCardBySelectTags(select_tags, is_select_tag_and, true, 50)
   end
   return {
-    prompt_title = "Evidence findCardBySelectTags " .. status_msg .. " current:" .. tools.array2Str(select_tags),
+    prompt_title = "Evidence findCardBySelectTags " .. selectTagNameStr(),
     menu_item = {},
     main_foo = nil,
     previewer = menuHelper:createCardPreviewer(),
@@ -393,7 +408,7 @@ local function findReviewCard()
     return model:getMinDueItem(select_tags, is_select_tag_and, true, 50)
   end
   return {
-    prompt_title = "Evidence findReviewCard " .. status_msg .. " current:" .. tools.array2Str(select_tags),
+    prompt_title = "Evidence findReviewCard " .. selectTagNameStr(),
     menu_item = {},
     main_foo = nil,
     previewer = menuHelper:createCardPreviewer(),
@@ -411,7 +426,7 @@ local function findNewCard()
     return model:getNewItem(select_tags, is_select_tag_and, true, 50)
   end
   return {
-    prompt_title = "Evidence findNewCard " .. status_msg .. " current:" .. tools.array2Str(select_tags),
+    prompt_title = "Evidence findNewCard " .. selectTagNameStr(),
     menu_item = {},
     main_foo = nil,
     previewer = menuHelper:createCardPreviewer(),
@@ -684,7 +699,11 @@ local function cmd()
   if not checkStartInSelfBuf() then
     return
   end
-  telescopeMenu.setup({ prompt_title = "Evidence MainMenu", menu_item = menuItem, main_foo = nil })
+  telescopeMenu.setup({
+    prompt_title = "Evidence MainMenu " .. selectTagNameStr(),
+    menu_item = menuItem,
+    main_foo = nil,
+  })
 end
 
 ---@param data ModelTableParam
