@@ -47,7 +47,8 @@ evidence 适用于确定待执行的长久稳定且需要重复记忆任务. (�
 }
 ```
 
-`<leader>E` 弹出搜索框
+`:EvidenceFlush` 重新打开刷新buffer
+`:EvidenceCmd` 弹出搜索框
 
 ### 当前卡片card操作   
 
