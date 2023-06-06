@@ -21,18 +21,14 @@ local data = {
 model:setup(data)
 
 local reset = function(n)
-  local q = model:findAllCards()
-  print(vim.inspect(q))
+  --local q = model:findAllCards(10)
+  --print(vim.inspect(q))
   model:clear()
   local card_id
   local tag_id = model:addTag("toefl")
   for _, v in ipairs(anki_data) do
     card_id = model:addNewCard(v)
-    print("card_id:" .. card_id)
-    --model:insertCardTagById(card_id, tag_id)
-    if _ > 2 then
-      break
-    end
+    model:insertCardTagById(card_id, tag_id)
   end
 end
 
