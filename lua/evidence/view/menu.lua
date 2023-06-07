@@ -143,7 +143,8 @@ local function editCard()
 end
 
 local function infoCard()
-  tools.printDump(getNowItem().card)
+  local card = getNowItem().card
+  tools.printDump(card)
 end
 
 local function scoreCard()

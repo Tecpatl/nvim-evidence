@@ -510,7 +510,8 @@ function Model:findCardBySelectTags(tag_ids, is_and, contain_son, lim)
   if tools.isTableEmpty(tag_ids) then
     return self:fuzzyFindCard("", lim)
   end
-  return self.tbl:findCardsByTags(tag_ids, lim, is_and)
+  local item = self.tbl:findCardsByTags(tag_ids, lim, is_and)
+  return self:cardFields2CardItems(item)
 end
 
 return Model:getInstance()

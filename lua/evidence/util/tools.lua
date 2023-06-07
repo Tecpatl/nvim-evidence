@@ -134,6 +134,9 @@ local function deepCopy(orig)
 end
 
 local function printDump(obj)
+  if obj == nil then
+    print("printDump nil")
+  end
   local meta = getmetatable(obj)
   setmetatable(obj, nil)
   print(vim.inspect(obj))
