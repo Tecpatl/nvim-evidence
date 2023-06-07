@@ -113,5 +113,8 @@ https://www.youtube.com/watch?v=taGRd-ZwwCU&t=602s
 
 - 各种提示
 
-- telescope中直接对条目按键映射快捷键操作
+- telescope中直接对条目按键映射快捷键操作 (很多多选条目的操作需要在tag_tree中的非亲缘关系下操作比较合适)
 
+- 最近访问过的card, 最近复习过的, 最近新添加的
+
+- 自定义分隔符不同类型文件映射,包括段落多层分割
