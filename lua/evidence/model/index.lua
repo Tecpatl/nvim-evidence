@@ -77,13 +77,11 @@ end
 --end
 
 ---@param content string
+---@param file_type? string
 ---@return number id
-function Model:addNewCard(content)
+function Model:addNewCard(content, file_type)
   local card_info = _.Card:new()
-  local file_type = vim.bo.filetype
-  if not file_type or file_type == "" then
-    file_type = "markdown"
-  end
+  file_type = file_type or "markdown"
 
   return self.tbl:insertCard(content, card_info:dumpStr(), card_info.due, file_type)
 end

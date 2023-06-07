@@ -129,10 +129,10 @@ function WinBufImpl:viewContent(form)
   local formTbl = tools.str2table(form)
   vim.api.nvim_buf_set_lines(self.buf, 0, -1, false, formTbl)
   vim.api.nvim_buf_set_option(self.buf, "modifiable", true)
-  if not self.item.filetype or self.item.filetype == "" then
-    self.item.filetype = "markdown"
+  if not self.item.file_type or self.item.file_type == "" then
+    self.item.file_type = "markdown"
   end
-  vim.api.nvim_buf_set_option(self.buf, "filetype", self.item.filetype)
+  vim.api.nvim_buf_set_option(self.buf, "filetype", self.item.file_type)
   vim.wo.number = true
   vim.wo.relativenumber = true
   vim.o.cursorcolumn = true
