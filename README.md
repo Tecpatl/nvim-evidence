@@ -4,15 +4,15 @@
 
 fsrs plugin for nvim
 
-orgmode 适用于安排有风险不稳定的计划或短期任务. (指南针)
-
-evidence 适用于确定待执行的长久稳定且需要重复记忆任务. (船桨)
-
 ## Reference
 
 [free-spaced-repetition-scheduler](https://github.com/open-spaced-repetition/free-spaced-repetition-scheduler)
 
+evidence 适用于确定待执行的长久稳定且需要重复记忆任务. (船桨)
+
 [nvim-orgmode](https://github.com/nvim-orgmode/orgmode)
+
+orgmode 适用于安排有风险不稳定的计划或短期任务. (指南针)
 
 ## Usage Scene
 
@@ -83,7 +83,7 @@ https://www.youtube.com/watch?v=taGRd-ZwwCU&t=602s
 
 - findTagsByNowCard:  列表展示当前卡片所拥有的tags 
 
-- addTagsForNowCard:  先展示出当前卡片拥有所有(todo非直系亲缘)tags, 支持多选添加, 并且如果没有匹配项自动生成一个新的, 个数限制
+- addTagsForNowCard:  先展示出当前卡片拥有所有(非直系亲缘)tags, 支持多选添加, 并且如果没有匹配项自动生成一个新的, 个数限制
 
 - delTagsForNowCard:  列表展示当前卡片拥有的tags, 支持多选删除 
 
