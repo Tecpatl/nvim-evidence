@@ -321,11 +321,17 @@ function Model:findTagById(tag_id)
   end
 end
 
----@param son_ids number[]
+---@param son_ids number[] indirect relations
 ---@param father_id number
 function Model:convertFatherTag(son_ids, father_id)
   for _, son_id in ipairs(son_ids) do
     if son_id ~= father_id then
+      local cards = self:findCardBySelectTags({ son_id, father_id }, true, false, -1)
+      if cards ~= nil then
+        for _, card in ipairs(cards) do
+          self:delCardTag(card.id, father_id)
+        end
+      end
       self.tbl:editTag(son_id, { father_id = father_id })
     else
       error("convertFatherTag")
@@ -344,7 +350,7 @@ function Model:getIdsFromItem(items)
   return res
 end
 
----@param old_tag_ids number[] tag would_be_delete
+---@param old_tag_ids number[] indirect relations and tag would_be_delete
 ---@param new_tag_id number
 function Model:mergeTags(old_tag_ids, new_tag_id)
   for _, old_tag_id in ipairs(old_tag_ids) do

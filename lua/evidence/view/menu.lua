@@ -534,14 +534,15 @@ local function convertTagFatherStart()
     prompt_title = "Evidence convertTagFather select son tags",
     menu_item = items,
     main_foo = function(value)
-      local typename = type(value)
-      if typename == "table" then
-        local ids = {}
-        for _, v in ipairs(value) do
-          table.insert(ids, v.info.id)
-        end
-        return convertTagFatherEnd(ids)
-      end
+      print("cannot multiple convertTagFather for direct relations")
+      --local typename = type(value)
+      --if typename == "table" then
+      --  local ids = {}
+      --  for _, v in ipairs(value) do
+      --    table.insert(ids, v.info.id)
+      --  end
+      --  return convertTagFatherEnd(ids)
+      --end
     end,
   }
 end
@@ -594,14 +595,15 @@ local function mergeTagStart()
     prompt_title = "Evidence mergeTagStart select old tags",
     menu_item = items,
     main_foo = function(value)
-      local typename = type(value)
-      if typename == "table" then
-        local ids = {}
-        for _, v in ipairs(value) do
-          table.insert(ids, v.info.id)
-        end
-        return mergeTagEnd(ids)
-      end
+      print("cannot multiple mergeTagStart for direct relations")
+      --local typename = type(value)
+      --if typename == "table" then
+      --  local ids = {}
+      --  for _, v in ipairs(value) do
+      --    table.insert(ids, v.info.id)
+      --  end
+      --  return mergeTagEnd(ids)
+      --end
     end,
   }
 end
