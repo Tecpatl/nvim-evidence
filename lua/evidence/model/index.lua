@@ -115,7 +115,14 @@ function Model:getMinDueItem(tag_ids, is_and, contain_son, limit_num)
     tag_ids = self:findAllSonTags(tag_ids)
   end
   local item = self.tbl:minCardWithTags(tag_ids, is_and, "due", "info NOT LIKE '%reps=0%'", limit_num)
-  return self:convertFsrsTableField2CardItem(item)
+  return self:cardFields2CardItems(item)
+end
+
+---@param id number
+---@return CardItem
+function Model:getItemById(id)
+  local item = self:findCardById(id)
+  return self:cardField2CardItem(item)
 end
 
 ---@param tag_ids number[]
@@ -128,17 +135,17 @@ function Model:getNewItem(tag_ids, is_and, contain_son, limit_num)
     tag_ids = self:findAllSonTags(tag_ids)
   end
   local item = self.tbl:findCardWithTags(tag_ids, is_and, limit_num, "info LIKE '%reps=0%'")
-  return self:convertFsrsTableField2CardItem(item)
+  return self:cardFields2CardItems(item)
 end
 
 ---@param id number
 ---@return CardField
-function Model:findById(id)
+function Model:findCardById(id)
   local ret = self.tbl:findCard(1, "id=" .. id)
   if ret ~= nil then
     return ret[1]
   else
-    error("findById not exist id:" .. id)
+    error("findCardById not exist id:" .. id)
   end
 end
 
@@ -167,22 +174,28 @@ function Model:fuzzyFindCard(content, lim)
   else
     item = self.tbl:findCard(lim)
   end
-  return self:convertFsrsTableField2CardItem(item)
+  return self:cardFields2CardItems(item)
+end
+
+---@param item CardField
+---@return CardItem
+function Model:cardField2CardItem(item)
+  return {
+    id = item.id,
+    content = item.content,
+    due = item.due,
+    file_type = item.file_type,
+    card = self:convertRealCard(item),
+  }
 end
 
 ---@param item CardField[] | nil
 ---@return CardItem[]|nil
-function Model:convertFsrsTableField2CardItem(item)
+function Model:cardFields2CardItems(item)
   if type(item) == "table" then
     local arr = {}
     for _, v in ipairs(item) do
-      table.insert(arr, {
-        id = v.id,
-        content = v.content,
-        due = v.due,
-        file_type = v.file_type,
-        card = self:convertRealCard(v),
-      })
+      table.insert(arr, self:cardField2CardItem(v))
     end
     return arr
   else
@@ -222,7 +235,7 @@ end
 ---@param now_time? Timestamp
 function Model:ratingCard(id, rating, now_time)
   local fsrs = self:getFsrs()
-  local sql_card = self:findById(id)
+  local sql_card = self:findCardById(id)
   now_time = now_time or os.time()
   local new_card = fsrs:repeats(self:convertRealCard(sql_card), now_time)[rating].card
   sql_card.due = new_card.due

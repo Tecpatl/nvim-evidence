@@ -106,7 +106,9 @@ local function addCard()
   end
   local content = vim.api.nvim_buf_get_lines(winBuf:getInfo().buf, 0, -1, false)
   local content_str = table.concat(content, "\n")
-  model:addNewCard(content_str)
+  local card_id = model:addNewCard(content_str)
+  local item = model:getItemById(card_id)
+  winBuf:viewContent(item)
 end
 
 local function delCard()
