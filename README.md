@@ -1,9 +1,5 @@
 # NVIM-EVIDENCE
 
-## Status
-
-under development
-
 ## Purpose
 
 fsrs plugin for nvim
@@ -19,6 +15,10 @@ evidence 适用于确定待执行的长久稳定且需要重复记忆任务. (�
 [nvim-orgmode](https://github.com/nvim-orgmode/orgmode)
 
 ## Usage Scene
+
+### video 
+
+https://www.youtube.com/watch?v=taGRd-ZwwCU&t=602s
 
 ### Install && Setup (lazy for example) 
 
@@ -48,11 +48,10 @@ evidence 适用于确定待执行的长久稳定且需要重复记忆任务. (�
 ```
 
 `:EvidenceFlush` 重新打开刷新buffer
+
 `:EvidenceCmd` 弹出搜索框
 
 ### 当前卡片card操作   
-
-- show: 如果缓冲区被关闭了，可重新弹出来
 
 - addCard: 将缓冲区内容生成新卡片
 
@@ -112,7 +111,7 @@ evidence 适用于确定待执行的长久稳定且需要重复记忆任务. (�
 
 - record 统计
 
-- 超前学习提示下
+- 各种提示
 
-- telescope中直接对条目快捷键操作
+- telescope中直接对条目按键映射快捷键操作
 
