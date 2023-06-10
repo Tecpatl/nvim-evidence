@@ -57,9 +57,7 @@ https://www.youtube.com/watch?v=taGRd-ZwwCU&t=602s
 
 - nextCard: 弹出下一个待处理卡片(30%新卡片,70%旧卡片), 如果有select_tags, 会在tags集合中选中下一个
 
-- nextNewCard: 弹出最新需要复习卡片, 如果有select_tags, 会在tags集合中选中下一个
-
-- nextReviewCard: 弹出新卡片, 如果有select_tags, 会在tags集合中选中下一个
+- setNextCard: 设置全局nextCard模式（auto / review / new） 
 
 - delCard: 删除多个卡片(第一项是当前卡片)
 
