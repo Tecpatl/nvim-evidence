@@ -5,12 +5,20 @@ local telescopeMenu = require("evidence.view.telescope")
 local menuHelper = require("evidence.view.menu_helper")
 local set = require("evidence.util.set")
 
+--- @alias NextCardMode integer
+local NextCardMode = {
+  auto = 0,
+  review = 1,
+  new = 2,
+}
+
 ---@type ModelTableParam
 local user_data = nil
 local is_start_ = false
 ---@type number[]
 local select_tags = {}
 local is_select_tag_and = true
+local next_card_mode = NextCardMode.auto
 
 local function selectTagNameStr()
   local res = ""
@@ -28,7 +36,14 @@ local function selectTagNameStr()
 end
 
 local function nextCard()
-  local item = menuHelper:calcNextList(select_tags, is_select_tag_and)
+  local item = nil
+  if next_card_mode == NextCardMode.auto then
+    item = menuHelper:calcNextList(select_tags, is_select_tag_and)
+  elseif next_card_mode == NextCardMode.review then
+    item = model:getMinDueItem(select_tags, is_select_tag_and, true, 1)
+  elseif next_card_mode == NextCardMode.new then
+    item = model:getNewItem(select_tags, is_select_tag_and, true, 1)
+  end
 
   if item == nil then
     print("empty table")
@@ -37,24 +52,21 @@ local function nextCard()
   winBuf:viewContent(item[1])
 end
 
-local function nextReviewCard()
-  local item = model:getMinDueItem(select_tags, is_select_tag_and, true, 1)
-
-  if item == nil then
-    print("empty table")
-    return
+local function setNextCard()
+  local items = {}
+  for k, v in pairs(NextCardMode) do
+    table.insert(items, {
+      name = k,
+      foo = function()
+        next_card_mode = v
+      end,
+    })
   end
-  winBuf:viewContent(item[1])
-end
-
-local function nextNewCard()
-  local item = model:getNewItem(select_tags, is_select_tag_and, true, 1)
-
-  if item == nil then
-    print("empty table")
-    return
-  end
-  winBuf:viewContent(item[1])
+  return {
+    prompt_title = "Evidence setNextCard",
+    menu_item = items,
+    main_foo = nil,
+  }
 end
 
 ---@return boolean
@@ -702,12 +714,8 @@ local menuItem = {
     foo = findNewCard,
   },
   {
-    name = "nextReviewCard",
-    foo = nextReviewCard,
-  },
-  {
-    name = "nextNewCard",
-    foo = nextNewCard,
+    name = "setNextCard",
+    foo = setNextCard,
   },
   {
     name = "tagTree",
