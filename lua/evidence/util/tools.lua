@@ -59,15 +59,23 @@ local function array2Str(tbl, item)
   return str
 end
 
----@return table
 local function str2table(str)
   local lines = {}
-  for s in str:gmatch("[^\r\n]+") do
-    local s1 = s:gsub("\\n", "\n")
-    for ss in s1:gmatch("[^\r\n]+") do
-      table.insert(lines, ss)
-      table.insert(lines, "")
+  local current_line = ""
+  for c in str:gmatch(".") do
+    if c ~= "\r" and c ~= "\n" then
+      current_line = current_line .. c
+    else
+      if current_line ~= "" then
+        table.insert(lines, current_line)
+      else
+        table.insert(lines, "")
+      end
+      current_line = ""
     end
+  end
+  if current_line ~= "" then
+    table.insert(lines, current_line)
   end
   return lines
 end
