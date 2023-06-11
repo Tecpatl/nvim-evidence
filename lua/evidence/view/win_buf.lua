@@ -1,4 +1,5 @@
 local tools = require("evidence.util.tools")
+local tblInfo = require("evidence.model.info")
 
 ---@class WinBufImpl
 ---@field buf number
@@ -155,6 +156,7 @@ end
 
 ---@class WinBuf
 ---@field _ WinBufImpl
+---@field model Model
 ---@field is_setup boolean
 ---@field instance WinBuf
 ---@field divider string
@@ -178,18 +180,23 @@ end
 function WinBuf:getInstance()
   if not self.instance then
     self._ = WinBufImpl:new()
-    self.instance = setmetatable({ is_setup = false, divider = "================" }, self)
+    self.instance = setmetatable({
+      model = {},
+      is_setup = false,
+      divider = "================",
+    }, self)
   end
   return self.instance
 end
 
----@param data table<string,number>
+---@param data table
 ---@param divider? string
 function WinBuf:setup(data, divider)
   if self.is_setup then
     error("cannot setup twice")
   end
   self.is_setup = true
+  self.model = data.model
   if divider then
     self.divider = divider
   end
@@ -228,6 +235,7 @@ end
 ---@param item CardItem
 ---@param is_fold? boolean
 function WinBuf:viewContent(item, is_fold)
+  self.model:insertRecordCard(item.id, tblInfo.AccessWay.visit)
   is_fold = is_fold or true
   self._.item = item
   local content = item.content

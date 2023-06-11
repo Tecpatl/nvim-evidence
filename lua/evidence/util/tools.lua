@@ -30,9 +30,13 @@ end
 
 -- t2 merge into t1
 -- force overlay
-local function merge(t1, t2)
+---@param is_deep? boolean
+local function merge(t1, t2, is_deep)
+  if is_deep == nil then
+    is_deep = true
+  end
   for k, v in pairs(t2) do
-    if (type(v) == "table") and (type(t1[k] or false) == "table") then
+    if is_deep == true and (type(v) == "table") and (type(t1[k] or false) == "table") then
       merge(t1[k], t2[k])
     else
       t1[k] = v

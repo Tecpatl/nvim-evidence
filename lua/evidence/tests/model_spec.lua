@@ -9,6 +9,7 @@ end
 local data = {
   --uri = "~/sql/v4",
   uri = "",
+  is_record = true,
   parameter = {
     request_retention = 0.7,
     maximum_interval = 100,
@@ -71,9 +72,9 @@ describe("card", function()
     data = model:findAllCards()
     eq(1, #data)
   end)
-  it("findById", function()
+  it("findCardById", function()
     reset(3)
-    local ret = model:findById(1)
+    local ret = model:findCardById(1)
     assert(ret ~= nil)
     eq(1, ret.id)
   end)
@@ -81,7 +82,7 @@ describe("card", function()
     reset()
     local content = "xx"
     local ret = model:editCard(1, { content = content })
-    local obj = model:findById(1)
+    local obj = model:findCardById(1)
     assert(obj ~= nil)
     eq(content, obj.content)
   end)
@@ -141,7 +142,15 @@ describe("tag", function()
     q = model:findIncludeTagsByCard(2)
     --print(vim.inspect(q))
   end)
-  it("mock", function()
-    reset_tags()
+  --it("mock", function()
+  --  reset_tags(10)
+  --end)
+  it("record_card", function()
+    reset_tags(15)
+    model:delCard(1)
+    model:editCard(2, { content = "123" })
+    model:delCard(3)
+    local cards = model:findRecordCard({})
+    print(vim.inspect(cards))
   end)
 end)

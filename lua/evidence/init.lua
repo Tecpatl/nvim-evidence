@@ -1,5 +1,6 @@
 local user_data = {
   uri = "~/.config/nvim/sql/v0",
+  is_record = true,
   parameter = {
     request_retention = 0.7,
     maximum_interval = 100,
