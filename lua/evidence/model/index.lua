@@ -11,9 +11,19 @@ local queue = require("evidence.util.queue")
 ---@field due Timestamp
 ---@field card Card
 ---@field file_type string "markdown" | "org"
---
+
+---@class RecordCardItem
+---@field id number
+---@field content string
+---@field due Timestamp
+---@field card Card
+---@field file_type string "markdown" | "org"
+---@field timestamp Timestamp
+---@field access_way AccessWayType
+
 ---@class ModelTableParam
 ---@field uri string
+---@field is_record boolean
 ---@field parameter Parameters
 
 ---@class Model
@@ -54,6 +64,7 @@ function Model:setup(data)
   self.parameter = _.Parameters:new(data.parameter)
   local sql_info = {
     uri = data.uri,
+    is_record = data.is_record,
   }
   self.tbl:setup(sql_info)
 end
@@ -136,17 +147,6 @@ function Model:getNewItem(tag_ids, is_and, contain_son, limit_num)
   return self:cardFields2CardItems(item)
 end
 
----@param id number
----@return CardField
-function Model:findCardById(id)
-  local ret = self.tbl:findCard(1, "id=" .. id)
-  if ret ~= nil then
-    return ret[1]
-  else
-    error("findCardById not exist id:" .. id)
-  end
-end
-
 ---@param name string
 ---@param lim? number
 ---@return CardItem[]|nil
@@ -178,22 +178,40 @@ end
 ---@param item CardField
 ---@return CardItem
 function Model:cardField2CardItem(item)
-  return {
-    id = item.id,
-    content = item.content,
-    due = item.due,
-    file_type = item.file_type,
+  return tools.merge(item, {
     card = self:convertRealCard(item),
-  }
+  })
 end
 
----@param item CardField[] | nil
----@return CardItem[]|nil
+---@param item RecordCardField
+---@return RecordCardItem
+function Model:recordCardField2RecordCardItem(item)
+  return tools.merge(item, {
+    card = self:convertRealCard(item),
+  })
+end
+
+---@param item CardField | nil
+---@return CardItem[] | nil
 function Model:cardFields2CardItems(item)
   if type(item) == "table" then
     local arr = {}
     for _, v in ipairs(item) do
       table.insert(arr, self:cardField2CardItem(v))
+    end
+    return arr
+  else
+    return nil
+  end
+end
+
+---@param item RecordCardField[] | nil
+---@return RecordCardItem[]|nil
+function Model:recordCardFields2RecordCardItems(item)
+  if type(item) == "table" then
+    local arr = {}
+    for _, v in ipairs(item) do
+      table.insert(arr, self:recordCardField2RecordCardItem(v))
     end
     return arr
   else
@@ -220,7 +238,7 @@ function Model:clear()
   return self.tbl:clear()
 end
 
----@param sql_card CardField
+---@param sql_card CardField | RecordCardField
 ---@return Card
 function Model:convertRealCard(sql_card)
   local data = tools.parse(sql_card.info)
@@ -501,7 +519,7 @@ end
 ---@param is_and boolean
 ---@param contain_son boolean
 ---@param lim? number
----@return nil | CardField[]
+---@return nil | CardItem[]
 function Model:findCardBySelectTags(tag_ids, is_and, contain_son, lim)
   if contain_son == true and is_and == false then
     tag_ids = self:findAllSonTags(tag_ids)
@@ -512,6 +530,25 @@ function Model:findCardBySelectTags(tag_ids, is_and, contain_son, lim)
   end
   local item = self.tbl:findCardsByTags(tag_ids, lim, is_and)
   return self:cardFields2CardItems(item)
+end
+
+---@param access_ways AccessWayType[]
+---@return RecordCardItem[] | nil
+function Model:findRecordCard(access_ways)
+  local items = self.tbl:findRecordCard(-1, access_ways)
+  return self:recordCardFields2RecordCardItems(items)
+end
+
+---@param id number
+---@return CardField
+function Model:findCardById(id)
+  return self.tbl:findCardById(id)
+end
+
+---@param card_id number
+---@param access_way AccessWayType
+function Model:insertRecordCard(card_id, access_way)
+  self.tbl:insertRecordCard(card_id, access_way)
 end
 
 return Model:getInstance()

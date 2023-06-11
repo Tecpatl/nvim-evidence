@@ -79,7 +79,13 @@ function MenuHelper:createCardPreviewer()
   })
 end
 
-local card_entry_maker = function(entry)
+function MenuHelper:card_entry_maker(entry)
+  if entry.content == nil then
+    return
+  end
+  entry.foo = function()
+    winBuf:viewContent(entry)
+  end
   local content = entry.content:gsub("\n", "\\n")
   return {
     value = entry,
@@ -88,7 +94,7 @@ local card_entry_maker = function(entry)
   }
 end
 
-local empty_maker = function(entry)
+function MenuHelper:empty_maker(entry)
   return {
     value = entry,
     ordinal = entry,
@@ -100,21 +106,14 @@ end
 function MenuHelper:createCardProcessWork(foo)
   return function(prompt, process_result, process_complete)
     self.prompt = prompt
-    --	if now_search_mode == SearchMode.fuzzy then
     local x = foo(prompt)
-    --	elseif now_search_mode == SearchMode.min_due then
-    --		x = model:getMinDueItem(50)
-    --	end
     if type(x) ~= "table" then
-      process_result(empty_maker(prompt))
+      process_result(self:empty_maker(prompt))
       process_complete()
       return
     end
     for _, v in ipairs(x) do
-      v.foo = function()
-        winBuf:viewContent(v)
-      end
-      process_result(card_entry_maker(v))
+      process_result(self:card_entry_maker(v))
     end
     process_complete()
   end

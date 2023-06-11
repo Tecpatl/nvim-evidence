@@ -1,9 +1,11 @@
 local tools = require("evidence.util.tools")
+local tblInfo = require("evidence.model.info")
 
 local now_time = os.time()
 
 ---@class SqlInfo
 ---@field uri string
+---@field is_record boolean
 local SqlInfo = {}
 
 ---@class CardField
@@ -12,6 +14,15 @@ local SqlInfo = {}
 ---@field due Timestamp
 ---@field info string fsrs data
 ---@field file_type string "markdown" | "org"
+
+---@class RecordCardField
+---@field id number
+---@field content string
+---@field due Timestamp
+---@field info string fsrs data
+---@field file_type string "markdown" | "org"
+---@field timestamp Timestamp
+---@field access_way AccessWayType
 
 ---@class TagField
 ---@field id number
@@ -27,12 +38,14 @@ local Tables = {
   card = "card",
   tag = "tag",
   card_tag = "card_tag",
+  record_card = "record_card",
 }
 
 ---@class SqlTable
 ---@field sql any
 ---@field db any
 ---@field uri string sql path
+---@field is_record boolean
 local SqlTable = {}
 SqlTable.__index = SqlTable
 
@@ -41,19 +54,36 @@ function SqlTable:new()
   self.sql = require("sqlite.db")
   self.db = nil
   self.uri = ""
+  self.is_record = false
   return setmetatable({}, self)
 end
 
 function SqlTable:dump()
   return {
     uri = self.uri,
+    is_record = self.is_record,
   }
+end
+
+function SqlTable:createTrigger(name, content)
+  local is_trigger = self:eval([[
+    SELECT COUNT(*) AS trigger_count
+    FROM sqlite_master
+    WHERE type = 'trigger'
+      AND name = ']] .. name .. [[';
+    ]])[1]["trigger_count"]
+  print(is_trigger)
+
+  if is_trigger == 0 then
+    self:eval(content)
+  end
 end
 
 ---@param data SqlInfo
 function SqlTable:setup(data)
   assert(data.uri ~= nil, "uri required")
   self.uri = data.uri
+  self.is_record = data.is_record or false
 
   self.db = self.sql:open(self.uri)
 
@@ -83,6 +113,18 @@ function SqlTable:setup(data)
       FOREIGN KEY (card_id) REFERENCES card(id),
       FOREIGN KEY (tag_id) REFERENCES tag(id)
     )]])
+
+  self.db:execute([[
+    CREATE TABLE IF NOT EXISTS record_card (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      card_id INTEGER,
+      content text NOT NULL,
+      due int NOT NULL,
+      info text NOT NULL,
+      file_type text NOT NULL,
+      timestamp int not null,
+      access_way int not null
+    )]])
 end
 
 ---@param query string
@@ -99,59 +141,6 @@ function SqlTable:eval(query)
   return item
 end
 
------@param tbl TablesType
------@param data table
------@param statement? string
---function SqlTable:update(tbl, data, statement)
---  if tools.isTableEmpty(data) then
---    error("update data not table")
---  end
---  local str = ""
---  for key, val in pairs(data) do
---    if str ~= "" then
---      str = str .. ","
---    end
---    local val_ = val
---    if type(val_) == "string" then
---      val_ = "'" .. val_ .. "'"
---    end
---    local kv = key .. " = " .. val_
---    str = str .. kv
---  end
---  local cmd = "update " .. tbl .. " set " .. str
---  if statement then
---    cmd = cmd .. " where " .. statement
---  end
---  self.db:execute(cmd)
---end
-
------@param tbl TablesType
------@param data table
---function SqlTable:insert(tbl, data)
---  if tools.isTableEmpty(data) then
---    error("insert data not table")
---  end
---  local key_str = ""
---  local val_str = ""
---  for key, val in pairs(data) do
---    if key_str ~= "" then
---      key_str = key_str .. ","
---      val_str = val_str .. ","
---    end
---    key_str = key_str .. key
---    local val_ = val
---    if type(val_) == "string" then
---      val_ = "'" .. val_ .. "'"
---    end
---    val_str = val_str .. val_
---  end
---  local cmd = "insert into " .. tbl .. " (" .. key_str .. ") values (" .. val_str .. ")"
---  print("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
---  print(cmd)
---  print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
---  self.db:execute(cmd)
---end
-
 ---@return number id
 function SqlTable:getLastId()
   local item = self:eval("SELECT last_insert_rowid();")
@@ -159,6 +148,69 @@ function SqlTable:getLastId()
     error("getLastId")
   end
   return item[1]["last_insert_rowid()"]
+end
+
+---@param id number
+---@return CardField
+function SqlTable:findCardById(id)
+  local ret = self:findCard(1, "id=" .. id)
+  if ret ~= nil then
+    return ret[1]
+  else
+    error("findCardById not exist id:" .. id)
+  end
+end
+
+---@param limit_num number
+---@param access_ways AccessWayType[]
+---@return RecordCardField | nil
+function SqlTable:findRecordCard(limit_num, access_ways)
+  local query = "SELECT * FROM " .. Tables.record_card
+  if not tools.isTableEmpty(access_ways) then
+    local way_str = ""
+    for key, val in pairs(access_ways) do
+      if way_str ~= "" then
+        way_str = way_str .. ","
+      end
+      way_str = way_str .. val
+    end
+    query = query .. " where access_way in (" .. way_str .. " ) "
+  end
+  if limit_num ~= nil and limit_num ~= -1 then
+    query = query .. " LIMIT " .. limit_num
+  end
+  return self:eval(query)
+end
+
+---@param card_id number
+---@param access_way AccessWayType
+function SqlTable:insertRecordCard(card_id, access_way)
+  if self.is_record then
+    self.db:execute([[
+      DELETE FROM record_card
+      WHERE id IN (
+        SELECT id
+        FROM record_card
+        ORDER BY id ASC
+        LIMIT 1
+      )
+      AND (
+        SELECT COUNT(*)
+        FROM record_card
+      ) > 10;
+    ]])
+
+    local card = self:findCardById(card_id)
+    self.db:insert(Tables.record_card, {
+      card_id = card_id,
+      content = card.content,
+      info = card.info,
+      due = card.due,
+      file_type = card.file_type,
+      timestamp = os.time(),
+      access_way = access_way,
+    })
+  end
 end
 
 ---@param content string
@@ -171,7 +223,9 @@ function SqlTable:insertCard(content, info, due, file_type)
     file_type = "markdown"
   end
   self.db:insert(Tables.card, { content = content, info = info, due = due, file_type = file_type })
-  return self:getLastId()
+  local id = self:getLastId()
+  self:insertRecordCard(id, tblInfo.AccessWay.insert)
+  return id
 end
 
 ---@param name string
@@ -216,6 +270,7 @@ end
 ---@param id number
 ---@param row CardField
 function SqlTable:editCard(id, row)
+  self:insertRecordCard(id, tblInfo.AccessWay.edit)
   row["id"] = nil
   return self.db:update(Tables.card, {
     where = { id = id },
@@ -407,6 +462,7 @@ end
 
 ---@param id number
 function SqlTable:delCard(id)
+  self:insertRecordCard(id, tblInfo.AccessWay.delete)
   local query = "delete from " .. Tables.card_tag .. " where card_id=" .. id
   self.db:execute(query)
   query = "delete from " .. Tables.card .. " where id=" .. id
@@ -472,24 +528,14 @@ function SqlTable:close()
 end
 
 function SqlTable:clear()
-  local query = "delete from "
-      .. Tables.card_tag
-      .. "; VACUUM; UPDATE SQLITE_SEQUENCE SET seq = 0 WHERE name = '"
-      .. Tables.card_tag
-      .. "'"
-  self.db:execute(query)
-  query = "delete from "
-      .. Tables.tag
-      .. "; VACUUM; UPDATE SQLITE_SEQUENCE SET seq = 0 WHERE name = '"
-      .. Tables.tag
-      .. "'"
-  self.db:execute(query)
-  query = "delete from "
-      .. Tables.card
-      .. "; VACUUM; UPDATE SQLITE_SEQUENCE SET seq = 0 WHERE name = '"
-      .. Tables.card
-      .. "'"
-  self.db:execute(query)
+  -- card_tag drop before card and tag
+  local order = { Tables.card_tag, Tables.card, Tables.tag, Tables.record_card }
+
+  for _, key in ipairs(order) do
+    local v = Tables[key]
+    local query = "delete from " .. v .. "; VACUUM; UPDATE SQLITE_SEQUENCE SET seq = 0 WHERE name = '" .. v .. "'"
+    self.db:execute(query)
+  end
 end
 
 return SqlTable

@@ -22,24 +22,22 @@ local tools = require("evidence.util.tools")
 ---@field main_foo? function
 ---@field previewer? function
 ---@field process_work? function
+---@field card_entry_maker? function
 
 ---@type MenuData
-local menu_data_ = {
-  prompt_title = "Evidence",
-  menu_item = {},
-  main_foo = nil,
-  previewer = nil,
-  process_work = nil,
-}
+local menu_data_ = {}
 
----@class EntryMaker
----@field value any
----@field ordinal any
----@field display any
+local process_work_default = function(prompt, process_result, process_complete)
+  for _, v in ipairs(menu_data_.menu_item) do
+    local val = menu_data_.card_entry_maker(v)
+    process_result(val)
+  end
+  process_complete()
+end
 
 ---@param entry SimpleMenu
 ---@return EntryMaker
-local entry_maker = function(entry)
+local entry_maker_default = function(entry)
   local name = entry.name
   return {
     value = entry,
@@ -48,26 +46,39 @@ local entry_maker = function(entry)
   }
 end
 
+---@param data MenuData
+local reset = function(data)
+  menu_data_ = {
+    prompt_title = "Evidence",
+    menu_item = {},
+    main_foo = nil,
+    previewer = nil,
+    process_work = process_work_default,
+    card_entry_maker = entry_maker_default,
+  }
+  tools.merge(menu_data_, data, false)
+end
+
+---@class EntryMaker
+---@field value any
+---@field ordinal any
+---@field display any
+
 ---@class MenuInfo
 ---@field prompt string
-
-local process_work_default = function(prompt, process_result, process_complete)
-  for _, v in ipairs(menu_data_.menu_item) do
-    process_result(entry_maker(v))
-  end
-  process_complete()
-end
 
 local async_job = setmetatable({
   close = function()
     --print("close")
   end,
   results = {},
-  entry_maker = entry_maker,
+  entry_maker = menu_data_.card_entry_maker,
 }, {
   __call = function(_, prompt, process_result, process_complete)
-    local work = menu_data_.process_work or process_work_default
-    work(prompt, process_result, process_complete)
+    local work = menu_data_.process_work
+    if work then
+      work(prompt, process_result, process_complete)
+    end
   end,
 })
 
@@ -110,7 +121,7 @@ local function live_fd(option)
             if res ~= nil then
               assert(res.prompt_title ~= nil)
               assert(res.menu_item ~= nil)
-              menu_data_ = res
+              reset(res)
 
               picker.prompt_border:change_title(res.prompt_title)
               local finder = picker.finder
@@ -137,7 +148,7 @@ end
 
 ---@param data MenuData
 local function setup(data)
-  menu_data_ = data
+  reset(data)
   return live_fd({})
 end
 

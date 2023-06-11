@@ -4,6 +4,7 @@ local winBuf = require("evidence.view.win_buf")
 local telescopeMenu = require("evidence.view.telescope")
 local menuHelper = require("evidence.view.menu_helper")
 local set = require("evidence.util.set")
+local tblInfo = require("evidence.model.info")
 
 --- @alias NextCardMode integer
 local NextCardMode = {
@@ -36,20 +37,21 @@ local function selectTagNameStr()
 end
 
 local function nextCard()
-  local item = nil
+  local items = nil
   if next_card_mode == NextCardMode.auto then
-    item = menuHelper:calcNextList(select_tags, is_select_tag_and)
+    items = menuHelper:calcNextList(select_tags, is_select_tag_and)
   elseif next_card_mode == NextCardMode.review then
-    item = model:getMinDueItem(select_tags, is_select_tag_and, true, 1)
+    items = model:getMinDueItem(select_tags, is_select_tag_and, true, 1)
   elseif next_card_mode == NextCardMode.new then
-    item = model:getNewItem(select_tags, is_select_tag_and, true, 1)
+    items = model:getNewItem(select_tags, is_select_tag_and, true, 1)
   end
 
-  if item == nil then
+  if items == nil then
     print("empty table")
     return
   end
-  winBuf:viewContent(item[1])
+  local item = items[1]
+  winBuf:viewContent(item)
 end
 
 local function setNextCard()
@@ -89,7 +91,7 @@ local function setup(data)
   is_select_tag_and = true
   select_tags = {}
   model:setup(data)
-  winBuf:setup({}, "## answer")
+  winBuf:setup({ model = model }, "## answer")
   menuHelper:setup(model)
 end
 
@@ -381,10 +383,6 @@ end
 ---@return MenuData
 local function setSelectTags(is_and)
   is_select_tag_and = is_and
-  local status_msg = "AND"
-  if is_select_tag_and == false then
-    status_msg = "OR"
-  end
   local res = model:findAllTags()
   local items = {}
   if type(res) == "table" then
@@ -416,10 +414,6 @@ end
 
 ---@return MenuData
 local function findCardBySelectTags()
-  local status_msg = "AND"
-  if is_select_tag_and == false then
-    status_msg = "OR"
-  end
   local foo = function()
     return model:findCardBySelectTags(select_tags, is_select_tag_and, true, 50)
   end
@@ -434,37 +428,29 @@ end
 
 ---@return MenuData
 local function findReviewCard()
-  local status_msg = "AND"
-  if is_select_tag_and == false then
-    status_msg = "OR"
-  end
-  local foo = function()
-    return model:getMinDueItem(select_tags, is_select_tag_and, true, 50)
-  end
+  local items = model:getMinDueItem(select_tags, is_select_tag_and, true, 50)
   return {
     prompt_title = "Evidence findReviewCard " .. selectTagNameStr(),
-    menu_item = {},
+    menu_item = items,
     main_foo = nil,
     previewer = menuHelper:createCardPreviewer(),
-    process_work = menuHelper:createCardProcessWork(foo),
+    card_entry_maker = function(entry)
+      return menuHelper:card_entry_maker(entry)
+    end,
   }
 end
 
 ---@return MenuData
 local function findNewCard()
-  local status_msg = "AND"
-  if is_select_tag_and == false then
-    status_msg = "OR"
-  end
-  local foo = function()
-    return model:getNewItem(select_tags, is_select_tag_and, true, 50)
-  end
+  local items = model:getNewItem(select_tags, is_select_tag_and, true, 50)
   return {
     prompt_title = "Evidence findNewCard " .. selectTagNameStr(),
-    menu_item = {},
+    menu_item = items,
     main_foo = nil,
     previewer = menuHelper:createCardPreviewer(),
-    process_work = menuHelper:createCardProcessWork(foo),
+    card_entry_maker = function(entry)
+      return menuHelper:card_entry_maker(entry)
+    end,
   }
 end
 
@@ -627,6 +613,58 @@ local function mergeTagStart()
   }
 end
 
+---@params ways number[]
+---@params str string
+---@return MenuData
+local function recordCardList(ways, str)
+  local items = model:findRecordCard(ways)
+  if items == nil then
+    items = {}
+  end
+  return {
+    prompt_title = "Evidence recordCard {" .. str .. "}",
+    menu_item = items,
+    main_foo = nil,
+    previewer = menuHelper:createCardPreviewer(),
+    card_entry_maker = function(entry)
+      return menuHelper:card_entry_maker(entry)
+    end,
+  }
+end
+
+---@return MenuData
+local function recordCard()
+  local items = {}
+  for k, v in pairs(tblInfo.AccessWay) do
+    table.insert(items, {
+      name = k,
+      info = {
+        v = v,
+        k = v,
+      },
+      foo = function()
+        return recordCardList({ v }, tostring(k))
+      end,
+    })
+  end
+  return {
+    prompt_title = "Evidence recordCard way select",
+    menu_item = items,
+    main_foo = function(value)
+      local typename = type(value)
+      if typename == "table" then
+        local ways = {}
+        local str = ""
+        for _, v in ipairs(value) do
+          table.insert(ways, v.info.v)
+          str = str .. "," .. v.info.k
+        end
+        return recordCardList(ways, str)
+      end
+    end,
+  }
+end
+
 ---@type SimpleMenu[]
 local menuItem = {
   {
@@ -730,6 +768,10 @@ local menuItem = {
   {
     name = "mergeTag",
     foo = mergeTagStart,
+  },
+  {
+    name = "recordCard",
+    foo = recordCard,
   },
 }
 
