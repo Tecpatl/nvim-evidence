@@ -75,6 +75,8 @@ https://www.youtube.com/watch?v=taGRd-ZwwCU&t=602s
 
 - findNewCard:  开启新卡片且满足select_tags的搜索弹出作为当前卡片
 
+- recordCard: 根据visit, insert, delete, edit 四个方式查看最近处理过的卡片
+
 ### 对tags操作 
 
 - findTags:  开启根据tag name的模糊搜索
@@ -112,7 +114,5 @@ https://www.youtube.com/watch?v=taGRd-ZwwCU&t=602s
 - 各种提示
 
 - telescope中直接对条目按键映射快捷键操作 (很多多选条目的操作需要在tag_tree中的非亲缘关系下操作比较合适)
-
-- 最近访问过的card, 最近复习过的, 最近新添加的
 
 - 自定义分隔符不同类型文件映射,包括段落多层分割

@@ -61,8 +61,8 @@ function MenuHelper:createCardPreviewer()
       return entry.value.id
     end,
     define_preview = function(self, entry, status)
-      --print(vim.inspect(entry))
-      local formTbl = tools.str2table(entry.display)
+      local content = entry.display:gsub("\\n", "\n")
+      local formTbl = tools.str2table(content)
       vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, formTbl)
       local file_type = entry.value.file_type
       if not file_type or file_type == "" then
