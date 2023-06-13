@@ -114,22 +114,6 @@ local function fuzzyFindCard()
   }
 end
 
-local function addCard()
-  if not tools.confirmCheck("addCard") then
-    return
-  end
-  local buf_id = winBuf:getInfo().buf
-  local content = vim.api.nvim_buf_get_lines(buf_id, 0, -1, false)
-  local content_str = table.concat(content, "\n")
-  local file_type = vim.api.nvim_buf_get_option(buf_id, "filetype")
-  if not file_type or file_type == "" then
-    file_type = "markdown"
-  end
-  local card_id = model:addNewCard(content_str, file_type)
-  local item = model:getItemById(card_id)
-  winBuf:viewContent(item)
-end
-
 local function delCard()
   if not tools.confirmCheck("delCard") then
     return
@@ -237,6 +221,23 @@ local function addTagsForNowCard()
       --end
     end,
   }
+end
+
+local function addCard()
+  if not tools.confirmCheck("addCard") then
+    return
+  end
+  local buf_id = winBuf:getInfo().buf
+  local content = vim.api.nvim_buf_get_lines(buf_id, 0, -1, false)
+  local content_str = table.concat(content, "\n")
+  local file_type = vim.api.nvim_buf_get_option(buf_id, "filetype")
+  if not file_type or file_type == "" then
+    file_type = "markdown"
+  end
+  local card_id = model:addNewCard(content_str, file_type)
+  local item = model:getItemById(card_id)
+  winBuf:viewContent(item)
+  return addTagsForNowCard()
 end
 
 ---@return MenuData
