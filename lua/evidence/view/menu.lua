@@ -427,9 +427,13 @@ local function findCardBySelectTags()
   }
 end
 
----@return MenuData
+---@return MenuData | nil
 local function findReviewCard()
   local items = model:getMinDueItem(select_tags, is_select_tag_and, true, 50)
+  if items == nil then
+    print("findReviewCard empty")
+    return nil
+  end
   return {
     prompt_title = "Evidence findReviewCard " .. selectTagNameStr(),
     menu_item = items,
@@ -441,9 +445,13 @@ local function findReviewCard()
   }
 end
 
----@return MenuData
+---@return MenuData | nil
 local function findNewCard()
   local items = model:getNewItem(select_tags, is_select_tag_and, true, 50)
+  if items == nil then
+    print("findReviewCard empty")
+    return nil
+  end
   return {
     prompt_title = "Evidence findNewCard " .. selectTagNameStr(),
     menu_item = items,
