@@ -14,6 +14,7 @@ local queue = require("evidence.util.queue")
 
 ---@class RecordCardItem
 ---@field id number
+---@field card_id number
 ---@field content string
 ---@field due Timestamp
 ---@field card Card
@@ -184,6 +185,18 @@ function Model:cardField2CardItem(item)
 end
 
 ---@param item RecordCardField
+---@return CardItem
+function Model:recordCardField2CardItem(item)
+  item.id = item.card_id
+  item.card_id = nil
+  item.timestamp = nil
+  item.access_way = nil
+  return tools.merge(item, {
+    card = self:convertRealCard(item),
+  })
+end
+
+---@param item RecordCardField
 ---@return RecordCardItem
 function Model:recordCardField2RecordCardItem(item)
   return tools.merge(item, {
@@ -198,6 +211,20 @@ function Model:cardFields2CardItems(item)
     local arr = {}
     for _, v in ipairs(item) do
       table.insert(arr, self:cardField2CardItem(v))
+    end
+    return arr
+  else
+    return nil
+  end
+end
+
+---@param item RecordCardField[] | nil
+---@return CardItem[] | nil
+function Model:recordCardFields2CardItems(item)
+  if type(item) == "table" then
+    local arr = {}
+    for _, v in ipairs(item) do
+      table.insert(arr, self:recordCardField2CardItem(v))
     end
     return arr
   else
@@ -530,9 +557,16 @@ end
 
 ---@param access_ways AccessWayType[]
 ---@return RecordCardItem[] | nil
-function Model:findRecordCard(access_ways)
+function Model:findRecordCardRaw(access_ways)
   local items = self.tbl:findRecordCard(-1, access_ways)
   return self:recordCardFields2RecordCardItems(items)
+end
+
+---@param access_ways AccessWayType[]
+---@return CardItem[] | nil
+function Model:findRecordCard(access_ways)
+  local items = self.tbl:findRecordCard(-1, access_ways)
+  return self:recordCardFields2CardItems(items)
 end
 
 ---@param id number

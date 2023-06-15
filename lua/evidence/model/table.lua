@@ -17,6 +17,7 @@ local SqlInfo = {}
 
 ---@class RecordCardField
 ---@field id number
+---@field card_id number
 ---@field content string
 ---@field due Timestamp
 ---@field info string fsrs data

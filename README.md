@@ -118,3 +118,9 @@ https://www.youtube.com/watch?v=taGRd-ZwwCU&t=602s
 - 自定义分隔符不同类型文件映射,包括段落多层分割
 
 - card如果希望关联到另一个card, 或尽量通过建立共同的tag实现
+
+- 各种find带fuzzy
+
+- 每次切换card, 都涉及删掉和新增, 操作比较麻烦
+
+- addTagsForNowCard 保持两种view tree+all

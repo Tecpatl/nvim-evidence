@@ -416,7 +416,12 @@ end
 ---@return MenuData
 local function findCardBySelectTags()
   local foo = function()
-    return model:findCardBySelectTags(select_tags, is_select_tag_and, true, 50)
+    local res = model:findCardBySelectTags(select_tags, is_select_tag_and, true, 50)
+    if res ~= nil then
+      return tools.reverseArray(res)
+    else
+      print("findCardBySelectTags empty")
+    end
   end
   return {
     prompt_title = "Evidence findCardBySelectTags " .. selectTagNameStr(),
@@ -630,6 +635,7 @@ local function recordCardList(ways, str)
   if items == nil then
     items = {}
   end
+  items = tools.reverseArray(items)
   return {
     prompt_title = "Evidence recordCard {" .. str .. "}",
     menu_item = items,
