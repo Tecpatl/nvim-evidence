@@ -107,14 +107,14 @@ https://www.youtube.com/watch?v=taGRd-ZwwCU&t=602s
 
 - 支持多 winbuf
 
-- 撤销
-
-- record 统计
+- 统计
 
 - 各种提示
+
+  - 悬浮提示每个卡片的tag信息
 
 - telescope中直接对条目按键映射快捷键操作 (很多多选条目的操作需要在tag_tree中的非亲缘关系下操作比较合适)
 
 - 自定义分隔符不同类型文件映射,包括段落多层分割
 
-- addcard自动提示加tag
+- card如果希望关联到另一个card, 或尽量通过建立共同的tag实现
