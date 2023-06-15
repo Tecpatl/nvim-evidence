@@ -417,9 +417,10 @@ end
 ---@param tag_ids number[]
 ---@param is_and boolean
 ---@param limit_num number
----@param statement? string | nil
+---@param statement string
+---@param is_shuffle? boolean
 ---@return CardItem[]|nil
-function SqlTable:findCardWithTags(tag_ids, is_and, limit_num, statement)
+function SqlTable:findCardWithTags(tag_ids, is_and, limit_num, statement, is_shuffle)
   if type(tag_ids) ~= "table" or tools.isTableEmpty(tag_ids) then
     return self:findCard(limit_num, statement)
   else
@@ -440,11 +441,15 @@ function SqlTable:findCardWithTags(tag_ids, is_and, limit_num, statement)
         .. " AS t ON ct.tag_id = t.id WHERE t.id IN ("
         .. tag_str
         .. ") "
-        .. " AND "
-        .. statement
-        .. " GROUP BY c.id "
+    if statement ~= "" then
+      query = query .. " AND " .. statement
+    end
+    query = query .. " GROUP BY c.id "
     if is_and then
       query = query .. " HAVING COUNT(DISTINCT t.id) = " .. cnt
+    end
+    if is_shuffle == true then
+      query = query .. " order by random()%1000 "
     end
     if limit_num ~= -1 then
       query = query .. " LIMIT " .. limit_num
