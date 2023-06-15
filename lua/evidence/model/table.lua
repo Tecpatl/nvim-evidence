@@ -197,7 +197,7 @@ function SqlTable:insertRecordCard(card_id, access_way)
       AND (
         SELECT COUNT(*)
         FROM record_card
-      ) > 10;
+      ) > 100;
     ]])
 
     local card = self:findCardById(card_id)
