@@ -17,6 +17,7 @@ local SqlInfo = {}
 
 ---@class RecordCardField
 ---@field id number
+---@field card_id number
 ---@field content string
 ---@field due Timestamp
 ---@field info string fsrs data
@@ -197,7 +198,7 @@ function SqlTable:insertRecordCard(card_id, access_way)
       AND (
         SELECT COUNT(*)
         FROM record_card
-      ) > 10;
+      ) > 100;
     ]])
 
     local card = self:findCardById(card_id)

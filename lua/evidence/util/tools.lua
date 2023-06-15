@@ -192,6 +192,16 @@ local function confirmCheck(name)
   return true
 end
 
+---@param array table
+local function reverseArray(array)
+  local reversedArray = {}
+  local length = #array
+  for i = length, 1, -1 do
+    table.insert(reversedArray, array[i])
+  end
+  return reversedArray
+end
+
 return {
   isInTable = isInTable,
   table_concat = table_concat,
@@ -207,4 +217,5 @@ return {
   uiInput = uiInput,
   confirmCheck = confirmCheck,
   array2Str = array2Str,
+  reverseArray = reverseArray,
 }
