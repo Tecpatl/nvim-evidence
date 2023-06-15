@@ -471,11 +471,7 @@ end
 
 ---@param tag_id number
 function Model:delTag(tag_id)
-  local now_tag = self:findTagById(tag_id)
-  if now_tag == nil then
-    error("delTag")
-  end
-  self:mergeTags({ tag_id }, now_tag.father_id)
+  self.tbl:delTag(tag_id)
 end
 
 ---@param tag_ids number[]
