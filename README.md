@@ -105,7 +105,7 @@ https://www.youtube.com/watch?v=taGRd-ZwwCU&t=602s
 
 ## Todo
 
-- 支持多 winbuf
+- 支持多 winbuf ( 大card快速拆分 )
 
 - 统计
 
@@ -119,7 +119,7 @@ https://www.youtube.com/watch?v=taGRd-ZwwCU&t=602s
 
 - card如果希望关联到另一个card, 或尽量通过建立共同的tag实现
 
-- 各种find带fuzzy
+- 各种find带fuzzy(英文首字母简写)
 
 - 每次切换card, 都涉及删掉和新增, 操作比较麻烦
 
