@@ -148,6 +148,18 @@ function Model:getNewItem(tag_ids, is_and, contain_son, limit_num)
   return self:cardFields2CardItems(item)
 end
 
+---@param tag_ids number[]
+---@param is_and boolean
+---@param contain_son boolean
+---@return CardItem[]|nil
+function Model:getRandomItem(tag_ids, is_and, contain_son, limit_num)
+  if contain_son == true and is_and == false then
+    tag_ids = self:findAllSonTags(tag_ids)
+  end
+  local item = self.tbl:findCardWithTags(tag_ids, is_and, limit_num, "", true)
+  return self:cardFields2CardItems(item)
+end
+
 ---@param name string
 ---@param lim? number
 ---@return CardItem[]|nil

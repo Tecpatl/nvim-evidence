@@ -123,18 +123,20 @@ end
 ---@param is_select_tag_and boolean
 ---@return CardItem[]|nil
 function MenuHelper:calcNextList(select_tags, is_select_tag_and)
-  local new_ratio = 30
+  local new_ratio = 40
+  local rand_ratio = 5
   local item = nil
-  if math.floor(math.random(0, 100)) < new_ratio then
+  local random = math.floor(math.random(0, 100))
+  if random > new_ratio then
     item = self.model:getMinDueItem(select_tags, is_select_tag_and, true, 1)
-    if item == nil then
-      item = model:getNewItem(select_tags, is_select_tag_and, true, 1)
-    end
-  else
+    print("next min due")
+  elseif random > rand_ratio then
     item = self.model:getNewItem(select_tags, is_select_tag_and, true, 1)
-    if item == nil then
-      item = self.model:getMinDueItem(select_tags, is_select_tag_and, true, 1)
-    end
+    print("next new")
+  end
+  if item == nil then
+    item = self.model:getRandomItem(select_tags, is_select_tag_and, true, 1)
+    print("next random")
   end
   return item
 end
