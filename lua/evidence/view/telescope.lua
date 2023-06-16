@@ -151,7 +151,7 @@ local function live_fd(option)
             if select_item == nil then
               local value = picker:_get_prompt()
               if menu_data_.main_foo ~= nil then
-                menu_data_.main_foo(value)
+                res = menu_data_.main_foo(value)
               end
             else
               single = select_item.value

@@ -502,9 +502,30 @@ local function tagTree(now_tag_id)
   return {
     prompt_title = "Evidence tagTree",
     menu_item = items,
-    main_foo = nil,
+    main_foo = function(prompt)
+      if not tools.confirmCheck("addTag") then
+        return
+      end
+      local tag_id = model:addTag(prompt)
+      model:convertFatherTag({ tag_id }, now_tag_id)
+      return tagTree(now_tag_id)
+    end,
     mappings = {
       ["i"] = {
+        ["<c-d>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local select_item = action_state.get_selected_entry()
+          local single = select_item.value
+          local v = single.info
+          if not tools.confirmCheck("delTags") then
+            return
+          end
+          model:delTag(v.id)
+          updateSelectTags(v.id)
+
+          local res = tagTree(now_tag_id)
+          telescopeMenu.flushResult(res, picker, prompt_bufnr)
+        end,
         ["<c-e>"] = function(prompt_bufnr)
           local picker = action_state.get_current_picker(prompt_bufnr)
           local select_item = action_state.get_selected_entry()
