@@ -23,6 +23,7 @@ local tools = require("evidence.util.tools")
 ---@field previewer? function
 ---@field process_work? function
 ---@field card_entry_maker? function
+---@field mappings? table
 
 ---@type MenuData
 local menu_data_ = {}
@@ -55,6 +56,7 @@ local reset = function(data)
     previewer = nil,
     process_work = process_work_default,
     card_entry_maker = entry_maker_default,
+    mappings = nil,
   }
   tools.merge(menu_data_, data, false)
 end
@@ -91,6 +93,47 @@ local function convertValueArray(maker)
   return result
 end
 
+local function refreshMapping(map)
+  if menu_data_.mappings then
+    for mode, tbl in pairs(menu_data_.mappings) do
+      for key, action in pairs(tbl) do
+        map(mode, key, action)
+      end
+    end
+  end
+end
+
+---@param res MenuData|nil
+---@param picker table
+---@param prompt_bufnr table
+---@param map? table
+local function flushResult(res, picker, prompt_bufnr, map)
+  if res ~= nil then
+    assert(res.prompt_title ~= nil)
+    assert(res.menu_item ~= nil)
+    reset(res)
+    if map ~= nil then
+      refreshMapping(map)
+    end
+
+    picker.prompt_border:change_title(res.prompt_title)
+    local finder = picker.finder
+    picker:refresh(finder, { reset_prompt = true, multi = picker._multi })
+
+    local last_previewer = picker.previewer
+    if res.previewer ~= nil then
+      picker.previewer = res.previewer
+    else
+      picker.previewer = nil
+    end
+    if last_previewer ~= picker.previewer then
+      picker:full_layout_update()
+    end
+  else
+    actions.close(prompt_bufnr)
+  end
+end
+
 local function live_fd(option)
   pickers
       .new(option, {
@@ -99,6 +142,7 @@ local function live_fd(option)
         sorter = conf.generic_sorter(option), -- shouldn't this be default?
         previewer = menu_data_.previewer,
         attach_mappings = function(prompt_bufnr, map)
+          refreshMapping(map)
           actions.select_default:replace(function()
             local picker = action_state.get_current_picker(prompt_bufnr)
             local select_item = action_state.get_selected_entry()
@@ -118,27 +162,8 @@ local function live_fd(option)
                 res = single.foo()
               end
             end
-            if res ~= nil then
-              assert(res.prompt_title ~= nil)
-              assert(res.menu_item ~= nil)
-              reset(res)
 
-              picker.prompt_border:change_title(res.prompt_title)
-              local finder = picker.finder
-              picker:refresh(finder, { reset_prompt = true, multi = picker._multi })
-
-              local last_previewer = picker.previewer
-              if res.previewer ~= nil then
-                picker.previewer = res.previewer
-              else
-                picker.previewer = nil
-              end
-              if last_previewer ~= picker.previewer then
-                picker:full_layout_update()
-              end
-            else
-              actions.close(prompt_bufnr)
-            end
+            flushResult(res, picker, prompt_bufnr, map)
           end)
           return true
         end,
@@ -154,4 +179,5 @@ end
 
 return {
   setup = setup,
+  flushResult = flushResult,
 }

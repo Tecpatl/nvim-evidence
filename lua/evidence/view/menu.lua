@@ -5,6 +5,7 @@ local telescopeMenu = require("evidence.view.telescope")
 local menuHelper = require("evidence.view.menu_helper")
 local set = require("evidence.util.set")
 local tblInfo = require("evidence.model.info")
+local action_state = require("telescope.actions.state")
 
 --- @alias NextCardMode integer
 local NextCardMode = {
@@ -491,7 +492,7 @@ local function tagTree(now_tag_id)
     for _, v in ipairs(son_tags) do
       table.insert(items, {
         name = v.name,
-        info = { id = v.id },
+        info = { id = v.id, name = v.name },
         foo = function()
           return tagTree(v.id)
         end,
@@ -502,6 +503,23 @@ local function tagTree(now_tag_id)
     prompt_title = "Evidence tagTree",
     menu_item = items,
     main_foo = nil,
+    mappings = {
+      ["i"] = {
+        ["<c-e>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local select_item = action_state.get_selected_entry()
+          local single = select_item.value
+          local v = single.info
+          local new_name = tools.uiInput("renameTag old_name:" .. v.name .. " new_name:", "")
+          if new_name ~= nil then
+            model:editTag(v.id, { name = new_name })
+
+            local res = tagTree(now_tag_id)
+            telescopeMenu.flushResult(res, picker, prompt_bufnr)
+          end
+        end,
+      },
+    },
   }
 end
 
