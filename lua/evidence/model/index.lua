@@ -381,6 +381,7 @@ end
 function Model:convertFatherTag(son_ids, father_id)
   for _, son_id in ipairs(son_ids) do
     if son_id ~= father_id then
+      -- 同时包含两个tag_id的卡片只留son_tag_id这一个
       local cards = self:findCardBySelectTags({ son_id, father_id }, true, false, -1)
       if cards ~= nil then
         for _, card in ipairs(cards) do
@@ -389,7 +390,7 @@ function Model:convertFatherTag(son_ids, father_id)
       end
       self.tbl:editTag(son_id, { father_id = father_id })
     else
-      error("convertFatherTag")
+      error("convertFatherTag same")
     end
   end
 end
@@ -510,7 +511,11 @@ end
 
 ---@param tag_id number
 function Model:delTag(tag_id)
-  self.tbl:delTag(tag_id)
+  local now_tag = self:findTagById(tag_id)
+  if now_tag == nil then
+    error("delTag")
+  end
+  self:mergeTags({ tag_id }, now_tag.father_id)
 end
 
 ---@param tag_ids number[]

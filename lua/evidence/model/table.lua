@@ -314,21 +314,22 @@ function SqlTable:mergeTags(old_tag_ids, new_tag_id)
     tag_str = tag_str .. val
   end
   local query = ""
-  if new_tag_id ~= -1 then
-    query = "INSERT OR IGNORE INTO "
-        .. Tables.card_tag
-        .. " (card_id, tag_id) SELECT card_id, "
-        .. new_tag_id
-        .. " FROM card_tag WHERE tag_id IN ("
-        .. tag_str
-        .. ") UNION ALL SELECT card_id,"
-        .. new_tag_id
-        .. " from "
-        .. Tables.card_tag
-        .. " where tag_id="
-        .. new_tag_id
-    self.db:execute(query)
-  end
+  -- useless demand
+  --if new_tag_id ~= -1 and is_card_update_tag == true then
+  --  query = "INSERT OR IGNORE INTO "
+  --      .. Tables.card_tag
+  --      .. " (card_id, tag_id) SELECT card_id, "
+  --      .. new_tag_id
+  --      .. " FROM card_tag WHERE tag_id IN ("
+  --      .. tag_str
+  --      .. ") UNION ALL SELECT card_id,"
+  --      .. new_tag_id
+  --      .. " from "
+  --      .. Tables.card_tag
+  --      .. " where tag_id="
+  --      .. new_tag_id
+  --  self.db:execute(query)
+  --end
   query = "DELETE FROM "
       .. Tables.card_tag
       .. " WHERE tag_id IN ("

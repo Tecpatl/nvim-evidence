@@ -5,6 +5,7 @@ local telescopeMenu = require("evidence.view.telescope")
 local menuHelper = require("evidence.view.menu_helper")
 local set = require("evidence.util.set")
 local tblInfo = require("evidence.model.info")
+local action_state = require("telescope.actions.state")
 
 --- @alias NextCardMode integer
 local NextCardMode = {
@@ -20,6 +21,11 @@ local is_start_ = false
 local select_tags = {}
 local is_select_tag_and = true
 local next_card_mode = NextCardMode.auto
+local tag_tree_exclude_ids = {}
+local is_mapping_convert = false
+local is_mapping_merge = false
+local convert_tag_son_id = -1
+local merge_tag_son_id = -1
 
 local function selectTagNameStr()
   local res = ""
@@ -187,39 +193,73 @@ local function addTag()
   }
 end
 
----@return MenuData
-local function addTagsForNowCard()
+---@param now_tag_id number
+---@param now_tag_tree_exclude_ids number[]
+local function addTagsForNowCard(now_tag_id, now_tag_tree_exclude_ids)
   local card_id = getNowItem().id
-  local res = model:findExcludeTagsByCard(card_id)
+  local son_tags = model:findSonTags(now_tag_id)
   local items = {}
-  if type(res) == "table" then
-    for _, v in ipairs(res) do
-      table.insert(items, {
-        name = v.name,
-        info = { id = v.id },
-        foo = function()
-          if not tools.confirmCheck("addTagsForNowCard") then
-            return
-          end
-          model:insertCardTagById(card_id, v.id)
-        end,
-      })
+  if now_tag_id ~= -1 then
+    local now_tag = model:findTagById(now_tag_id)
+    if now_tag == nil then
+      error("addTagsForNowCard findTagById")
+    end
+    table.insert(items, {
+      name = "[father] " .. now_tag.name,
+      info = { id = now_tag.id, name = now_tag.name },
+      foo = function()
+        return addTagsForNowCard(now_tag.father_id, now_tag_tree_exclude_ids)
+      end,
+    })
+  end
+  --print(vim.inspect(son_tags))
+  if type(son_tags) == "table" then
+    for _, v in ipairs(son_tags) do
+      if not tools.isInTable(v.id, now_tag_tree_exclude_ids) then
+        table.insert(items, {
+          name = v.name,
+          info = { id = v.id, name = v.name },
+          foo = function()
+            return addTagsForNowCard(v.id, now_tag_tree_exclude_ids)
+          end,
+        })
+      end
     end
   end
   return {
     prompt_title = "Evidence addTagsForNowCard",
     menu_item = items,
-    main_foo = function(value)
-      print("cannot multiple add tags for direct relations")
-      --local typename = type(value)
-      --if typename == "table" then
-      --  for _, v in ipairs(value) do
-      --    model:insertCardTagById(card_id, v.info.id)
-      --  end
-      --elseif typename == "string" then
-      --  model:insertCardTagByName(card_id, value)
-      --end
+    --- addTag
+    main_foo = function(prompt)
+      if not tools.confirmCheck("addTagsForNowCard") then
+        return
+      end
+      local tag_id = model:addTag(prompt)
+      model:convertFatherTag({ tag_id }, now_tag_id)
+      model:insertCardTagById(card_id, tag_id)
+      print("addTagsForNowCard new tag name:" .. prompt)
+      now_tag_tree_exclude_ids = model:getIdsFromItem(model:findIncludeTagsByCard(card_id))
+      return addTagsForNowCard(now_tag_id, now_tag_tree_exclude_ids)
     end,
+    mappings = {
+      ["i"] = {
+        ["<c-e>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local select_item = action_state.get_selected_entry()
+          local single = select_item.value
+          local v = single.info
+          if not tools.confirmCheck("addTagsForNowCard") then
+            return
+          end
+          model:insertCardTagById(card_id, v.id)
+          print("addTagsForNowCard tag name:" .. v.name)
+
+          now_tag_tree_exclude_ids = model:getIdsFromItem(model:findIncludeTagsByCard(card_id))
+          local res = addTagsForNowCard(now_tag_id, now_tag_tree_exclude_ids)
+          telescopeMenu.flushResult(res, picker, prompt_bufnr)
+        end,
+      },
+    },
   }
 end
 
@@ -237,7 +277,7 @@ local function addCard()
   local card_id = model:addNewCard(content_str, file_type)
   local item = model:getItemById(card_id)
   winBuf:viewContent(item)
-  return addTagsForNowCard()
+  return addTagsForNowCard(-1, {})
 end
 
 ---@return MenuData
@@ -471,6 +511,12 @@ end
 ---@param now_tag_id number
 ---@return MenuData|nil
 local function tagTree(now_tag_id)
+  local reset_local_state = function()
+    is_mapping_convert = false
+    is_mapping_merge = false
+    convert_tag_son_id = -1
+    merge_tag_son_id = -1
+  end
   local son_tags = model:findSonTags(now_tag_id)
   local items = {}
   if now_tag_id ~= -1 then
@@ -480,7 +526,7 @@ local function tagTree(now_tag_id)
     end
     table.insert(items, {
       name = "[father] " .. now_tag.name,
-      info = { id = now_tag.id },
+      info = { id = now_tag.id, name = now_tag.name },
       foo = function()
         return tagTree(now_tag.father_id)
       end,
@@ -489,19 +535,142 @@ local function tagTree(now_tag_id)
   --print(vim.inspect(son_tags))
   if type(son_tags) == "table" then
     for _, v in ipairs(son_tags) do
-      table.insert(items, {
-        name = v.name,
-        info = { id = v.id },
-        foo = function()
-          return tagTree(v.id)
-        end,
-      })
+      if not tools.isInTable(v.id, tag_tree_exclude_ids) then
+        table.insert(items, {
+          name = v.name,
+          info = { id = v.id, name = v.name },
+          foo = function()
+            return tagTree(v.id)
+          end,
+        })
+      end
     end
   end
   return {
     prompt_title = "Evidence tagTree",
     menu_item = items,
-    main_foo = nil,
+    --- addTag
+    main_foo = function(prompt)
+      if not tools.confirmCheck("addTag") then
+        return
+      end
+      local tag_id = model:addTag(prompt)
+      model:convertFatherTag({ tag_id }, now_tag_id)
+      return tagTree(now_tag_id)
+    end,
+    mappings = {
+      ["i"] = {
+        --- convertFatherTag start
+        ["<c-x>"] = function(prompt_bufnr)
+          reset_local_state()
+          tag_tree_exclude_ids = {}
+          is_mapping_convert = true
+          is_mapping_merge = false
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local select_item = action_state.get_selected_entry()
+          local single = select_item.value
+          local v = single.info
+          convert_tag_son_id = v.id
+          tag_tree_exclude_ids = model:findAllSonTags({ convert_tag_son_id }, false) -- exclude tags
+          print("convertFatherTag select start tag name:" .. v.name)
+          local res = tagTree(now_tag_id)
+          telescopeMenu.flushResult(res, picker, prompt_bufnr)
+        end,
+        --- mergeTag start
+        ["<c-g>"] = function(prompt_bufnr)
+          reset_local_state()
+          tag_tree_exclude_ids = {}
+          is_mapping_merge = true
+          is_mapping_convert = false
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local select_item = action_state.get_selected_entry()
+          local single = select_item.value
+          local v = single.info
+          merge_tag_son_id = v.id
+          tag_tree_exclude_ids = model:findAllSonTags({ merge_tag_son_id }, false) -- exclude tags
+          print("convertFatherTag select start tag name:" .. v.name)
+          local res = tagTree(now_tag_id)
+          telescopeMenu.flushResult(res, picker, prompt_bufnr)
+        end,
+        --- convertFatherTag end
+        ["<c-v>"] = function(prompt_bufnr)
+          if not is_mapping_convert and not is_mapping_merge then
+            print("not select start tag")
+            return
+          end
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local select_item = action_state.get_selected_entry()
+          local single = select_item.value
+          local v = single.info
+          local end_tag_father_id = v.id
+          if is_mapping_convert then
+            if not tools.confirmCheck("convertFatherTag") then
+              return
+            end
+            model:convertFatherTag({ convert_tag_son_id }, end_tag_father_id)
+            print("convertFatherTag select end tag name:" .. v.name)
+          elseif is_mapping_merge then
+            if not tools.confirmCheck("mergeTag") then
+              return
+            end
+            model:mergeTags({ merge_tag_son_id }, end_tag_father_id)
+            updateSelectTags({ merge_tag_son_id })
+            print("mergeTag select end tag name:" .. v.name)
+          end
+          tag_tree_exclude_ids = {}
+          reset_local_state()
+          local res = tagTree(end_tag_father_id)
+          telescopeMenu.flushResult(res, picker, prompt_bufnr)
+        end,
+        --- delTag
+        ["<c-d>"] = function(prompt_bufnr)
+          reset_local_state()
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local select_item = action_state.get_selected_entry()
+          local single = select_item.value
+          local v = single.info
+          if not tools.confirmCheck("delTags") then
+            return
+          end
+          model:delTag(v.id)
+          updateSelectTags(v.id)
+
+          local res = tagTree(now_tag_id)
+          telescopeMenu.flushResult(res, picker, prompt_bufnr)
+        end,
+        --- addSonForSelect
+        ["<c-s>"] = function(prompt_bufnr)
+          reset_local_state()
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local select_item = action_state.get_selected_entry()
+          local single = select_item.value
+          local v = single.info
+          local new_name = tools.uiInput("addSonForSelect now_name:" .. v.name .. " son_name:", "")
+          if new_name ~= nil and new_name ~= "" then
+            local tag_id = model:addTag(new_name)
+            model:convertFatherTag({ tag_id }, v.id)
+
+            local res = tagTree(now_tag_id)
+            telescopeMenu.flushResult(res, picker, prompt_bufnr)
+          end
+        end,
+        --- editTag
+        ["<c-e>"] = function(prompt_bufnr)
+          reset_local_state()
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local select_item = action_state.get_selected_entry()
+          local single = select_item.value
+          local v = single.info
+          local new_name = tools.uiInput("renameTag old_name:" .. v.name .. " new_name:", "")
+          if new_name ~= nil and new_name ~= "" then
+            model:editTag(v.id, { name = new_name })
+
+            local res = tagTree(now_tag_id)
+            telescopeMenu.flushResult(res, picker, prompt_bufnr)
+          end
+        end,
+      },
+    },
   }
 end
 
@@ -724,7 +893,11 @@ local menuItem = {
   },
   {
     name = "addTagsForNowCard",
-    foo = addTagsForNowCard,
+    foo = function()
+      local card_id = getNowItem().id
+      local now_tag_tree_exclude_ids = model:getIdsFromItem(model:findIncludeTagsByCard(card_id))
+      return addTagsForNowCard(-1, now_tag_tree_exclude_ids)
+    end,
   },
   {
     name = "delTagsForNowCard",
@@ -773,6 +946,11 @@ local menuItem = {
   {
     name = "tagTree",
     foo = function()
+      tag_tree_exclude_ids = {}
+      is_mapping_convert = false
+      is_mapping_merge = false
+      convert_tag_son_id = -1
+      merge_tag_son_id = -1
       return tagTree(-1)
     end,
   },
