@@ -481,7 +481,7 @@ local function tagTree(now_tag_id)
     end
     table.insert(items, {
       name = "[father] " .. now_tag.name,
-      info = { id = now_tag.id },
+      info = { id = now_tag.id, name = now_tag.name },
       foo = function()
         return tagTree(now_tag.father_id)
       end,
@@ -526,13 +526,27 @@ local function tagTree(now_tag_id)
           local res = tagTree(now_tag_id)
           telescopeMenu.flushResult(res, picker, prompt_bufnr)
         end,
+        ["<c-s>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local select_item = action_state.get_selected_entry()
+          local single = select_item.value
+          local v = single.info
+          local new_name = tools.uiInput("addSonForSelect now_name:" .. v.name .. " son_name:", "")
+          if new_name ~= nil and new_name ~= "" then
+            local tag_id = model:addTag(new_name)
+            model:convertFatherTag({ tag_id }, v.id)
+
+            local res = tagTree(now_tag_id)
+            telescopeMenu.flushResult(res, picker, prompt_bufnr)
+          end
+        end,
         ["<c-e>"] = function(prompt_bufnr)
           local picker = action_state.get_current_picker(prompt_bufnr)
           local select_item = action_state.get_selected_entry()
           local single = select_item.value
           local v = single.info
           local new_name = tools.uiInput("renameTag old_name:" .. v.name .. " new_name:", "")
-          if new_name ~= nil then
+          if new_name ~= nil and new_name ~= "" then
             model:editTag(v.id, { name = new_name })
 
             local res = tagTree(now_tag_id)
