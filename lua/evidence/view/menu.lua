@@ -21,6 +21,9 @@ local is_start_ = false
 local select_tags = {}
 local is_select_tag_and = true
 local next_card_mode = NextCardMode.auto
+local tag_tree_exclude_ids = {}
+local is_mapping_convert_father = false
+local convert_tag_son_id = -1
 
 local function selectTagNameStr()
   local res = ""
@@ -472,6 +475,10 @@ end
 ---@param now_tag_id number
 ---@return MenuData|nil
 local function tagTree(now_tag_id)
+  local reset_local_state = function()
+    is_mapping_convert_father = false
+    convert_tag_son_id = -1
+  end
   local son_tags = model:findSonTags(now_tag_id)
   local items = {}
   if now_tag_id ~= -1 then
@@ -490,18 +497,21 @@ local function tagTree(now_tag_id)
   --print(vim.inspect(son_tags))
   if type(son_tags) == "table" then
     for _, v in ipairs(son_tags) do
-      table.insert(items, {
-        name = v.name,
-        info = { id = v.id, name = v.name },
-        foo = function()
-          return tagTree(v.id)
-        end,
-      })
+      if not tools.isInTable(v.id, tag_tree_exclude_ids) then
+        table.insert(items, {
+          name = v.name,
+          info = { id = v.id, name = v.name },
+          foo = function()
+            return tagTree(v.id)
+          end,
+        })
+      end
     end
   end
   return {
     prompt_title = "Evidence tagTree",
     menu_item = items,
+    --- addTag
     main_foo = function(prompt)
       if not tools.confirmCheck("addTag") then
         return
@@ -512,7 +522,45 @@ local function tagTree(now_tag_id)
     end,
     mappings = {
       ["i"] = {
+        --- convertFatherTag start
+        ["<c-x>"] = function(prompt_bufnr)
+          reset_local_state()
+          tag_tree_exclude_ids = {}
+          is_mapping_convert_father = true
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local select_item = action_state.get_selected_entry()
+          local single = select_item.value
+          local v = single.info
+          convert_tag_son_id = v.id
+          tag_tree_exclude_ids = model:findAllSonTags({ convert_tag_son_id }, false) -- exclude tags
+          print("convertFatherTag select start tag name:" .. v.name)
+          local res = tagTree(now_tag_id)
+          telescopeMenu.flushResult(res, picker, prompt_bufnr)
+        end,
+        --- convertFatherTag end
+        ["<c-v>"] = function(prompt_bufnr)
+          if not is_mapping_convert_father then
+            print("not select start tag")
+            return
+          end
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local select_item = action_state.get_selected_entry()
+          local single = select_item.value
+          local v = single.info
+          local convert_tag_father_id = v.id
+          if not tools.confirmCheck("convertFatherTag") then
+            return
+          end
+          model:convertFatherTag({ convert_tag_son_id }, convert_tag_father_id)
+          print("convertFatherTag select end tag name:" .. v.name)
+          tag_tree_exclude_ids = {}
+          reset_local_state()
+          local res = tagTree(convert_tag_father_id)
+          telescopeMenu.flushResult(res, picker, prompt_bufnr)
+        end,
+        --- delTag
         ["<c-d>"] = function(prompt_bufnr)
+          reset_local_state()
           local picker = action_state.get_current_picker(prompt_bufnr)
           local select_item = action_state.get_selected_entry()
           local single = select_item.value
@@ -526,7 +574,9 @@ local function tagTree(now_tag_id)
           local res = tagTree(now_tag_id)
           telescopeMenu.flushResult(res, picker, prompt_bufnr)
         end,
+        --- addSonForSelect
         ["<c-s>"] = function(prompt_bufnr)
+          reset_local_state()
           local picker = action_state.get_current_picker(prompt_bufnr)
           local select_item = action_state.get_selected_entry()
           local single = select_item.value
@@ -540,7 +590,9 @@ local function tagTree(now_tag_id)
             telescopeMenu.flushResult(res, picker, prompt_bufnr)
           end
         end,
+        --- editTag
         ["<c-e>"] = function(prompt_bufnr)
+          reset_local_state()
           local picker = action_state.get_current_picker(prompt_bufnr)
           local select_item = action_state.get_selected_entry()
           local single = select_item.value
@@ -826,6 +878,9 @@ local menuItem = {
   {
     name = "tagTree",
     foo = function()
+      tag_tree_exclude_ids = {}
+      is_mapping_convert_father = false
+      convert_tag_son_id = -1
       return tagTree(-1)
     end,
   },
