@@ -22,8 +22,10 @@ local select_tags = {}
 local is_select_tag_and = true
 local next_card_mode = NextCardMode.auto
 local tag_tree_exclude_ids = {}
-local is_mapping_convert_father = false
+local is_mapping_convert = false
+local is_mapping_merge = false
 local convert_tag_son_id = -1
+local merge_tag_son_id = -1
 
 local function selectTagNameStr()
   local res = ""
@@ -476,8 +478,10 @@ end
 ---@return MenuData|nil
 local function tagTree(now_tag_id)
   local reset_local_state = function()
-    is_mapping_convert_father = false
+    is_mapping_convert = false
+    is_mapping_merge = false
     convert_tag_son_id = -1
+    merge_tag_son_id = -1
   end
   local son_tags = model:findSonTags(now_tag_id)
   local items = {}
@@ -526,7 +530,8 @@ local function tagTree(now_tag_id)
         ["<c-x>"] = function(prompt_bufnr)
           reset_local_state()
           tag_tree_exclude_ids = {}
-          is_mapping_convert_father = true
+          is_mapping_convert = true
+          is_mapping_merge = false
           local picker = action_state.get_current_picker(prompt_bufnr)
           local select_item = action_state.get_selected_entry()
           local single = select_item.value
@@ -537,9 +542,25 @@ local function tagTree(now_tag_id)
           local res = tagTree(now_tag_id)
           telescopeMenu.flushResult(res, picker, prompt_bufnr)
         end,
+        --- mergeTag start
+        ["<c-g>"] = function(prompt_bufnr)
+          reset_local_state()
+          tag_tree_exclude_ids = {}
+          is_mapping_merge = true
+          is_mapping_convert = false
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local select_item = action_state.get_selected_entry()
+          local single = select_item.value
+          local v = single.info
+          merge_tag_son_id = v.id
+          tag_tree_exclude_ids = model:findAllSonTags({ merge_tag_son_id }, false) -- exclude tags
+          print("convertFatherTag select start tag name:" .. v.name)
+          local res = tagTree(now_tag_id)
+          telescopeMenu.flushResult(res, picker, prompt_bufnr)
+        end,
         --- convertFatherTag end
         ["<c-v>"] = function(prompt_bufnr)
-          if not is_mapping_convert_father then
+          if not is_mapping_convert and not is_mapping_merge then
             print("not select start tag")
             return
           end
@@ -547,15 +568,24 @@ local function tagTree(now_tag_id)
           local select_item = action_state.get_selected_entry()
           local single = select_item.value
           local v = single.info
-          local convert_tag_father_id = v.id
-          if not tools.confirmCheck("convertFatherTag") then
-            return
+          local end_tag_father_id = v.id
+          if is_mapping_convert then
+            if not tools.confirmCheck("convertFatherTag") then
+              return
+            end
+            model:convertFatherTag({ convert_tag_son_id }, end_tag_father_id)
+            print("convertFatherTag select end tag name:" .. v.name)
+          elseif is_mapping_merge then
+            if not tools.confirmCheck("mergeTag") then
+              return
+            end
+            model:mergeTags({ merge_tag_son_id }, end_tag_father_id)
+            updateSelectTags({ merge_tag_son_id })
+            print("mergeTag select end tag name:" .. v.name)
           end
-          model:convertFatherTag({ convert_tag_son_id }, convert_tag_father_id)
-          print("convertFatherTag select end tag name:" .. v.name)
           tag_tree_exclude_ids = {}
           reset_local_state()
-          local res = tagTree(convert_tag_father_id)
+          local res = tagTree(end_tag_father_id)
           telescopeMenu.flushResult(res, picker, prompt_bufnr)
         end,
         --- delTag
@@ -879,8 +909,10 @@ local menuItem = {
     name = "tagTree",
     foo = function()
       tag_tree_exclude_ids = {}
-      is_mapping_convert_father = false
+      is_mapping_convert = false
+      is_mapping_merge = false
       convert_tag_son_id = -1
+      merge_tag_son_id = -1
       return tagTree(-1)
     end,
   },
