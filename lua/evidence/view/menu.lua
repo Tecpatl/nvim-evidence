@@ -193,39 +193,73 @@ local function addTag()
   }
 end
 
----@return MenuData
-local function addTagsForNowCard()
+---@param now_tag_id number
+---@param now_tag_tree_exclude_ids number[]
+local function addTagsForNowCard(now_tag_id, now_tag_tree_exclude_ids)
   local card_id = getNowItem().id
-  local res = model:findExcludeTagsByCard(card_id)
+  local son_tags = model:findSonTags(now_tag_id)
   local items = {}
-  if type(res) == "table" then
-    for _, v in ipairs(res) do
-      table.insert(items, {
-        name = v.name,
-        info = { id = v.id },
-        foo = function()
-          if not tools.confirmCheck("addTagsForNowCard") then
-            return
-          end
-          model:insertCardTagById(card_id, v.id)
-        end,
-      })
+  if now_tag_id ~= -1 then
+    local now_tag = model:findTagById(now_tag_id)
+    if now_tag == nil then
+      error("addTagsForNowCard findTagById")
+    end
+    table.insert(items, {
+      name = "[father] " .. now_tag.name,
+      info = { id = now_tag.id, name = now_tag.name },
+      foo = function()
+        return addTagsForNowCard(now_tag.father_id, now_tag_tree_exclude_ids)
+      end,
+    })
+  end
+  --print(vim.inspect(son_tags))
+  if type(son_tags) == "table" then
+    for _, v in ipairs(son_tags) do
+      if not tools.isInTable(v.id, now_tag_tree_exclude_ids) then
+        table.insert(items, {
+          name = v.name,
+          info = { id = v.id, name = v.name },
+          foo = function()
+            return addTagsForNowCard(v.id, now_tag_tree_exclude_ids)
+          end,
+        })
+      end
     end
   end
   return {
     prompt_title = "Evidence addTagsForNowCard",
     menu_item = items,
-    main_foo = function(value)
-      print("cannot multiple add tags for direct relations")
-      --local typename = type(value)
-      --if typename == "table" then
-      --  for _, v in ipairs(value) do
-      --    model:insertCardTagById(card_id, v.info.id)
-      --  end
-      --elseif typename == "string" then
-      --  model:insertCardTagByName(card_id, value)
-      --end
+    --- addTag
+    main_foo = function(prompt)
+      if not tools.confirmCheck("addTagsForNowCard") then
+        return
+      end
+      local tag_id = model:addTag(prompt)
+      model:convertFatherTag({ tag_id }, now_tag_id)
+      model:insertCardTagById(card_id, tag_id)
+      print("addTagsForNowCard new tag name:" .. prompt)
+      now_tag_tree_exclude_ids = model:getIdsFromItem(model:findIncludeTagsByCard(card_id))
+      return addTagsForNowCard(now_tag_id, now_tag_tree_exclude_ids)
     end,
+    mappings = {
+      ["i"] = {
+        ["<c-e>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local select_item = action_state.get_selected_entry()
+          local single = select_item.value
+          local v = single.info
+          if not tools.confirmCheck("addTagsForNowCard") then
+            return
+          end
+          model:insertCardTagById(card_id, v.id)
+          print("addTagsForNowCard tag name:" .. v.name)
+
+          now_tag_tree_exclude_ids = model:getIdsFromItem(model:findIncludeTagsByCard(card_id))
+          local res = addTagsForNowCard(now_tag_id, now_tag_tree_exclude_ids)
+          telescopeMenu.flushResult(res, picker, prompt_bufnr)
+        end,
+      },
+    },
   }
 end
 
@@ -243,7 +277,7 @@ local function addCard()
   local card_id = model:addNewCard(content_str, file_type)
   local item = model:getItemById(card_id)
   winBuf:viewContent(item)
-  return addTagsForNowCard()
+  return addTagsForNowCard(-1, {})
 end
 
 ---@return MenuData
@@ -859,7 +893,11 @@ local menuItem = {
   },
   {
     name = "addTagsForNowCard",
-    foo = addTagsForNowCard,
+    foo = function()
+      local card_id = getNowItem().id
+      local now_tag_tree_exclude_ids = model:getIdsFromItem(model:findIncludeTagsByCard(card_id))
+      return addTagsForNowCard(-1, now_tag_tree_exclude_ids)
+    end,
   },
   {
     name = "delTagsForNowCard",
