@@ -305,7 +305,8 @@ end
 
 ---@param old_tag_ids number[] tag would_be_delete
 ---@param new_tag_id number
-function SqlTable:mergeTags(old_tag_ids, new_tag_id)
+---@param is_card_update_tag boolean 
+function SqlTable:mergeTags(old_tag_ids, new_tag_id, is_card_update_tag)
   local tag_str = ""
   for key, val in pairs(old_tag_ids) do
     if tag_str ~= "" then
@@ -314,7 +315,7 @@ function SqlTable:mergeTags(old_tag_ids, new_tag_id)
     tag_str = tag_str .. val
   end
   local query = ""
-  if new_tag_id ~= -1 then
+  if new_tag_id ~= -1 and is_card_update_tag == true then
     query = "INSERT OR IGNORE INTO "
         .. Tables.card_tag
         .. " (card_id, tag_id) SELECT card_id, "
