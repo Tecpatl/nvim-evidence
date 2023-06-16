@@ -407,11 +407,7 @@ end
 
 ---@param old_tag_ids number[] indirect relations and tag would_be_delete
 ---@param new_tag_id number
----@param is_card_update_tag? boolean true: del false: modify to new
-function Model:mergeTags(old_tag_ids, new_tag_id, is_card_update_tag)
-  if is_card_update_tag == nil then
-    is_card_update_tag = true
-  end
+function Model:mergeTags(old_tag_ids, new_tag_id)
   for _, old_tag_id in ipairs(old_tag_ids) do
     local son_tags = self:findSonTags(old_tag_id)
     --print(vim.inspect(son_tags))
@@ -421,7 +417,7 @@ function Model:mergeTags(old_tag_ids, new_tag_id, is_card_update_tag)
       self:convertFatherTag(son_tag_ids, new_tag_id)
     end
   end
-  self.tbl:mergeTags(old_tag_ids, new_tag_id, is_card_update_tag)
+  self.tbl:mergeTags(old_tag_ids, new_tag_id)
 end
 
 ---@param card_id number
@@ -518,7 +514,7 @@ function Model:delTag(tag_id)
   if now_tag == nil then
     error("delTag")
   end
-  self:mergeTags({ tag_id }, now_tag.father_id, false)
+  self:mergeTags({ tag_id }, now_tag.father_id)
 end
 
 ---@param tag_ids number[]
