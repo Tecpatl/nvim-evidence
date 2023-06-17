@@ -28,7 +28,7 @@ local function toArray(set)
   return array
 end
 
----@pararm any[]
+---@param any[]
 local function createSetFromArray(arr)
   local res = {}
   for _, id in ipairs(arr) do

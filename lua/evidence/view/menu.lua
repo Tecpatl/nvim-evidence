@@ -1,11 +1,8 @@
-local model = require("evidence.model.index")
 local tools = require("evidence.util.tools")
-local winBuf = require("evidence.view.win_buf")
-local telescopeMenu = require("evidence.view.telescope")
-local menuHelper = require("evidence.view.menu_helper")
 local set = require("evidence.util.set")
 local tblInfo = require("evidence.model.info")
 local action_state = require("telescope.actions.state")
+local telescopeMenu = require("evidence.view.telescope")
 
 --- @alias NextCardMode integer
 local NextCardMode = {
@@ -14,27 +11,81 @@ local NextCardMode = {
   new = 2,
 }
 
----@type ModelTableParam
-local user_data = nil
-local is_start_ = false
----@type number[]
-local select_tags = {}
-local is_select_tag_and = true
-local next_card_mode = NextCardMode.auto
-local tag_tree_exclude_ids = {}
-local is_mapping_convert = false
-local is_mapping_merge = false
-local convert_tag_son_id = -1
-local merge_tag_son_id = -1
+---@class Menu
+---@field tbl SqlTable
+---@field select_tags number[]
+---@field is_select_tag_and boolean
+---@field next_card_mode NextCardMode
+---@field is_mapping_convert boolean
+---@field is_mapping_merge boolean
+---@field tag_tree_exclude_ids table
+---@field convert_tag_son_id number
+---@field merge_tag_son_id number
+---@field win_buf WinBuf
+---@field model Model
+---@field helper MenuHelper
+---@field telescope_menu TelescopeMenu
+local Menu = {}
 
-local function selectTagNameStr()
+Menu.__index = function(self, key)
+  local value = rawget(Menu, key)
+  if key ~= "setup" then
+    if not self.is_setup then
+      error("Class not initialized. Please call setup() first.", 2)
+    end
+  end
+  return value
+end
+
+Menu.__newindex = function()
+  error("Attempt to modify a read-only table")
+end
+
+---@return Menu
+function Menu:getInstance()
+  if not self.instance then
+    self.instance = setmetatable({
+      is_setup = false,
+      select_tags = {},
+      is_select_tag_and = true,
+      next_card_mode = NextCardMode.auto,
+      is_mapping_convert = false,
+      is_mapping_merge = false,
+      tag_tree_exclude_ids = {},
+      convert_tag_son_id = -1,
+      merge_tag_son_id = -1,
+      win_buf = {},
+      model = {},
+      helper = require("evidence.view.menu_helper"),
+      telescope_menu = telescopeMenu:new(),
+    }, self)
+  end
+  return self.instance
+end
+
+---@class MenuProps
+---@field winBuf WinBuf
+---@field model Model
+
+---@param data MenuProps
+function Menu:setup(data)
+  if self.is_setup then
+    error("cannot setup twice")
+  end
+  self.is_setup = true
+  self.win_buf = data.winBuf
+  self.model = data.model
+  self.helper:setup(self.model)
+end
+
+function Menu:selectTagNameStr()
   local res = ""
-  if select_tags ~= {} then
+  if self.select_tags ~= {} then
     local status_msg = "AND"
-    if is_select_tag_and == false then
+    if self.is_select_tag_and == false then
       status_msg = "OR"
     end
-    local tags = model:findTagByIds(select_tags)
+    local tags = self.model:findTagByIds(self.select_tags)
     if tags ~= nil then
       res = status_msg .. " current:" .. tools.array2Str(tags, "name")
     end
@@ -42,14 +93,14 @@ local function selectTagNameStr()
   return res
 end
 
-local function nextCard()
+function Menu:nextCard()
   local items = nil
-  if next_card_mode == NextCardMode.auto then
-    items = menuHelper:calcNextList(select_tags, is_select_tag_and)
-  elseif next_card_mode == NextCardMode.review then
-    items = model:getMinDueItem(select_tags, is_select_tag_and, true, 1)
-  elseif next_card_mode == NextCardMode.new then
-    items = model:getNewItem(select_tags, is_select_tag_and, true, 1)
+  if self.next_card_mode == NextCardMode.auto then
+    items = self.helper:calcNextList(self.select_tags, self.is_select_tag_and)
+  elseif self.next_card_mode == NextCardMode.review then
+    items = self.model:getMinDueItem(self.select_tags, self.is_select_tag_and, true, 1)
+  elseif self.next_card_mode == NextCardMode.new then
+    items = self.model:getNewItem(self.select_tags, self.is_select_tag_and, true, 1)
   end
 
   if items == nil then
@@ -57,16 +108,16 @@ local function nextCard()
     return
   end
   local item = items[1]
-  winBuf:viewContent(item)
+  self.win_buf:viewContent(item)
 end
 
-local function setNextCard()
+function Menu:setNextCard()
   local items = {}
   for k, v in pairs(NextCardMode) do
     table.insert(items, {
       name = k,
       foo = function()
-        next_card_mode = v
+        self.next_card_mode = v
       end,
     })
   end
@@ -77,94 +128,70 @@ local function setNextCard()
   }
 end
 
----@return boolean
-local function checkStartInSelfBuf()
-  local start_buf = vim.api.nvim_get_current_buf()
-  if is_start_ == false or not winBuf:checkSelfBuf(start_buf) then
-    print("evidence need in self buf. call flush first if buf is closed")
-    return false
-  end
-  return true
-end
-
----@param data ModelTableParam
-local function setup(data)
-  if is_start_ == true then
-    return
-  end
-  user_data = data
-  is_start_ = true
-  is_select_tag_and = true
-  select_tags = {}
-  model:setup(data)
-  winBuf:setup({ model = model }, "## answer")
-  menuHelper:setup(model)
-end
-
 ---@return CardItem
-local function getNowItem()
-  return winBuf:getInfo().item
+function Menu:getNowItem()
+  return self.win_buf:getInfo().item
 end
 
----@return MenuData
-local function fuzzyFindCard()
+---@return TelescopeMenu
+function Menu:fuzzyFindCard()
   local foo = function(prompt)
-    return model:fuzzyFindCard(prompt, 50)
+    return self.model:fuzzyFindCard(prompt, 50)
   end
   return {
     prompt_title = "Evidence FuzzyFindCard",
     menu_item = {},
     main_foo = nil,
-    previewer = menuHelper:createCardPreviewer(),
-    process_work = menuHelper:createCardProcessWork(foo),
+    previewer = self.helper:createCardPreviewer(),
+    process_work = self.helper:createCardProcessWork(foo),
   }
 end
 
-local function delCard()
+function Menu:delCard()
   if not tools.confirmCheck("delCard") then
     return
   end
-  model:delCard(getNowItem().id)
-  nextCard()
+  self.model:delCard(self:getNowItem().id)
+  self:nextCard()
 end
 
-local function answer()
-  winBuf:switchFold(false)
+function Menu:answer()
+  self.win_buf:switchFold(false)
 end
 
-local function editCard()
+function Menu:editCard()
   if not tools.confirmCheck("editCard") then
     return
   end
-  local buf_id = winBuf:getInfo().buf
+  local buf_id = self.win_buf:getInfo().buf
   local content = vim.api.nvim_buf_get_lines(buf_id, 0, -1, false)
   local content_str = table.concat(content, "\n")
   local file_type = vim.api.nvim_buf_get_option(buf_id, "filetype")
   if not file_type or file_type == "" then
     file_type = "markdown"
   end
-  model:editCard(getNowItem().id, { content = content_str, file_type = file_type })
+  self.model:editCard(self:getNowItem().id, { content = content_str, file_type = file_type })
 end
 
-local function infoCard()
-  local card = getNowItem().card
+function Menu:infoCard()
+  local card = self:getNowItem().card
   tools.printDump(card)
 end
 
-local function scoreCard()
+function Menu:scoreCard()
   local rating = tonumber(tools.uiInput("scoreCard(0,1,2,3):", ""))
-  if type(rating) ~= "number" or not menuHelper:checkScore(rating) then
+  if type(rating) ~= "number" or not self.helper:checkScore(rating) then
     print("input format error (0,1,2,3)")
     return
   end
   --print(rating)
-  model:ratingCard(getNowItem().id, rating)
-  nextCard()
+  self.model:ratingCard(self:getNowItem().id, rating)
+  self:nextCard()
 end
 
----@return MenuData
-local function addTag()
-  local res = model:findAllTags()
+---@return TelescopeMenu
+function Menu:addTag()
+  local res = self.model:findAllTags()
   local items = {}
   if type(res) == "table" then
     for _, v in ipairs(res) do
@@ -185,7 +212,7 @@ local function addTag()
         if not tools.confirmCheck("addTag") then
           return
         end
-        model:addTag(value)
+        self.model:addTag(value)
       else
         print("please add a tag not exist")
       end
@@ -193,14 +220,20 @@ local function addTag()
   }
 end
 
+function Menu:addTagsForNowCardMain(now_tag_id, now_tag_tree_exclude_ids)
+  local card_id = self:getNowItem().id
+  local now_tag_tree_exclude_ids = self.model:getIdsFromItem(self.model:findIncludeTagsByCard(card_id))
+  return self:addTagsForNowCard(-1, now_tag_tree_exclude_ids)
+end
+
 ---@param now_tag_id number
 ---@param now_tag_tree_exclude_ids number[]
-local function addTagsForNowCard(now_tag_id, now_tag_tree_exclude_ids)
-  local card_id = getNowItem().id
-  local son_tags = model:findSonTags(now_tag_id)
+function Menu:addTagsForNowCard(now_tag_id, now_tag_tree_exclude_ids)
+  local card_id = self:getNowItem().id
+  local son_tags = self.model:findSonTags(now_tag_id)
   local items = {}
   if now_tag_id ~= -1 then
-    local now_tag = model:findTagById(now_tag_id)
+    local now_tag = self.model:findTagById(now_tag_id)
     if now_tag == nil then
       error("addTagsForNowCard findTagById")
     end
@@ -208,7 +241,7 @@ local function addTagsForNowCard(now_tag_id, now_tag_tree_exclude_ids)
       name = "[father] " .. now_tag.name,
       info = { id = now_tag.id, name = now_tag.name },
       foo = function()
-        return addTagsForNowCard(now_tag.father_id, now_tag_tree_exclude_ids)
+        return self:addTagsForNowCard(now_tag.father_id, now_tag_tree_exclude_ids)
       end,
     })
   end
@@ -220,7 +253,7 @@ local function addTagsForNowCard(now_tag_id, now_tag_tree_exclude_ids)
           name = v.name,
           info = { id = v.id, name = v.name },
           foo = function()
-            return addTagsForNowCard(v.id, now_tag_tree_exclude_ids)
+            return self:addTagsForNowCard(v.id, now_tag_tree_exclude_ids)
           end,
         })
       end
@@ -234,14 +267,14 @@ local function addTagsForNowCard(now_tag_id, now_tag_tree_exclude_ids)
       if not tools.confirmCheck("addTagsForNowCard") then
         return
       end
-      local tag_id = model:addTag(prompt)
-      model:convertFatherTag({ tag_id }, now_tag_id)
-      model:insertCardTagById(card_id, tag_id)
+      local tag_id = self.model:addTag(prompt)
+      self.model:convertFatherTag({ tag_id }, now_tag_id)
+      self.model:insertCardTagById(card_id, tag_id)
       print("addTagsForNowCard new tag name:" .. prompt)
-      now_tag_tree_exclude_ids = model:getIdsFromItem(model:findIncludeTagsByCard(card_id))
-      return addTagsForNowCard(now_tag_id, now_tag_tree_exclude_ids)
+      now_tag_tree_exclude_ids = self.model:getIdsFromItem(self.model:findIncludeTagsByCard(card_id))
+      return self:addTagsForNowCard(now_tag_id, now_tag_tree_exclude_ids)
     end,
-    mappings = {
+    custom_mappings = {
       ["i"] = {
         --- keymap help
         ["<c-h>"] = function(prompt_bufnr)
@@ -250,43 +283,46 @@ local function addTagsForNowCard(now_tag_id, now_tag_tree_exclude_ids)
         ["<c-e>"] = function(prompt_bufnr)
           local picker = action_state.get_current_picker(prompt_bufnr)
           local select_item = action_state.get_selected_entry()
+          if select_item == nil then
+            return
+          end
           local single = select_item.value
           local v = single.info
           if not tools.confirmCheck("addTagsForNowCard") then
             return
           end
-          model:insertCardTagById(card_id, v.id)
+          self.model:insertCardTagById(card_id, v.id)
           print("addTagsForNowCard tag name:" .. v.name)
 
-          now_tag_tree_exclude_ids = model:getIdsFromItem(model:findIncludeTagsByCard(card_id))
-          local res = addTagsForNowCard(now_tag_id, now_tag_tree_exclude_ids)
-          telescopeMenu.flushResult(res, picker, prompt_bufnr)
+          now_tag_tree_exclude_ids = self.model:getIdsFromItem(self.model:findIncludeTagsByCard(card_id))
+          local res = self:addTagsForNowCard(now_tag_id, now_tag_tree_exclude_ids)
+          self.telescope_menu:flushResult(res, picker, prompt_bufnr)
         end,
       },
     },
   }
 end
 
-local function addCard()
+function Menu:addCard()
   if not tools.confirmCheck("addCard") then
     return
   end
-  local buf_id = winBuf:getInfo().buf
+  local buf_id = self.win_buf:getInfo().buf
   local content = vim.api.nvim_buf_get_lines(buf_id, 0, -1, false)
   local content_str = table.concat(content, "\n")
   local file_type = vim.api.nvim_buf_get_option(buf_id, "filetype")
   if not file_type or file_type == "" then
     file_type = "markdown"
   end
-  local card_id = model:addNewCard(content_str, file_type)
-  local item = model:getItemById(card_id)
-  winBuf:viewContent(item)
-  return addTagsForNowCard(-1, {})
+  local card_id = self.model:addNewCard(content_str, file_type)
+  local item = self.model:getItemById(card_id)
+  self.win_buf:viewContent(item)
+  return self:addTagsForNowCard(-1, {})
 end
 
----@return MenuData
-local function fuzzyFindTag()
-  local res = model:findAllTags()
+---@return TelescopeMenu
+function Menu:fuzzyFindTag()
+  local res = self.model:findAllTags()
   local items = {}
   if type(res) == "table" then
     for _, v in ipairs(res) do
@@ -300,10 +336,10 @@ local function fuzzyFindTag()
   }
 end
 
----@return MenuData
-local function findTagsByNowCard()
-  local card_id = getNowItem().id
-  local res = model:findIncludeTagsByCard(card_id)
+---@return TelescopeMenu
+function Menu:findTagsByNowCard()
+  local card_id = self:getNowItem().id
+  local res = self.model:findIncludeTagsByCard(card_id)
   local items = {}
   if res ~= nil then
     for _, v in ipairs(res) do
@@ -317,10 +353,10 @@ local function findTagsByNowCard()
   }
 end
 
----@return MenuData
-local function delTagsForNowCard()
-  local card_id = getNowItem().id
-  local res = model:findIncludeTagsByCard(card_id)
+---@return TelescopeMenu
+function Menu:delTagsForNowCard()
+  local card_id = self:getNowItem().id
+  local res = self.model:findIncludeTagsByCard(card_id)
   local items = {}
   if type(res) == "table" then
     for _, v in ipairs(res) do
@@ -331,7 +367,7 @@ local function delTagsForNowCard()
           if not tools.confirmCheck("delTagsForNowCard") then
             return
           end
-          model:delCardTag(card_id, v.id)
+          self.model:delCardTag(card_id, v.id)
         end,
       })
     end
@@ -343,7 +379,7 @@ local function delTagsForNowCard()
       local typename = type(value)
       if typename == "table" then
         for _, v in ipairs(value) do
-          model:delCardTag(card_id, v.info.id)
+          self.model:delCardTag(card_id, v.info.id)
         end
       end
     end,
@@ -351,8 +387,8 @@ local function delTagsForNowCard()
 end
 
 ---@param del_tag number[] | number
-local function updateSelectTags(del_tag)
-  local s = set.createSetFromArray(select_tags)
+function Menu:updateSelectTags(del_tag)
+  local s = set.createSetFromArray(self.select_tags)
   local typename = type(del_tag)
   if typename == "table" then
     for _, id in ipairs(del_tag) do
@@ -361,12 +397,12 @@ local function updateSelectTags(del_tag)
   elseif typename == "number" then
     set.remove(s, del_tag)
   end
-  select_tags = set.toArray(s)
+  self.select_tags = set.toArray(s)
 end
 
----@return MenuData
-local function delTags()
-  local res = model:findAllTags()
+---@return TelescopeMenu
+function Menu:delTags()
+  local res = self.model:findAllTags()
   local items = {}
   if type(res) == "table" then
     for _, v in ipairs(res) do
@@ -377,8 +413,8 @@ local function delTags()
           if not tools.confirmCheck("delTags") then
             return
           end
-          model:delTag(v.id)
-          updateSelectTags(v.id)
+          self.model:delTag(v.id)
+          self:updateSelectTags(v.id)
         end,
       })
     end
@@ -391,7 +427,7 @@ local function delTags()
       --local typename = type(value)
       --if typename == "table" then
       --  for _, v in ipairs(value) do
-      --    model:delTag(v.info.id)
+      --    self.model:delTag(v.info.id)
       --    updateSelectTags(v.id)
       --  end
       --end
@@ -399,9 +435,9 @@ local function delTags()
   }
 end
 
----@return MenuData
-local function renameTag()
-  local res = model:findAllTags()
+---@return TelescopeMenu
+function Menu:renameTag()
+  local res = self.model:findAllTags()
   local items = {}
   if type(res) == "table" then
     for _, v in ipairs(res) do
@@ -411,7 +447,7 @@ local function renameTag()
         foo = function()
           local new_name = tools.uiInput("renameTag old_name:" .. v.name .. " new_name:", "")
           if new_name ~= nil then
-            model:editTag(v.id, { name = new_name })
+            self.model:editTag(v.id, { name = new_name })
           end
         end,
       })
@@ -424,43 +460,184 @@ local function renameTag()
   }
 end
 
----@pararm  is_and boolean
----@return MenuData
-local function setSelectTags(is_and)
-  is_select_tag_and = is_and
-  local res = model:findAllTags()
+---@param  is_and boolean
+---@param now_tag_id number
+---@param is_add_mode boolean
+---@return TelescopeMenu
+function Menu:setSelectTagsTreeMode(now_tag_id, is_and, is_add_mode)
+  local son_tags = self.model:findSonTags(now_tag_id)
   local items = {}
-  if type(res) == "table" then
-    for _, v in ipairs(res) do
-      table.insert(items, {
-        name = v.name,
-        info = { id = v.id },
-        foo = function()
-          select_tags = {}
-          table.insert(select_tags, v.id)
-        end,
-      })
+  if now_tag_id ~= -1 then
+    local now_tag = self.model:findTagById(now_tag_id)
+    if now_tag == nil then
+      error("setSelectTagsTreeMode findTagById")
+    end
+    table.insert(items, {
+      name = "[father] " .. now_tag.name,
+      info = { id = now_tag.id, name = now_tag.name },
+      foo = function()
+        return self:setSelectTagsTreeMode(now_tag.father_id, is_and, is_add_mode)
+      end,
+    })
+  end
+  --print(vim.inspect(son_tags))
+  if type(son_tags) == "table" then
+    for _, v in ipairs(son_tags) do
+      local ret = tools.isInTable(v.id, self.select_tags)
+      if is_add_mode then
+        ret = not ret
+      end
+      if ret then
+        table.insert(items, {
+          name = v.name,
+          info = { id = v.id, name = v.name },
+          foo = function()
+            return self:setSelectTagsTreeMode(v.id, is_and, is_add_mode)
+          end,
+        })
+      end
     end
   end
   return {
-    prompt_title = "Evidence setSelectTags " .. selectTagNameStr(),
+    prompt_title = "Evidence setSelectTagsTreeMode " .. self:selectTagNameStr(),
     menu_item = items,
-    main_foo = function(value)
-      local typename = type(value)
-      if typename == "table" then
-        select_tags = {}
-        for _, v in ipairs(value) do
-          table.insert(select_tags, v.info.id)
-        end
-      end
-    end,
+    --- addTag
+    main_foo = function(prompt) end,
+    custom_mappings = {
+      ["i"] = {
+        --- keymap help
+        ["<c-h>"] = function(prompt_bufnr)
+          print("<c-x>:switchList <c-e>:addSelectTag <c-d>:delSelectTag")
+        end,
+        --- switchList
+        ["<c-x>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local select_item = action_state.get_selected_entry()
+          local res = self:setSelectTagsListMode(is_and, true)
+          self.telescope_menu:flushResult(res, picker, prompt_bufnr)
+        end,
+        --- addSelectTag
+        ["<c-e>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          if not is_add_mode then
+            local res = self:setSelectTagsTreeMode(now_tag_id, is_and, true)
+            self.telescope_menu:flushResult(res, picker, prompt_bufnr)
+            return
+          end
+          local select_item = action_state.get_selected_entry()
+          if select_item == nil then
+            return
+          end
+          local single = select_item.value
+          local v = single.info
+          table.insert(self.select_tags, v.id)
+          if now_tag_id == v.id then
+            now_tag_id = -1
+          end
+          local res = self:setSelectTagsTreeMode(now_tag_id, is_and, true)
+          self.telescope_menu:flushResult(res, picker, prompt_bufnr)
+        end,
+        --- delSelectTag
+        ["<c-d>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local res = self:setSelectTagsListMode(is_and, false)
+          self.telescope_menu:flushResult(res, picker, prompt_bufnr)
+        end,
+      },
+    },
   }
 end
 
----@return MenuData
-local function findCardBySelectTags()
+---@param is_and boolean
+---@param is_add_mode boolean
+---@return TelescopeMenu
+function Menu:setSelectTagsListMode(is_and, is_add_mode)
+  self.is_select_tag_and = is_and
+  local res = self.model:findAllTags()
+  local items = {}
+  if type(res) == "table" then
+    for _, v in ipairs(res) do
+      local ret = tools.isInTable(v.id, self.select_tags)
+      if is_add_mode then
+        ret = not ret
+      end
+      if ret then
+        table.insert(items, {
+          name = v.name,
+          info = { id = v.id, name = v.name },
+          foo = nil,
+        })
+      end
+    end
+  end
+  local mode_str = "del_mode"
+  if is_add_mode then
+    mode_str = "add_mode"
+  end
+  return {
+    prompt_title = "Evidence setSelectTagsListMode (" .. mode_str .. ") " .. self:selectTagNameStr(),
+    menu_item = items,
+    main_foo = nil,
+    custom_mappings = {
+      ["i"] = {
+        --- keymap help
+        ["<c-h>"] = function(prompt_bufnr)
+          print("<c-x>:switchTree <c-e>:addSelectTag <c-d>:delSelectTag")
+        end,
+        --- switchTree
+        ["<c-x>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local select_item = action_state.get_selected_entry()
+          local res = self:setSelectTagsTreeMode(-1, is_and, true)
+          self.telescope_menu:flushResult(res, picker, prompt_bufnr)
+        end,
+        --- addSelectTag
+        ["<c-e>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          if not is_add_mode then
+            local res = self:setSelectTagsListMode(is_and, true)
+            self.telescope_menu:flushResult(res, picker, prompt_bufnr)
+            return
+          end
+          local select_item = action_state.get_selected_entry()
+          if select_item == nil then
+            return
+          end
+          local single = select_item.value
+          local v = single.info
+          table.insert(self.select_tags, v.id)
+          local res = self:setSelectTagsListMode(is_and, true)
+          self.telescope_menu:flushResult(res, picker, prompt_bufnr)
+        end,
+        --- delSelectTag
+        ["<c-d>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          if is_add_mode then
+            local res = self:setSelectTagsListMode(is_and, false)
+            self.telescope_menu:flushResult(res, picker, prompt_bufnr)
+            return
+          end
+          local select_item = action_state.get_selected_entry()
+          if select_item == nil then
+            return
+          end
+          local single = select_item.value
+          local v = single.info
+          local s = set.createSetFromArray(self.select_tags)
+          set.remove(s, v.id)
+          self.select_tags = set.toArray(s)
+          local res = self:setSelectTagsListMode(is_and, false)
+          self.telescope_menu:flushResult(res, picker, prompt_bufnr)
+        end,
+      },
+    },
+  }
+end
+
+---@return TelescopeMenu
+function Menu:findCardBySelectTags()
   local foo = function()
-    local res = model:findCardBySelectTags(select_tags, is_select_tag_and, true, 50)
+    local res = self.model:findCardBySelectTags(self.select_tags, self.is_select_tag_and, true, 50)
     if res ~= nil then
       return tools.reverseArray(res)
     else
@@ -468,63 +645,73 @@ local function findCardBySelectTags()
     end
   end
   return {
-    prompt_title = "Evidence findCardBySelectTags " .. selectTagNameStr(),
+    prompt_title = "Evidence findCardBySelectTags " .. self:selectTagNameStr(),
     menu_item = {},
     main_foo = nil,
-    previewer = menuHelper:createCardPreviewer(),
-    process_work = menuHelper:createCardProcessWork(foo),
+    previewer = self.helper:createCardPreviewer(),
+    process_work = self.helper:createCardProcessWork(foo),
   }
 end
 
----@return MenuData | nil
-local function findReviewCard()
-  local items = model:getMinDueItem(select_tags, is_select_tag_and, true, 50)
+---@return TelescopeMenu | nil
+function Menu:findReviewCard()
+  local items = self.model:getMinDueItem(self.select_tags, self.is_select_tag_and, true, 50)
   if items == nil then
     print("findReviewCard empty")
     return nil
   end
   return {
-    prompt_title = "Evidence findReviewCard " .. selectTagNameStr(),
+    prompt_title = "Evidence findReviewCard " .. self:selectTagNameStr(),
     menu_item = items,
     main_foo = nil,
-    previewer = menuHelper:createCardPreviewer(),
+    previewer = self.helper:createCardPreviewer(),
     card_entry_maker = function(entry)
-      return menuHelper:card_entry_maker(entry)
+      return self.helper:card_entry_maker(entry)
     end,
   }
 end
 
----@return MenuData | nil
-local function findNewCard()
-  local items = model:getNewItem(select_tags, is_select_tag_and, true, 50)
+---@return TelescopeMenu | nil
+function Menu:findNewCard()
+  local items = self.model:getNewItem(self.select_tags, self.is_select_tag_and, true, 50)
   if items == nil then
     print("findReviewCard empty")
     return nil
   end
   return {
-    prompt_title = "Evidence findNewCard " .. selectTagNameStr(),
+    prompt_title = "Evidence findNewCard " .. self:selectTagNameStr(),
     menu_item = items,
     main_foo = nil,
-    previewer = menuHelper:createCardPreviewer(),
+    previewer = self.helper:createCardPreviewer(),
     card_entry_maker = function(entry)
-      return menuHelper:card_entry_maker(entry)
+      return self.helper:card_entry_maker(entry)
     end,
   }
+end
+
+---@return TelescopeMenu|nil
+function Menu:tagTreeMain()
+  self.tag_tree_exclude_ids = {}
+  self.is_mapping_convert = false
+  self.is_mapping_merge = false
+  self.convert_tag_son_id = -1
+  self.merge_tag_son_id = -1
+  return self:tagTree(-1)
 end
 
 ---@param now_tag_id number
----@return MenuData|nil
-local function tagTree(now_tag_id)
+---@return TelescopeMenu|nil
+function Menu:tagTree(now_tag_id)
   local reset_local_state = function()
-    is_mapping_convert = false
-    is_mapping_merge = false
-    convert_tag_son_id = -1
-    merge_tag_son_id = -1
+    self.is_mapping_convert = false
+    self.is_mapping_merge = false
+    self.convert_tag_son_id = -1
+    self.merge_tag_son_id = -1
   end
-  local son_tags = model:findSonTags(now_tag_id)
+  local son_tags = self.model:findSonTags(now_tag_id)
   local items = {}
   if now_tag_id ~= -1 then
-    local now_tag = model:findTagById(now_tag_id)
+    local now_tag = self.model:findTagById(now_tag_id)
     if now_tag == nil then
       error("tagTree findTagById")
     end
@@ -532,19 +719,19 @@ local function tagTree(now_tag_id)
       name = "[father] " .. now_tag.name,
       info = { id = now_tag.id, name = now_tag.name },
       foo = function()
-        return tagTree(now_tag.father_id)
+        return self:tagTree(now_tag.father_id)
       end,
     })
   end
   --print(vim.inspect(son_tags))
   if type(son_tags) == "table" then
     for _, v in ipairs(son_tags) do
-      if not tools.isInTable(v.id, tag_tree_exclude_ids) then
+      if not tools.isInTable(v.id, self.tag_tree_exclude_ids) then
         table.insert(items, {
           name = v.name,
           info = { id = v.id, name = v.name },
           foo = function()
-            return tagTree(v.id)
+            return self:tagTree(v.id)
           end,
         })
       end
@@ -558,11 +745,11 @@ local function tagTree(now_tag_id)
       if not tools.confirmCheck("addTag") then
         return
       end
-      local tag_id = model:addTag(prompt)
-      model:convertFatherTag({ tag_id }, now_tag_id)
-      return tagTree(now_tag_id)
+      local tag_id = self.model:addTag(prompt)
+      self.model:convertFatherTag({ tag_id }, now_tag_id)
+      return self:tagTree(now_tag_id)
     end,
-    mappings = {
+    custom_mappings = {
       ["i"] = {
         --- keymap help
         ["<c-h>"] = function(prompt_bufnr)
@@ -571,95 +758,110 @@ local function tagTree(now_tag_id)
         --- convertFatherTag start
         ["<c-x>"] = function(prompt_bufnr)
           reset_local_state()
-          tag_tree_exclude_ids = {}
-          is_mapping_convert = true
-          is_mapping_merge = false
+          self.tag_tree_exclude_ids = {}
+          self.is_mapping_convert = true
+          self.is_mapping_merge = false
           local picker = action_state.get_current_picker(prompt_bufnr)
           local select_item = action_state.get_selected_entry()
+          if select_item == nil then
+            return
+          end
           local single = select_item.value
           local v = single.info
-          convert_tag_son_id = v.id
-          tag_tree_exclude_ids = model:findAllSonTags({ convert_tag_son_id }, false) -- exclude tags
+          self.convert_tag_son_id = v.id
+          self.tag_tree_exclude_ids = self.model:findAllSonTags({ self.convert_tag_son_id }, false) -- exclude tags
           print("convertFatherTag select start tag name:" .. v.name)
-          local res = tagTree(now_tag_id)
-          telescopeMenu.flushResult(res, picker, prompt_bufnr)
+          local res = self:tagTree(now_tag_id)
+          self.telescope_menu:flushResult(res, picker, prompt_bufnr)
         end,
         --- mergeTag start
         ["<c-g>"] = function(prompt_bufnr)
           reset_local_state()
-          tag_tree_exclude_ids = {}
-          is_mapping_merge = true
-          is_mapping_convert = false
+          self.tag_tree_exclude_ids = {}
+          self.is_mapping_merge = true
+          self.is_mapping_convert = false
           local picker = action_state.get_current_picker(prompt_bufnr)
           local select_item = action_state.get_selected_entry()
+          if select_item == nil then
+            return
+          end
           local single = select_item.value
           local v = single.info
-          merge_tag_son_id = v.id
-          tag_tree_exclude_ids = model:findAllSonTags({ merge_tag_son_id }, false) -- exclude tags
+          self.merge_tag_son_id = v.id
+          self.tag_tree_exclude_ids = self.model:findAllSonTags({ self.merge_tag_son_id }, false) -- exclude tags
           print("convertFatherTag select start tag name:" .. v.name)
-          local res = tagTree(now_tag_id)
-          telescopeMenu.flushResult(res, picker, prompt_bufnr)
+          local res = self:tagTree(now_tag_id)
+          self.telescope_menu:flushResult(res, picker, prompt_bufnr)
         end,
         --- convertFatherTag end
         ["<c-v>"] = function(prompt_bufnr)
-          if not is_mapping_convert and not is_mapping_merge then
+          if not self.is_mapping_convert and not self.is_mapping_merge then
             print("not select start tag")
             return
           end
           local picker = action_state.get_current_picker(prompt_bufnr)
           local select_item = action_state.get_selected_entry()
+          if select_item == nil then
+            return
+          end
           local single = select_item.value
           local v = single.info
           local end_tag_father_id = v.id
-          if is_mapping_convert then
+          if self.is_mapping_convert then
             if not tools.confirmCheck("convertFatherTag") then
               return
             end
-            model:convertFatherTag({ convert_tag_son_id }, end_tag_father_id)
+            self.model:convertFatherTag({ self.convert_tag_son_id }, end_tag_father_id)
             print("convertFatherTag select end tag name:" .. v.name)
-          elseif is_mapping_merge then
+          elseif self.is_mapping_merge then
             if not tools.confirmCheck("mergeTag") then
               return
             end
-            model:mergeTags({ merge_tag_son_id }, end_tag_father_id)
-            updateSelectTags({ merge_tag_son_id })
+            self.model:mergeTags({ self.merge_tag_son_id }, end_tag_father_id)
+            self:updateSelectTags({ self.merge_tag_son_id })
             print("mergeTag select end tag name:" .. v.name)
           end
-          tag_tree_exclude_ids = {}
+          self.tag_tree_exclude_ids = {}
           reset_local_state()
-          local res = tagTree(end_tag_father_id)
-          telescopeMenu.flushResult(res, picker, prompt_bufnr)
+          local res = self:tagTree(end_tag_father_id)
+          self.telescope_menu:flushResult(res, picker, prompt_bufnr)
         end,
         --- delTag
         ["<c-d>"] = function(prompt_bufnr)
           reset_local_state()
           local picker = action_state.get_current_picker(prompt_bufnr)
           local select_item = action_state.get_selected_entry()
+          if select_item == nil then
+            return
+          end
           local single = select_item.value
           local v = single.info
           if not tools.confirmCheck("delTags") then
             return
           end
-          model:delTag(v.id)
-          updateSelectTags(v.id)
+          self.model:delTag(v.id)
+          self:updateSelectTags(v.id)
 
-          local res = tagTree(now_tag_id)
-          telescopeMenu.flushResult(res, picker, prompt_bufnr)
+          local res = self:tagTree(now_tag_id)
+          self.telescope_menu:flushResult(res, picker, prompt_bufnr)
         end,
         --- addSonForSelect
         ["<c-s>"] = function(prompt_bufnr)
           reset_local_state()
           local picker = action_state.get_current_picker(prompt_bufnr)
           local select_item = action_state.get_selected_entry()
+          if select_item == nil then
+            return
+          end
           local single = select_item.value
           local v = single.info
           local new_name = tools.uiInput("addSonForSelect now_name:" .. v.name .. " son_name:", "")
           if new_name ~= nil and new_name ~= "" then
-            local tag_id = model:addTag(new_name)
-            model:convertFatherTag({ tag_id }, v.id)
+            local tag_id = self.model:addTag(new_name)
+            self.model:convertFatherTag({ tag_id }, v.id)
 
-            local res = tagTree(now_tag_id)
-            telescopeMenu.flushResult(res, picker, prompt_bufnr)
+            local res = self:tagTree(now_tag_id)
+            self.telescope_menu:flushResult(res, picker, prompt_bufnr)
           end
         end,
         --- editTag
@@ -667,14 +869,17 @@ local function tagTree(now_tag_id)
           reset_local_state()
           local picker = action_state.get_current_picker(prompt_bufnr)
           local select_item = action_state.get_selected_entry()
+          if select_item == nil then
+            return
+          end
           local single = select_item.value
           local v = single.info
           local new_name = tools.uiInput("renameTag old_name:" .. v.name .. " new_name:", "")
           if new_name ~= nil and new_name ~= "" then
-            model:editTag(v.id, { name = new_name })
+            self.model:editTag(v.id, { name = new_name })
 
-            local res = tagTree(now_tag_id)
-            telescopeMenu.flushResult(res, picker, prompt_bufnr)
+            local res = self:tagTree(now_tag_id)
+            self.telescope_menu:flushResult(res, picker, prompt_bufnr)
           end
         end,
       },
@@ -682,11 +887,11 @@ local function tagTree(now_tag_id)
   }
 end
 
----@pararm tag_ids number[]
----@return MenuData
-local function convertTagFatherEnd(tag_ids)
-  local exclude_son_ids = model:findAllSonTags(tag_ids, true) -- exclude tags
-  local res = model:findTagByIds(exclude_son_ids)
+---@param tag_ids number[]
+---@return TelescopeMenu
+function Menu:convertTagFatherEnd(tag_ids)
+  local exclude_son_ids = self.model:findAllSonTags(tag_ids, true) -- exclude tags
+  local res = self.model:findTagByIds(exclude_son_ids)
   local items = {}
   if type(res) == "table" then
     for _, v in ipairs(res) do
@@ -696,8 +901,8 @@ local function convertTagFatherEnd(tag_ids)
           if not tools.confirmCheck("convertTagFatherEnd") then
             return
           end
-          model:convertFatherTag(tag_ids, v.id)
-          updateSelectTags(tag_ids)
+          self.model:convertFatherTag(tag_ids, v.id)
+          self:updateSelectTags(tag_ids)
         end,
       })
     end
@@ -709,9 +914,9 @@ local function convertTagFatherEnd(tag_ids)
   }
 end
 
----@return MenuData
-local function convertTagFatherStart()
-  local res = model:findAllTags()
+---@return TelescopeMenu
+function Menu:convertTagFatherStart()
+  local res = self.model:findAllTags()
   local items = {}
   if type(res) == "table" then
     for _, v in ipairs(res) do
@@ -721,7 +926,7 @@ local function convertTagFatherStart()
           id = v.id,
         },
         foo = function()
-          return convertTagFatherEnd({ v.id })
+          return self:convertTagFatherEnd({ v.id })
         end,
       })
     end
@@ -743,11 +948,11 @@ local function convertTagFatherStart()
   }
 end
 
----@pararm tag_ids number[]
----@return MenuData
-local function mergeTagEnd(tag_ids)
-  local exclude_son_ids = model:findAllSonTags(tag_ids, true) -- exclude tags
-  local res = model:findTagByIds(exclude_son_ids)
+---@param tag_ids number[]
+---@return TelescopeMenu
+function Menu:mergeTagEnd(tag_ids)
+  local exclude_son_ids = self.model:findAllSonTags(tag_ids, true) -- exclude tags
+  local res = self.model:findTagByIds(exclude_son_ids)
   local items = {}
   if type(res) == "table" then
     for _, v in ipairs(res) do
@@ -757,8 +962,8 @@ local function mergeTagEnd(tag_ids)
           if not tools.confirmCheck("mergeTagEnd") then
             return
           end
-          model:mergeTags(tag_ids, v.id)
-          updateSelectTags(tag_ids)
+          self.model:mergeTags(tag_ids, v.id)
+          self:updateSelectTags(tag_ids)
         end,
       })
     end
@@ -770,9 +975,9 @@ local function mergeTagEnd(tag_ids)
   }
 end
 
----@return MenuData
-local function mergeTagStart()
-  local res = model:findAllTags()
+---@return TelescopeMenu
+function Menu:mergeTagStart()
+  local res = self.model:findAllTags()
   local items = {}
   if type(res) == "table" then
     for _, v in ipairs(res) do
@@ -782,7 +987,7 @@ local function mergeTagStart()
           id = v.id,
         },
         foo = function()
-          return mergeTagEnd({ v.id })
+          return self:mergeTagEnd({ v.id })
         end,
       })
     end
@@ -806,9 +1011,9 @@ end
 
 ---@params ways number[]
 ---@params str string
----@return MenuData
-local function recordCardList(ways, str)
-  local items = model:findRecordCard(ways)
+---@return TelescopeMenu
+function Menu:recordCardList(ways, str)
+  local items = self.model:findRecordCard(ways)
   if items == nil then
     items = {}
   end
@@ -817,15 +1022,15 @@ local function recordCardList(ways, str)
     prompt_title = "Evidence recordCard {" .. str .. "}",
     menu_item = items,
     main_foo = nil,
-    previewer = menuHelper:createCardPreviewer(),
+    previewer = self.helper:createCardPreviewer(),
     card_entry_maker = function(entry)
-      return menuHelper:card_entry_maker(entry)
+      return self.helper:card_entry_maker(entry)
     end,
   }
 end
 
----@return MenuData
-local function recordCard()
+---@return TelescopeMenu
+function Menu:recordCard()
   local items = {}
   for k, v in pairs(tblInfo.AccessWay) do
     table.insert(items, {
@@ -835,7 +1040,7 @@ local function recordCard()
         k = v,
       },
       foo = function()
-        return recordCardList({ v }, tostring(k))
+        return self:recordCardList({ v }, tostring(k))
       end,
     })
   end
@@ -851,150 +1056,17 @@ local function recordCard()
           table.insert(ways, v.info.v)
           str = str .. "," .. v.info.k
         end
-        return recordCardList(ways, str)
+        return self:recordCardList(ways, str)
       end
     end,
   }
 end
 
----@type SimpleMenu[]
-local menuItem = {
-  {
-    name = "addCard",
-    foo = addCard,
-  },
-  {
-    name = "nextCard",
-    foo = nextCard,
-  },
-  {
-    name = "delCard",
-    foo = delCard,
-  },
-  {
-    name = "answer",
-    foo = answer,
-  },
-  {
-    name = "editCard",
-    foo = editCard,
-  },
-  {
-    name = "infoCard",
-    foo = infoCard,
-  },
-  {
-    name = "scoreCard",
-    foo = scoreCard,
-  },
-  {
-    name = "findTag",
-    foo = fuzzyFindTag,
-  },
-  {
-    name = "findCard",
-    foo = fuzzyFindCard,
-  },
-  {
-    name = "findTagsByNowCard",
-    foo = findTagsByNowCard,
-  },
-  {
-    name = "addTagsForNowCard",
-    foo = function()
-      local card_id = getNowItem().id
-      local now_tag_tree_exclude_ids = model:getIdsFromItem(model:findIncludeTagsByCard(card_id))
-      return addTagsForNowCard(-1, now_tag_tree_exclude_ids)
-    end,
-  },
-  {
-    name = "delTagsForNowCard",
-    foo = delTagsForNowCard,
-  },
-  {
-    name = "addTag",
-    foo = addTag,
-  },
-  {
-    name = "renameTag",
-    foo = renameTag,
-  },
-  {
-    name = "delTags",
-    foo = delTags,
-  },
-  {
-    name = "setSelectTagsAnd",
-    foo = function()
-      return setSelectTags(true)
-    end,
-  },
-  {
-    name = "setSelectTagsOr",
-    foo = function()
-      return setSelectTags(false)
-    end,
-  },
-  {
-    name = "findCardBySelectTags",
-    foo = findCardBySelectTags,
-  },
-  {
-    name = "findReviewCard",
-    foo = findReviewCard,
-  },
-  {
-    name = "findNewCard",
-    foo = findNewCard,
-  },
-  {
-    name = "setNextCard",
-    foo = setNextCard,
-  },
-  {
-    name = "tagTree",
-    foo = function()
-      tag_tree_exclude_ids = {}
-      is_mapping_convert = false
-      is_mapping_merge = false
-      convert_tag_son_id = -1
-      merge_tag_son_id = -1
-      return tagTree(-1)
-    end,
-  },
-  {
-    name = "convertTagFather",
-    foo = convertTagFatherStart,
-  },
-  {
-    name = "mergeTag",
-    foo = mergeTagStart,
-  },
-  {
-    name = "recordCard",
-    foo = recordCard,
-  },
-}
-
-local function cmd()
-  if not checkStartInSelfBuf() then
-    return
-  end
-  telescopeMenu.setup({
-    prompt_title = "Evidence MainMenu " .. selectTagNameStr(),
+function Menu:telescopeStart(menuItem)
+  self.telescope_menu:start({
+    prompt_title = "Evidence MainMenu " .. self:selectTagNameStr(),
     menu_item = menuItem,
-    main_foo = nil,
   })
 end
 
----@param data ModelTableParam
-local function flush(data)
-  setup(data)
-  winBuf:openSplitWin()
-  nextCard()
-end
-
-return {
-  cmd = cmd,
-  flush = flush,
-}
+return Menu:getInstance()

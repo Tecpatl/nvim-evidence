@@ -17,15 +17,15 @@ return {
     user_data = data or user_data
 
     vim.api.nvim_create_user_command("EvidenceCmd", function()
-      local menu = require("evidence.view.menu")
-      menu.cmd()
+      local cmd = require("evidence.view.cmd")
+      cmd.start()
     end, {
       nargs = 0,
     })
 
     vim.api.nvim_create_user_command("EvidenceFlush", function()
-      local menu = require("evidence.view.menu")
-      menu.flush(user_data)
+      local cmd = require("evidence.view.cmd")
+      cmd.flush(user_data)
     end, {
       nargs = 0,
     })
