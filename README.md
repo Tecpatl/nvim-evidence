@@ -113,8 +113,6 @@ https://www.youtube.com/watch?v=taGRd-ZwwCU&t=602s
 
   - 悬浮提示每个卡片的tag信息
 
-- telescope中直接对条目按键映射快捷键操作 (很多多选条目的操作需要在tag_tree中的非亲缘关系下操作比较合适)
-
 - 自定义分隔符不同类型文件映射,包括段落多层分割
 
 - card如果希望关联到另一个card, 或尽量通过建立共同的tag实现
@@ -122,5 +120,3 @@ https://www.youtube.com/watch?v=taGRd-ZwwCU&t=602s
 - 各种find带fuzzy(英文首字母简写)
 
 - 每次切换card, 都涉及删掉和新增, 操作比较麻烦
-
-- addTagsForNowCard 保持两种view tree+all
