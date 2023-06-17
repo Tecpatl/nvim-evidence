@@ -18,7 +18,13 @@ orgmode 适用于安排有风险不稳定的计划或短期任务. (指南针)
 
 ### video 
 
-https://www.youtube.com/watch?v=taGRd-ZwwCU&t=602s
+- basic function:
+
+  https://www.youtube.com/watch?v=taGRd-ZwwCU&t=602s
+
+- tags and telescope:
+
+  https://www.youtube.com/watch?v=SoCBgbiWhjw
 
 ### Install && Setup (lazy for example) 
 
