@@ -243,6 +243,10 @@ local function addTagsForNowCard(now_tag_id, now_tag_tree_exclude_ids)
     end,
     mappings = {
       ["i"] = {
+        --- keymap help
+        ["<c-h>"] = function(prompt_bufnr)
+          print("<c-e>:addTagsForNowCard")
+        end,
         ["<c-e>"] = function(prompt_bufnr)
           local picker = action_state.get_current_picker(prompt_bufnr)
           local select_item = action_state.get_selected_entry()
@@ -560,6 +564,10 @@ local function tagTree(now_tag_id)
     end,
     mappings = {
       ["i"] = {
+        --- keymap help
+        ["<c-h>"] = function(prompt_bufnr)
+          print("<c-x>:convertTag  <c-g>:mergeTag <c-v>:paste <c-d>:delTag <c-s>:addSon <c-e>editTag")
+        end,
         --- convertFatherTag start
         ["<c-x>"] = function(prompt_bufnr)
           reset_local_state()
