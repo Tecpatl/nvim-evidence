@@ -406,7 +406,7 @@ end
 ---@return nil | CardField[]
 function SqlTable:findCard(limit_num, statement)
   local query = "SELECT * FROM " .. Tables.card
-  if statement ~= nil then
+  if statement ~= nil and statement ~= "" then
     query = query .. " where " .. statement
   end
   if limit_num ~= nil and limit_num ~= -1 then
