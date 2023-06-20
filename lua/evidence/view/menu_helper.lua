@@ -42,17 +42,6 @@ end
 
 vim.api.nvim_command("highlight EvidenceWord guibg=red")
 
-local function clear_match()
-  vim.api.nvim_exec(
-    [[
-       for m in filter(getmatches(), { i, v -> l:v.group is? 'EvidenceWord' })
-       call matchdelete(m.id)
-       endfor
-     ]],
-    true
-  )
-end
-
 function MenuHelper:createCardPreviewer()
   local this = self
   return previewers.new_buffer_previewer({
@@ -71,7 +60,7 @@ function MenuHelper:createCardPreviewer()
       putils.highlighter(self.state.bufnr, file_type)
       vim.schedule(function()
         vim.api.nvim_buf_call(self.state.bufnr, function()
-          clear_match()
+          tools.clear_match("EvidenceWord")
           vim.api.nvim_command("call matchadd('EvidenceWord','" .. this.prompt .. "')")
         end)
       end)
