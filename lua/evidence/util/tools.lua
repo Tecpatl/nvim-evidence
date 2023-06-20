@@ -217,6 +217,33 @@ local function getValArrayFromItem(items, val)
   return res
 end
 
+---@param group string
+---@param win_id? number
+local function clear_match(group, win_id)
+  if win_id == nil then
+    win_id = vim.fn.win_getid()
+  end
+  local matches = vim.fn.getmatches(win_id)
+  for _, match in pairs(matches) do
+    if match.group == group then
+      vim.fn.matchdelete(match.id, win_id)
+    end
+  end
+end
+
+---@param buffer_id number
+---@return nil|number
+local function get_window_id_from_buffer_id(buffer_id)
+  local windows = vim.api.nvim_list_wins()
+  for _, win_id in ipairs(windows) do
+    local buf_id = vim.api.nvim_win_get_buf(win_id)
+    if buf_id == buffer_id then
+      return win_id
+    end
+  end
+  return nil
+end
+
 return {
   isInTable = isInTable,
   table_concat = table_concat,
@@ -234,4 +261,6 @@ return {
   array2Str = array2Str,
   reverseArray = reverseArray,
   getValArrayFromItem = getValArrayFromItem,
+  clear_match = clear_match,
+  get_window_id_from_buffer_id = get_window_id_from_buffer_id,
 }

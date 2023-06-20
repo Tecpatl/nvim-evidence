@@ -27,7 +27,7 @@ local function setup(data)
   is_start_ = true
   model:setup(data)
   winBuf:setup({ model = model }, "## answer")
-  menu:setup({ winBuf = winBuf, model = model})
+  menu:setup({ winBuf = winBuf, model = model })
 end
 
 ---@type SimpleMenu[]

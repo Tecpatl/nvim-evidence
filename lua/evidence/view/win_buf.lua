@@ -201,6 +201,7 @@ function WinBuf:setup(data, divider)
     self.divider = divider
   end
   WinBuf.__index = WinBuf
+  vim.api.nvim_command("highlight EvidenceWordHidden guibg=white guifg=white")
   self._:setup(data)
 end
 
@@ -238,18 +239,20 @@ function WinBuf:viewContent(item, is_fold)
   self.model:insertRecordCard(item.id, tblInfo.AccessWay.visit)
   is_fold = is_fold or true
   self._.item = item
-  local content = item.content
-  if is_fold then
-    content = self:extractString(content)
-  end
-  self._:viewContent(content)
+  self:switchFold(is_fold)
 end
 
 ---@param is_fold boolean
 function WinBuf:switchFold(is_fold)
   local content = self._.item.content
   if is_fold then
-    content = self:extractString(content)
+    -- content = self:extractString(content)
+    vim.fn.matchadd("EvidenceWordHidden", "{{<\\_.\\{-}>}}")
+  else
+    local winid = tools.get_window_id_from_buffer_id(self._.buf)
+    if winid ~= nil then
+      tools.clear_match("EvidenceWordHidden", winid)
+    end
   end
   self._:viewContent(content)
 end
