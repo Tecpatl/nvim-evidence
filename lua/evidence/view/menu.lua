@@ -619,6 +619,7 @@ end
 ---@param is_add_mode boolean
 ---@return TelescopeMenu
 function Menu:setSelectTagsTreeMode(now_tag_id, is_and, is_add_mode)
+  self.is_select_tag_and = is_and
   local son_tags = self.model:findSonTags(now_tag_id)
   local items = {}
   if now_tag_id ~= -1 then
