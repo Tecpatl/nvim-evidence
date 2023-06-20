@@ -9,6 +9,7 @@ local NextCardMode = {
   auto = 0,
   review = 1,
   new = 2,
+  rand = 3,
 }
 
 ---@class Menu
@@ -101,6 +102,8 @@ function Menu:nextCard()
     items = self.model:getMinDueItem(self.select_tags, self.is_select_tag_and, true, 1)
   elseif self.next_card_mode == NextCardMode.new then
     items = self.model:getNewItem(self.select_tags, self.is_select_tag_and, true, 1)
+  elseif self.next_card_mode == NextCardMode.rand then
+    items = self.model:getRandomItem(self.select_tags, self.is_select_tag_and, true, 1)
   end
 
   if items == nil then

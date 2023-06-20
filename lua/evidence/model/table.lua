@@ -403,11 +403,15 @@ end
 
 ---@param limit_num? number
 ---@param statement? string | nil
+---@param is_shuffle? boolean
 ---@return nil | CardField[]
-function SqlTable:findCard(limit_num, statement)
+function SqlTable:findCard(limit_num, statement, is_shuffle)
   local query = "SELECT * FROM " .. Tables.card
   if statement ~= nil and statement ~= "" then
     query = query .. " where " .. statement
+  end
+  if is_shuffle == true then
+    query = query .. " order by random()%1000 "
   end
   if limit_num ~= nil and limit_num ~= -1 then
     query = query .. " LIMIT " .. limit_num
@@ -423,7 +427,7 @@ end
 ---@return CardItem[]|nil
 function SqlTable:findCardWithTags(tag_ids, is_and, limit_num, statement, is_shuffle)
   if type(tag_ids) ~= "table" or tools.isTableEmpty(tag_ids) then
-    return self:findCard(limit_num, statement)
+    return self:findCard(limit_num, statement, is_shuffle)
   else
     local tag_str = ""
     local cnt = #tag_ids
