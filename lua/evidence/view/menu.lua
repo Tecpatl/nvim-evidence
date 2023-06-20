@@ -244,6 +244,9 @@ function Menu:setTagsForNowCardList(now_tag_tree_exclude_ids, is_add_mode)
   local items = {}
   for _, v in ipairs(all_items) do
     local ret = tools.isInTable(v.id, now_tag_tree_exclude_ids)
+    if is_add_mode then
+      ret = not ret
+    end
     if ret then
       table.insert(items, {
         name = v.name,
@@ -283,15 +286,16 @@ function Menu:setTagsForNowCardList(now_tag_tree_exclude_ids, is_add_mode)
         --- convert tree
         ["<c-x>"] = function(prompt_bufnr)
           local picker = action_state.get_current_picker(prompt_bufnr)
-          now_tag_tree_exclude_ids =
-          self.model:getIdsFromItem(self.model:findIncludeTagsByCard(card_id))
+          now_tag_tree_exclude_ids = self.model:getIdsFromItem(self.model:findIncludeTagsByCard(card_id))
           local res = self:setTagsForNowCardTree(-1, now_tag_tree_exclude_ids, true)
           self.telescope_menu:flushResult(res, picker, prompt_bufnr)
         end,
         --- addTagsForNowCard
         ["<c-e>"] = function(prompt_bufnr)
           local picker = action_state.get_current_picker(prompt_bufnr)
-          if not is_add_mode then
+          if is_add_mode == false then
+            now_tag_tree_exclude_ids =
+            self.model:getIdsFromItem(self.model:findIncludeTagsByCard(card_id, true))
             local res = self:setTagsForNowCardList(now_tag_tree_exclude_ids, true)
             self.telescope_menu:flushResult(res, picker, prompt_bufnr)
             return
@@ -319,8 +323,7 @@ function Menu:setTagsForNowCardList(now_tag_tree_exclude_ids, is_add_mode)
         ["<c-d>"] = function(prompt_bufnr)
           local picker = action_state.get_current_picker(prompt_bufnr)
           if is_add_mode then
-            now_tag_tree_exclude_ids =
-            self.model:getIdsFromItem(self.model:findIncludeTagsByCard(card_id))
+            now_tag_tree_exclude_ids = self.model:getIdsFromItem(self.model:findIncludeTagsByCard(card_id))
             local res = self:setTagsForNowCardList(now_tag_tree_exclude_ids, false)
             self.telescope_menu:flushResult(res, picker, prompt_bufnr)
             return
