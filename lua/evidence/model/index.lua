@@ -504,9 +504,8 @@ function Model:findIncludeTagsByCard(card_id, is_include_son)
   if tags == nil or is_include_son == nil or is_include_son == false then
     return tags
   end
-  print("sd")
   local tag_ids = self:getIdsFromItem(tags)
-  local son_include_ids = self:findAllSonTags(tag_ids, true)
+  local son_include_ids = self:findAllSonTags(tag_ids, false)
   return self:findTagByIds(son_include_ids)
 end
 
