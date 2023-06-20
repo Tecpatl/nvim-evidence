@@ -75,12 +75,6 @@ local menuItem = {
     end,
   },
   {
-    name = "findTag",
-    foo = function()
-      return menu:fuzzyFindTag()
-    end,
-  },
-  {
     name = "findCard",
     foo = function()
       return menu:fuzzyFindCard()
@@ -150,6 +144,12 @@ local menuItem = {
     name = "setNextCard",
     foo = function()
       return menu:setNextCard()
+    end,
+  },
+  {
+    name = "tagList",
+    foo = function()
+      return menu:tagList()
     end,
   },
   {
