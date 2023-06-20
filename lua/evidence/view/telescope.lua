@@ -172,7 +172,16 @@ function TelescopeMenu:flushResult(res, picker, prompt_bufnr, map)
     if last_previewer ~= picker.previewer then
       picker:full_layout_update()
     end
-    mappings.apply_keymap(prompt_bufnr, self.attach_mappings, self.custom_mappings)
+    if self.custom_mappings ~= {} then
+      local insert_item = self.custom_mappings["i"]
+      if insert_item == nil then
+        self.custom_mappings["i"] = {}
+        insert_item = self.custom_mappings["i"]
+      end
+      insert_item["<c-j>"] = "move_selection_next"
+      insert_item["<c-k>"] = "move_selection_previous"
+      mappings.apply_keymap(prompt_bufnr, self.attach_mappings, self.custom_mappings)
+    end
   else
     actions.close(prompt_bufnr)
   end
