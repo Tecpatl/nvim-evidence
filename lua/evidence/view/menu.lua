@@ -284,7 +284,22 @@ function Menu:setTagsForNowCardList(now_tag_tree_exclude_ids, is_add_mode)
       ["i"] = {
         --- keymap help
         ["<c-h>"] = function()
-          print("<c-x>:setTagsForNowCardList <c-e>:addTagsForNowCard <c-d>:delTagsForNowCard")
+          print(
+            "<c-x>:setTagsForNowCardTree <c-v>:setTagsForNowCardTreeAutoLocation <c-e>:addTagsForNowCard <c-d>:delTagsForNowCard"
+          )
+        end,
+        --- convert tree auto location
+        ["<c-v>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          now_tag_tree_exclude_ids = self.model:getIdsFromItem(self.model:findIncludeTagsByCard(card_id))
+          local select_item = action_state.get_selected_entry()
+          if select_item == nil then
+            return
+          end
+          local single = select_item.value
+          local v = single.info
+          local res = self:setTagsForNowCardTree(v.id, now_tag_tree_exclude_ids, true)
+          self.telescope_menu:flushResult(res, picker, prompt_bufnr)
         end,
         --- convert tree
         ["<c-x>"] = function(prompt_bufnr)
@@ -412,7 +427,7 @@ function Menu:setTagsForNowCardTree(now_tag_id, now_tag_tree_exclude_ids, is_add
       ["i"] = {
         --- keymap help
         ["<c-h>"] = function(prompt_bufnr)
-          print("<c-x>:setTagsForNowCardTree <c-e>:addTagsForNowCard <c-d>:delTagsForNowCard")
+          print("<c-x>:setTagsForNowCardList <c-e>:addTagsForNowCard <c-d>:delTagsForNowCard")
         end,
         --- convert list
         ["<c-x>"] = function(prompt_bufnr)
@@ -478,18 +493,50 @@ function Menu:addCard()
 end
 
 ---@return TelescopeMenu
-function Menu:fuzzyFindTag()
-  local res = self.model:findAllTags()
+function Menu:tagList()
+  self.tag_tree_exclude_ids = {}
+  self.is_mapping_convert = false
+  self.is_mapping_merge = false
+  self.convert_tag_son_id = -1
+  self.merge_tag_son_id = -1
+  local tags = self.model:findAllTags()
   local items = {}
-  if type(res) == "table" then
-    for _, v in ipairs(res) do
-      table.insert(items, { name = v.name, foo = nil })
+  if type(tags) == "table" then
+    for _, v in ipairs(tags) do
+      table.insert(items, { name = v.name,
+        info = { id = v.id, name = v.name }, foo = nil })
     end
   end
   return {
-    prompt_title = "Evidence fuzzyFindTag",
+    prompt_title = "Evidence tagList",
     menu_item = items,
     main_foo = nil,
+    custom_mappings = {
+      ["i"] = {
+        --- keymap help
+        ["<c-h>"] = function(prompt_bufnr)
+          print("<c-x>:tagTree <c-v>:tagTreeAutoLocation")
+        end,
+        --- tagTree auto location
+        ["<c-v>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local select_item = action_state.get_selected_entry()
+          if select_item == nil then
+            return
+          end
+          local single = select_item.value
+          local v = single.info
+          local res = self:tagTree(v.id)
+          self.telescope_menu:flushResult(res, picker, prompt_bufnr)
+        end,
+        --- tagTree
+        ["<c-x>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local res = self:tagTree(-1)
+          self.telescope_menu:flushResult(res, picker, prompt_bufnr)
+        end,
+      },
+    },
   }
 end
 
@@ -914,10 +961,18 @@ function Menu:tagTree(now_tag_id)
       ["i"] = {
         --- keymap help
         ["<c-h>"] = function(prompt_bufnr)
-          print("<c-x>:convertTag  <c-g>:mergeTag <c-v>:paste <c-d>:delTag <c-s>:addSon <c-e>editTag")
+          print(
+            "<c-x>:tagList <c-y>:convertTag  <c-g>:mergeTag <c-v>:paste <c-d>:delTag <c-s>:addSon <c-e>editTag"
+          )
+        end,
+        --- tagList
+        ["<c-x>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local res = self:tagList()
+          self.telescope_menu:flushResult(res, picker, prompt_bufnr)
         end,
         --- convertFatherTag start
-        ["<c-x>"] = function(prompt_bufnr)
+        ["<c-y>"] = function(prompt_bufnr)
           reset_local_state()
           self.tag_tree_exclude_ids = {}
           self.is_mapping_convert = true
