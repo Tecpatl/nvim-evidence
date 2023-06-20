@@ -220,82 +220,233 @@ function Menu:addTag()
   }
 end
 
-function Menu:addTagsForNowCardMain(now_tag_id, now_tag_tree_exclude_ids)
+function Menu:setTagsForNowCardMain()
   local card_id = self:getNowItem().id
   local now_tag_tree_exclude_ids = self.model:getIdsFromItem(self.model:findIncludeTagsByCard(card_id))
-  return self:addTagsForNowCard(-1, now_tag_tree_exclude_ids)
+  return self:setTagsForNowCardTree(-1, now_tag_tree_exclude_ids, true)
 end
 
----@param now_tag_id number
+---@param card_id number
+---@return string
+function Menu:tagsNameInCardStr(card_id)
+  local tag_items = self.model:findIncludeTagsByCard(card_id)
+  return tools.array2Str(tag_items, "name")
+end
+
 ---@param now_tag_tree_exclude_ids number[]
-function Menu:addTagsForNowCard(now_tag_id, now_tag_tree_exclude_ids)
+---@param is_add_mode boolean
+function Menu:setTagsForNowCardList(now_tag_tree_exclude_ids, is_add_mode)
   local card_id = self:getNowItem().id
-  local son_tags = self.model:findSonTags(now_tag_id)
-  local items = {}
-  if now_tag_id ~= -1 then
-    local now_tag = self.model:findTagById(now_tag_id)
-    if now_tag == nil then
-      error("addTagsForNowCard findTagById")
-    end
-    table.insert(items, {
-      name = "[father] " .. now_tag.name,
-      info = { id = now_tag.id, name = now_tag.name },
-      foo = function()
-        return self:addTagsForNowCard(now_tag.father_id, now_tag_tree_exclude_ids)
-      end,
-    })
+  local all_items = self.model:findAllTags()
+  if all_items == nil then
+    return
   end
-  --print(vim.inspect(son_tags))
-  if type(son_tags) == "table" then
-    for _, v in ipairs(son_tags) do
-      if not tools.isInTable(v.id, now_tag_tree_exclude_ids) then
-        table.insert(items, {
-          name = v.name,
-          info = { id = v.id, name = v.name },
-          foo = function()
-            return self:addTagsForNowCard(v.id, now_tag_tree_exclude_ids)
-          end,
-        })
-      end
+  local items = {}
+  for _, v in ipairs(all_items) do
+    local ret = tools.isInTable(v.id, now_tag_tree_exclude_ids)
+    if ret then
+      table.insert(items, {
+        name = v.name,
+        info = { id = v.id, name = v.name },
+        foo = nil,
+      })
     end
+  end
+  local mode_str = "del_mode"
+  if is_add_mode then
+    mode_str = "add_mode"
   end
   return {
-    prompt_title = "Evidence addTagsForNowCard",
+    prompt_title = "Evidence setTagsForNowCardList (" .. mode_str .. ")" .. self:tagsNameInCardStr(card_id),
     menu_item = items,
     --- addTag
     main_foo = function(prompt)
-      if not tools.confirmCheck("addTagsForNowCard") then
+      if not tools.confirmCheck("setTagsForNowCardList") then
         return
       end
       local tag_id = self.model:addTag(prompt)
-      self.model:convertFatherTag({ tag_id }, now_tag_id)
-      self.model:insertCardTagById(card_id, tag_id)
-      print("addTagsForNowCard new tag name:" .. prompt)
-      now_tag_tree_exclude_ids = self.model:getIdsFromItem(self.model:findIncludeTagsByCard(card_id))
-      return self:addTagsForNowCard(now_tag_id, now_tag_tree_exclude_ids)
+      local ret = self.model:insertCardTagById(card_id, tag_id)
+      if ret == false then
+        print("insertCardTagById failed")
+        return
+      end
+      print("setTagsForNowCardList new tag name:" .. prompt)
+      now_tag_tree_exclude_ids = self.model:getIdsFromItem(self.model:findIncludeTagsByCard(card_id, true))
+      return self:setTagsForNowCardList(now_tag_tree_exclude_ids, is_add_mode)
     end,
     custom_mappings = {
       ["i"] = {
         --- keymap help
-        ["<c-h>"] = function(prompt_bufnr)
-          print("<c-e>:addTagsForNowCard")
+        ["<c-h>"] = function()
+          print("<c-x>:setTagsForNowCardList <c-e>:addTagsForNowCard <c-d>:delTagsForNowCard")
         end,
+        --- convert tree
+        ["<c-x>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          now_tag_tree_exclude_ids =
+          self.model:getIdsFromItem(self.model:findIncludeTagsByCard(card_id))
+          local res = self:setTagsForNowCardTree(-1, now_tag_tree_exclude_ids, true)
+          self.telescope_menu:flushResult(res, picker, prompt_bufnr)
+        end,
+        --- addTagsForNowCard
         ["<c-e>"] = function(prompt_bufnr)
           local picker = action_state.get_current_picker(prompt_bufnr)
+          if not is_add_mode then
+            local res = self:setTagsForNowCardList(now_tag_tree_exclude_ids, true)
+            self.telescope_menu:flushResult(res, picker, prompt_bufnr)
+            return
+          end
+          local select_item = action_state.get_selected_entry()
+          if select_item == nil then
+            return
+          end
+          if not tools.confirmCheck("setTagsForNowCardList") then
+            return
+          end
+          local single = select_item.value
+          local v = single.info
+          local ret = self.model:insertCardTagById(card_id, v.id)
+          if ret == false then
+            print("insertCardTagById failed")
+            return
+          end
+          now_tag_tree_exclude_ids =
+          self.model:getIdsFromItem(self.model:findIncludeTagsByCard(card_id, true))
+          local res = self:setTagsForNowCardList(now_tag_tree_exclude_ids, true)
+          self.telescope_menu:flushResult(res, picker, prompt_bufnr)
+        end,
+        --- delTagsForNowCard
+        ["<c-d>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          if is_add_mode then
+            now_tag_tree_exclude_ids =
+            self.model:getIdsFromItem(self.model:findIncludeTagsByCard(card_id))
+            local res = self:setTagsForNowCardList(now_tag_tree_exclude_ids, false)
+            self.telescope_menu:flushResult(res, picker, prompt_bufnr)
+            return
+          end
           local select_item = action_state.get_selected_entry()
           if select_item == nil then
             return
           end
           local single = select_item.value
           local v = single.info
-          if not tools.confirmCheck("addTagsForNowCard") then
+          self.model:delCardTag(card_id, v.id)
+          now_tag_tree_exclude_ids = self.model:getIdsFromItem(self.model:findIncludeTagsByCard(card_id))
+          local res = self:setTagsForNowCardList(now_tag_tree_exclude_ids, false)
+          self.telescope_menu:flushResult(res, picker, prompt_bufnr)
+        end,
+      },
+    },
+  }
+end
+
+---@param now_tag_id number
+---@param now_tag_tree_exclude_ids number[]
+---@param is_add_mode boolean
+function Menu:setTagsForNowCardTree(now_tag_id, now_tag_tree_exclude_ids, is_add_mode)
+  local card_id = self:getNowItem().id
+  local son_tags = self.model:findSonTags(now_tag_id)
+  local items = {}
+  if now_tag_id ~= -1 then
+    local now_tag = self.model:findTagById(now_tag_id)
+    if now_tag == nil then
+      error("setTagsForNowCardTree findTagById")
+    end
+    table.insert(items, {
+      name = "[father] " .. now_tag.name,
+      info = { id = now_tag.id, name = now_tag.name },
+      foo = function()
+        return self:setTagsForNowCardTree(now_tag.father_id, now_tag_tree_exclude_ids, is_add_mode)
+      end,
+    })
+  end
+  --print(vim.inspect(son_tags))
+  if type(son_tags) == "table" then
+    for _, v in ipairs(son_tags) do
+      local ret = tools.isInTable(v.id, now_tag_tree_exclude_ids)
+      if is_add_mode then
+        ret = not ret
+      end
+      if ret then
+        table.insert(items, {
+          name = v.name,
+          info = { id = v.id, name = v.name },
+          foo = function()
+            return self:setTagsForNowCardTree(v.id, now_tag_tree_exclude_ids, is_add_mode)
+          end,
+        })
+      end
+    end
+  end
+  local mode_str = "del_mode"
+  if is_add_mode then
+    mode_str = "add_mode"
+  end
+  return {
+    prompt_title = "Evidence setTagsForNowCardTree (" .. mode_str .. ")" .. self:tagsNameInCardStr(card_id),
+    menu_item = items,
+    --- addTag
+    main_foo = function(prompt)
+      if not tools.confirmCheck("setTagsForNowCardTree") then
+        return
+      end
+      local tag_id = self.model:addTag(prompt)
+      self.model:convertFatherTag({ tag_id }, now_tag_id)
+      local ret = self.model:insertCardTagById(card_id, tag_id)
+      if ret == false then
+        print("insertCardTagById failed")
+        return
+      end
+      print("setTagsForNowCardTree new tag name:" .. prompt)
+      now_tag_tree_exclude_ids = self.model:getIdsFromItem(self.model:findIncludeTagsByCard(card_id))
+      return self:setTagsForNowCardTree(now_tag_id, now_tag_tree_exclude_ids, is_add_mode)
+    end,
+    custom_mappings = {
+      ["i"] = {
+        --- keymap help
+        ["<c-h>"] = function(prompt_bufnr)
+          print("<c-x>:setTagsForNowCardTree <c-e>:addTagsForNowCard <c-d>:delTagsForNowCard")
+        end,
+        --- convert list
+        ["<c-x>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          now_tag_tree_exclude_ids =
+          self.model:getIdsFromItem(self.model:findIncludeTagsByCard(card_id, true))
+          local res = self:setTagsForNowCardList(now_tag_tree_exclude_ids, true)
+          self.telescope_menu:flushResult(res, picker, prompt_bufnr)
+        end,
+        ["<c-e>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          if is_add_mode == false then
+            local res = self:setTagsForNowCardTree(now_tag_id, now_tag_tree_exclude_ids, true)
+            self.telescope_menu:flushResult(res, picker, prompt_bufnr)
             return
           end
-          self.model:insertCardTagById(card_id, v.id)
-          print("addTagsForNowCard tag name:" .. v.name)
+          local select_item = action_state.get_selected_entry()
+          if select_item == nil then
+            return
+          end
+          local single = select_item.value
+          local v = single.info
+          if not tools.confirmCheck("setTagsForNowCardTree") then
+            return
+          end
+          local ret = self.model:insertCardTagById(card_id, v.id)
+          if ret == false then
+            print("insertCardTagById failed")
+            return
+          end
+          print("setTagsForNowCardTree tag name:" .. v.name)
 
           now_tag_tree_exclude_ids = self.model:getIdsFromItem(self.model:findIncludeTagsByCard(card_id))
-          local res = self:addTagsForNowCard(now_tag_id, now_tag_tree_exclude_ids)
+          local res = self:setTagsForNowCardTree(now_tag_id, now_tag_tree_exclude_ids, true)
+          self.telescope_menu:flushResult(res, picker, prompt_bufnr)
+        end,
+        --- delSelectTag
+        ["<c-d>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local res = self:setTagsForNowCardList(now_tag_tree_exclude_ids, false)
           self.telescope_menu:flushResult(res, picker, prompt_bufnr)
         end,
       },
@@ -317,7 +468,7 @@ function Menu:addCard()
   local card_id = self.model:addNewCard(content_str, file_type)
   local item = self.model:getItemById(card_id)
   self.win_buf:viewContent(item)
-  return self:addTagsForNowCard(-1, {})
+  return self:setTagsForNowCardTree(-1, {}, true)
 end
 
 ---@return TelescopeMenu
@@ -498,8 +649,12 @@ function Menu:setSelectTagsTreeMode(now_tag_id, is_and, is_add_mode)
       end
     end
   end
+  local mode_str = "del_mode"
+  if is_add_mode then
+    mode_str = "add_mode"
+  end
   return {
-    prompt_title = "Evidence setSelectTagsTreeMode " .. self:selectTagNameStr(),
+    prompt_title = "Evidence setSelectTagsTreeMode (" .. mode_str .. ") " .. self:selectTagNameStr(),
     menu_item = items,
     --- addTag
     main_foo = function(prompt) end,
@@ -512,7 +667,6 @@ function Menu:setSelectTagsTreeMode(now_tag_id, is_and, is_add_mode)
         --- switchList
         ["<c-x>"] = function(prompt_bufnr)
           local picker = action_state.get_current_picker(prompt_bufnr)
-          local select_item = action_state.get_selected_entry()
           local res = self:setSelectTagsListMode(is_and, true)
           self.telescope_menu:flushResult(res, picker, prompt_bufnr)
         end,

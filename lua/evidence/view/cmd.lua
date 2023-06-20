@@ -93,15 +93,9 @@ local menuItem = {
     end,
   },
   {
-    name = "addTagsForNowCard",
+    name = "setTagsForNowCard",
     foo = function()
-      return menu:addTagsForNowCardMain()
-    end,
-  },
-  {
-    name = "delTagsForNowCard",
-    foo = function()
-      return menu:delTagsForNowCard()
+      return menu:setTagsForNowCardMain()
     end,
   },
   {
