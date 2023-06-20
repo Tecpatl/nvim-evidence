@@ -139,8 +139,8 @@ function WinBufImpl:viewContent(form)
   vim.o.cursorcolumn = true
   vim.wo.cursorline = true
   --vim.api.nvim_feedkeys("gg", "n", false)
-  vim.wo.foldmethod = "expr"
-  vim.wo.foldlevel = 1
+  -- vim.wo.foldmethod = "expr"
+  -- vim.wo.foldlevel = 1
   --vim.api.nvim_feedkeys("za", "n", false)
   --vim.api.nvim_feedkeys("zx", "n", false)
 end
@@ -245,16 +245,20 @@ end
 ---@param is_fold boolean
 function WinBuf:switchFold(is_fold)
   local content = self._.item.content
+  self._:viewContent(content)
+  local winid = tools.get_window_id_from_buffer_id(self._.buf)
   if is_fold then
     -- content = self:extractString(content)
-    vim.fn.matchadd("EvidenceWordHidden", "{{<\\_.\\{-}>}}")
+    if winid ~= nil then
+      vim.api.nvim_win_call(winid, function()
+        vim.fn.matchadd("EvidenceWordHidden", "{{<\\_.\\{-}>}}")
+      end)
+    end
   else
-    local winid = tools.get_window_id_from_buffer_id(self._.buf)
     if winid ~= nil then
       tools.clear_match("EvidenceWordHidden", winid)
     end
   end
-  self._:viewContent(content)
 end
 
 function WinBuf:openSplitWin()
