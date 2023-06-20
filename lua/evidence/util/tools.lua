@@ -45,10 +45,13 @@ local function merge(t1, t2, is_deep)
   return t1
 end
 
----@param tbl table
+---@param tbl table|nil
 ---@param item? string
 ---@return string
 local function array2Str(tbl, item)
+  if tbl == nil then
+    return "{}"
+  end
   local str = "{"
   for i, value in ipairs(tbl) do
     if item ~= nil then
@@ -202,6 +205,18 @@ local function reverseArray(array)
   return reversedArray
 end
 
+---@param items table|nil
+---@param val string
+local function getValArrayFromItem(items, val)
+  local res = {}
+  if type(items) == "table" then
+    for _, item in pairs(items) do
+      table.insert(res, item[val])
+    end
+  end
+  return res
+end
+
 return {
   isInTable = isInTable,
   table_concat = table_concat,
@@ -218,4 +233,5 @@ return {
   confirmCheck = confirmCheck,
   array2Str = array2Str,
   reverseArray = reverseArray,
+  getValArrayFromItem = getValArrayFromItem,
 }

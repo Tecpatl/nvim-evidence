@@ -298,6 +298,7 @@ function Model:ratingCard(id, rating, now_time)
   self:editCard(id, sql_card)
 end
 
+---@return nil | TagField[]
 function Model:findAllTags()
   return self.tbl:findTag()
 end
@@ -395,15 +396,10 @@ function Model:convertFatherTag(son_ids, father_id)
   end
 end
 
+---@param items table|nil
 ---@return number[]
 function Model:getIdsFromItem(items)
-  local res = {}
-  if type(items) == "table" then
-    for _, item in pairs(items) do
-      table.insert(res, item.id)
-    end
-  end
-  return res
+  return tools.getValArrayFromItem(items, "id")
 end
 
 ---@param old_tag_ids number[] indirect relations and tag would_be_delete
@@ -447,12 +443,14 @@ end
 
 ---@param card_id number
 ---@param tag_id number
+---@return boolean
 function Model:insertCardTagById(card_id, tag_id)
   if not self:checkValidCardTagById(card_id, tag_id) then
     print("insertCardTagById error")
-    return
+    return false
   end
   self.tbl:insertCardTag(card_id, tag_id)
+  return true
 end
 
 ---@param card_id number
@@ -498,9 +496,18 @@ function Model:findExcludeTagsByCard(card_id)
 end
 
 ---@param card_id number
+---@param is_include_son? boolean
 ---@return nil | TagField[]
-function Model:findIncludeTagsByCard(card_id)
-  return self.tbl:findTagsByCard(card_id, true)
+--例如: setTagsForNowCardList && add_mode
+function Model:findIncludeTagsByCard(card_id, is_include_son)
+  local tags = self.tbl:findTagsByCard(card_id, true)
+  if tags == nil or is_include_son == nil or is_include_son == false then
+    return tags
+  end
+  print("sd")
+  local tag_ids = self:getIdsFromItem(tags)
+  local son_include_ids = self:findAllSonTags(tag_ids, true)
+  return self:findTagByIds(son_include_ids)
 end
 
 ---@param card_id number
