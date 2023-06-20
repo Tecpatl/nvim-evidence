@@ -125,4 +125,4 @@ orgmode 适用于安排有风险不稳定的计划或短期任务. (指南针)
 
 - 各种find带fuzzy(英文首字母简写)
 
-- 每次切换card, 都涉及删掉和新增, 操作比较麻烦
+- 用list mode fuzzy到的tag, 反向定位到它在tree mode的位置 
