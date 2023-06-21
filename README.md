@@ -113,10 +113,16 @@ orgmode 适用于安排有风险不稳定的计划或短期任务. (指南针)
 
 - 支持多 winbuf ( 大card快速拆分 )
 
-- 统计
+- 统计复习过多少, 学了多少新的, 引入加了多少新卡
 
 - 各种提示, 悬浮提示每个卡片的tag信息
 
 - card如果希望关联到另一个card, 或尽量通过建立共同的tag实现
 
 - 各种find带fuzzy(英文首字母简写)
+
+- findCardBySelectTags add fuzzy
+
+- 多级分隔符规则列表, 方便处理递归情况
+
+- refreshCard
