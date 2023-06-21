@@ -174,6 +174,8 @@ function Menu:editCard()
     file_type = "markdown"
   end
   self.model:editCard(self:getNowItem().id, { content = content_str, file_type = file_type })
+  local item = self.model:getItemById(self:getNowItem().id)
+  self.win_buf:viewContent(item)
 end
 
 function Menu:infoCard()
