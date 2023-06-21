@@ -201,7 +201,7 @@ function WinBuf:setup(data, divider)
     self.divider = divider
   end
   WinBuf.__index = WinBuf
-  vim.api.nvim_command("highlight EvidenceWordHidden guibg=white guifg=white")
+  vim.api.nvim_command("highlight EvidenceWordHidden guibg=purple guifg=purple")
   self._:setup(data)
 end
 
@@ -245,10 +245,9 @@ end
 ---@param is_fold boolean
 function WinBuf:switchFold(is_fold)
   local content = self._.item.content
-  self._:viewContent(content)
   local winid = tools.get_window_id_from_buffer_id(self._.buf)
   if is_fold then
-    -- content = self:extractString(content)
+    content = self:extractString(content)
     if winid ~= nil then
       vim.api.nvim_win_call(winid, function()
         vim.fn.matchadd("EvidenceWordHidden", "{{<\\_.\\{-}>}}")
@@ -259,6 +258,7 @@ function WinBuf:switchFold(is_fold)
       tools.clear_match("EvidenceWordHidden", winid)
     end
   end
+  self._:viewContent(content)
 end
 
 function WinBuf:openSplitWin()
