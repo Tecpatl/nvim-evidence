@@ -1,6 +1,12 @@
+local tools = require("evidence.util.tools")
+local cmd = require("evidence.view.cmd")
+
 local user_data = {
   uri = "~/.config/nvim/sql/v0",
   is_record = true,
+  key_map = {
+    visual_cmd = "<leader>Ev",
+  },
   parameter = {
     request_retention = 0.7,
     maximum_interval = 100,
@@ -10,24 +16,28 @@ local user_data = {
   },
 }
 
-local function cmd() end
+local keymap = vim.keymap.set
 
 return {
   setup = function(data)
     user_data = data or user_data
 
-    vim.api.nvim_create_user_command("EvidenceCmd", function()
-      local cmd = require("evidence.view.cmd")
-      cmd.start()
+    vim.api.nvim_create_user_command("EvidenceNormalCmd", function()
+      cmd.startNormal()
     end, {
       nargs = 0,
     })
 
     vim.api.nvim_create_user_command("EvidenceFlush", function()
-      local cmd = require("evidence.view.cmd")
       cmd.flush(user_data)
     end, {
       nargs = 0,
     })
+
+    local opts = { noremap = true, silent = true }
+    keymap("v", user_data.key_map.visual_cmd, function()
+      local text = tools.getVisualSelection()
+      cmd.startVisual(text)
+    end, opts)
   end,
 }

@@ -1,17 +1,37 @@
 local tools = require("evidence.util.tools")
+local queue = require("evidence.util.queue")
 local tblInfo = require("evidence.model.info")
+
+---@class WinBufIdInfo
+---@field win_id number
+---@field buf_id number
 
 ---@class WinBufImpl
 ---@field buf number
+---@field name string
 ---@field item CardItem | {}
 local WinBufImpl = {}
 WinBufImpl.__index = WinBufImpl
 
-function WinBufImpl:new()
-  self.buf = -1
-  self.item = {}
-  return setmetatable({}, self)
+---@param name string
+function WinBufImpl:new(name)
+  local new_buf = vim.api.nvim_create_buf(true, true)
+  vim.api.nvim_buf_set_name(new_buf, name)
+  return setmetatable({
+    name = name,
+    buf = new_buf,
+    item = {},
+  }, self)
 end
+
+--function WinBufImpl:setup(data)
+--  if data.buf ~= nil then
+--    self.buf = data.buf
+--  end
+--  if data.win ~= nil then
+--    self.win = data.win
+--  end
+--end
 
 ---@param winnr? number
 ---@return number
@@ -87,7 +107,11 @@ function WinBufImpl:getSplitCmd()
   end
 end
 
-function WinBufImpl:BufferClose()
+function WinBufImpl:bufferDelete()
+  vim.api.nvim_buf_delete(self.buf, {})
+end
+
+function WinBufImpl:bufferClose()
   for _, winid in ipairs(vim.api.nvim_list_wins()) do
     local bufnr = vim.api.nvim_win_get_buf(winid)
     if bufnr == self.buf then
@@ -96,17 +120,12 @@ function WinBufImpl:BufferClose()
   end
 end
 
----@param start_buf number
----@return boolean
-function WinBufImpl:checkSelfBuf(start_buf)
-  return start_buf ~= -1 and start_buf == self.buf
-end
-
-function WinBufImpl:openSplitWin()
-  self:BufferClose()
+---@param win_id number
+---@return WinBufIdInfo
+function WinBufImpl:openSplitWin(win_id)
+  vim.api.nvim_set_current_win(win_id)
   local cmd_by_split_mode = self:getSplitCmd()
-
-  local winwidth = self:getWinWidth()
+  local winwidth = self:getWinWidth(win_id)
   if (winwidth / 2) >= 80 then
     vim.cmd(cmd_by_split_mode.vertical)
     vim.w.org_window_split_mode = "vertical"
@@ -114,12 +133,15 @@ function WinBufImpl:openSplitWin()
     vim.cmd(cmd_by_split_mode.horizontal)
     vim.w.org_window_split_mode = "horizontal"
   end
+  local new_win_id = vim.api.nvim_get_current_win()
   if not self:checkBufValid() then
-    self.buf = vim.api.nvim_create_buf(true, true)
-    local win = vim.api.nvim_get_current_win()
-    vim.api.nvim_win_set_buf(win, self.buf)
+    vim.api.nvim_win_set_buf(new_win_id, self.buf)
   end
   vim.keymap.set("n", "q", ":call nvim_win_close(win_getid(), v:true)<CR>", { buffer = self.buf, silent = true })
+  return {
+    buf_id = self.buf,
+    win_id = new_win_id,
+  }
 end
 
 function WinBufImpl:viewContent(form)
@@ -145,25 +167,16 @@ function WinBufImpl:viewContent(form)
   --vim.api.nvim_feedkeys("zx", "n", false)
 end
 
-function WinBufImpl:setup(data)
-  if data.buf ~= nil then
-    self.buf = data.buf
-  end
-  if data.win ~= nil then
-    self.win = data.win
-  end
-end
-
 ---@class WinBuf
----@field _ WinBufImpl
+---@field _ WinBufImpl[]
 ---@field model Model
 ---@field is_setup boolean
 ---@field instance WinBuf
 ---@field divider string
+---@field data_ table
 local WinBuf = {}
 
 WinBuf.__index = function(self, key)
-  print(key)
   local value = rawget(WinBuf, key)
   if key ~= "setup" then
     if not self.is_setup then
@@ -179,8 +192,9 @@ end
 
 function WinBuf:getInstance()
   if not self.instance then
-    self._ = WinBufImpl:new()
     self.instance = setmetatable({
+      _ = {},
+      data_ = {},
       model = {},
       is_setup = false,
       divider = "================",
@@ -202,26 +216,75 @@ function WinBuf:setup(data, divider)
   end
   WinBuf.__index = WinBuf
   vim.api.nvim_command("highlight EvidenceWordHidden guibg=purple guifg=purple")
-  self._:setup(data)
+  self.data_ = data
+  self._ = {}
 end
 
 ---@class WinBufInfo
----@field win number
 ---@field buf number
 ---@field item CardItem
+---@field name string
+
+---@return WinBufImpl
+function WinBuf:getNowBufItem(buf_id)
+  for k, v in ipairs(self._) do
+    if v.buf == buf_id then
+      return v
+    end
+  end
+  error("getNowBufItem buf_id not exist")
+end
+
+---@return WinBufInfo[]
+function WinBuf:getAllInfo()
+  local items = {}
+  for k, v in ipairs(self._) do
+    table.insert(items, {
+      buf = v.buf,
+      item = v.item,
+      name = v.name,
+    })
+  end
+  return items
+end
 
 ---@return WinBufInfo
-function WinBuf:getInfo()
+function WinBuf:getNowInfo(buf_id)
+  local buf_item = self:getNowBufItem(buf_id)
   return {
-    win = self._.win,
-    buf = self._.buf,
-    item = self._.item,
+    buf = buf_item.buf,
+    item = buf_item.item,
+    name = buf_item.name,
   }
 end
 
-function WinBuf:openFloatWin()
-  self._:openFloatWin()
+---@param buf_id number
+---@return boolean
+function WinBuf:isIncludeBuf(buf_id)
+  for k, v in ipairs(self._) do
+    if v.buf == buf_id then
+      return true
+    end
+  end
+  return false
 end
+
+---@return WinBufInfo
+function WinBuf:getFirstInfo()
+  local buf_item = queue.front(self._)
+  if buf_item == nil then
+    error("getFirstInfo empty")
+  end
+  return {
+    buf = buf_item.buf,
+    item = buf_item.item,
+    name = buf_item.name,
+  }
+end
+
+--function WinBuf:openFloatWin()
+--  self._:openFloatWin()
+--end
 
 function WinBuf:extractString(inputString)
   local startIndex, endIndex = string.find(inputString, self.divider)
@@ -233,19 +296,23 @@ function WinBuf:extractString(inputString)
   end
 end
 
+---@param buf_id number
 ---@param item CardItem
 ---@param is_fold? boolean
-function WinBuf:viewContent(item, is_fold)
+function WinBuf:viewContent(buf_id, item, is_fold)
   self.model:insertRecordCard(item.id, tblInfo.AccessWay.visit)
+  local buf_item = self:getNowBufItem(buf_id)
   is_fold = is_fold or true
-  self._.item = item
-  self:switchFold(is_fold)
+  buf_item.item = item
+  self:switchFold(buf_id, is_fold)
 end
 
+---@param buf_id number
 ---@param is_fold boolean
-function WinBuf:switchFold(is_fold)
-  local content = self._.item.content
-  local winid = tools.get_window_id_from_buffer_id(self._.buf)
+function WinBuf:switchFold(buf_id, is_fold)
+  local buf_item = self:getNowBufItem(buf_id)
+  local content = buf_item.item.content
+  local winid = tools.get_window_id_from_buffer_id(buf_item.buf)
   if is_fold then
     content = self:extractString(content)
     if winid ~= nil then
@@ -258,17 +325,108 @@ function WinBuf:switchFold(is_fold)
       tools.clear_match("EvidenceWordHidden", winid)
     end
   end
-  self._:viewContent(content)
+  buf_item:viewContent(content)
 end
 
-function WinBuf:openSplitWin()
-  self._:openSplitWin()
+---@param backup_win_id number
+---@param buf_ids number[]
+function WinBuf:openSplitWin(backup_win_id, buf_ids)
+  for key, buf_id in pairs(buf_ids) do
+    local win_id = tools.get_window_id_from_buffer_id(buf_id)
+    if win_id ~= nil then
+      vim.api.nvim_set_current_win(win_id)
+    else
+      local buf_item = self:getNowBufItem(buf_id)
+      buf_item:openSplitWin(backup_win_id)
+    end
+  end
 end
 
----@param start_buf number
+---@param win_id number -- outer base_win
+---@param buf_id? number
+---@return WinBufIdInfo -- inner new_win
+function WinBuf:createSplitWin(win_id, buf_id)
+  local item = nil
+  if buf_id == nil then
+    item = WinBufImpl:new("evidence[" .. tostring(#self._) .. "]")
+    queue.push(self._, item)
+  else
+    for k, v in ipairs(self._) do
+      if v.buf == buf_id then
+        item = v
+      end
+    end
+  end
+  if item == nil then
+    error("createSplitWin")
+  end
+  return item:openSplitWin(win_id)
+end
+
+function WinBuf:deleteAll()
+  local tbl = self._
+  for i = #tbl, 1, -1 do
+    tbl[i]:bufferDelete()
+  end
+  self._ = {}
+end
+
+---@param buf_id number
+function WinBuf:closeBufId(buf_id)
+  for key, item in ipairs(self._) do
+    if item.buf == buf_id then
+      item:bufferClose()
+    end
+  end
+end
+
+function WinBuf:closeAll()
+  for key, item in ipairs(self._) do
+    item:bufferClose()
+  end
+end
+
+---@return WinBufIdInfo
+function WinBuf:remainOne()
+  local tbl = self._
+  if #tbl < 1 then
+    error("remainOne empty")
+  end
+  for i = #tbl, 2, -1 do
+    tbl[i]:bufferClose()
+  end
+  local buf_id = tbl[1].buf
+  local win_id = tools.get_window_id_from_buffer_id(buf_id)
+  return {
+    buf_id = buf_id,
+    win_id = win_id,
+  }
+end
+
+---@param buf_id number
+function WinBuf:delete(buf_id)
+  local tbl = self._
+  if #tbl == 1 then
+    print("need remain one")
+    return
+  end
+  for i = #tbl, 1, -1 do
+    if tbl[i].buf == buf_id then
+      tbl[i]:bufferDelete()
+      table.remove(tbl, i)
+    end
+  end
+end
+
+---@param buf_id number
 ---@return boolean
-function WinBuf:checkSelfBuf(start_buf)
-  return self._:checkSelfBuf(start_buf)
+function WinBuf:checkSelfBuf(buf_id)
+  for key, item in pairs(self._) do
+    if buf_id == item.buf then
+      return true
+    end
+  end
+  return false
 end
 
 return WinBuf:getInstance()

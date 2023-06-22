@@ -1,4 +1,7 @@
 local model = require("evidence.model.index")
+local make_entry = require("telescope.make_entry")
+local finders = require("telescope.finders")
+local conf = require("telescope.config").values
 local tools = require("evidence.util.tools")
 local previewers = require("telescope.previewers")
 local putils = require("telescope.previewers.utils")
@@ -68,12 +71,14 @@ function MenuHelper:createCardPreviewer()
   })
 end
 
-function MenuHelper:card_entry_maker(entry)
+---@param buf_id number
+---@param entry table
+function MenuHelper:card_entry_maker(buf_id, entry)
   if entry.content == nil then
     return
   end
   entry.foo = function()
-    winBuf:viewContent(entry)
+    winBuf:viewContent(buf_id, entry)
   end
   local content = entry.content:gsub("\n", "\\n")
   return {
@@ -91,8 +96,9 @@ function MenuHelper:empty_maker(entry)
   }
 end
 
+---@param buf_id number
 ---@param foo function
-function MenuHelper:createCardProcessWork(foo)
+function MenuHelper:createCardProcessWork(buf_id, foo)
   return function(prompt, process_result, process_complete)
     self.prompt = prompt
     local x = foo(prompt)
@@ -102,7 +108,7 @@ function MenuHelper:createCardProcessWork(foo)
       return
     end
     for _, v in ipairs(x) do
-      process_result(self:card_entry_maker(v))
+      process_result(self:card_entry_maker(buf_id, v))
     end
     process_complete()
   end
@@ -133,6 +139,48 @@ end
 ---@return boolean
 function MenuHelper:checkScore(score)
   return score == 0 or score == 1 or score == 2 or score == 3
+end
+
+---@param entry BufferHelper
+function MenuHelper:buffer_entry_maker(entry)
+  return {
+    value = entry,
+    ordinal = entry.name,
+    display = entry.name,
+  }
+end
+
+---@param buffers BufferHelper[]
+function MenuHelper:createBufferProcessWork(buffers)
+  return function(prompt, process_result, process_complete)
+    for _, v in ipairs(buffers) do
+      process_result(self:buffer_entry_maker(v))
+    end
+    process_complete()
+  end
+end
+
+---@param opts table
+function MenuHelper:createBasicPreviewer(opts)
+  local this = self
+  return previewers.new_buffer_previewer({
+    keep_last_buf = true,
+    get_buffer_by_name = function(_, entry)
+      return entry.value.id
+    end,
+    define_preview = function(self, entry, status)
+      local info = entry.value.info
+      if info == nil then
+        return
+      end
+      local target_buf_id = info.id
+      if not winBuf:checkSelfBuf(target_buf_id) then
+        return
+      end
+      local lines = vim.api.nvim_buf_get_lines(target_buf_id, 0, -1, false)
+      vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, lines)
+    end,
+  })
 end
 
 return MenuHelper:getInstance()
