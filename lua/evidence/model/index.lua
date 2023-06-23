@@ -515,6 +515,11 @@ function Model:delCardTag(card_id, tag_id)
   return self.tbl:delCardTag(card_id, tag_id)
 end
 
+---@param card_id number
+function Model:delCardAllTag(card_id)
+  return self.tbl:delCardAllTag(card_id)
+end
+
 ---@param tag_id number
 function Model:delTag(tag_id)
   local now_tag = self:findTagById(tag_id)

@@ -268,6 +268,12 @@ function SqlTable:delCardTag(card_id, tag_id)
   self.db:execute(query)
 end
 
+---@param card_id number
+function SqlTable:delCardAllTag(card_id)
+  local query = "delete from " .. Tables.card_tag .. " where card_id=" .. card_id
+  self.db:execute(query)
+end
+
 ---@param id number
 ---@param row CardField
 function SqlTable:editCard(id, row)

@@ -151,7 +151,7 @@ end
 
 ---@param res TelescopeMenu|nil
 ---@param picker table
----@param prompt_bufnr table
+---@param prompt_bufnr number
 ---@param map? table
 function TelescopeMenu:flushResult(res, picker, prompt_bufnr, map)
   if res ~= nil then
@@ -183,7 +183,10 @@ function TelescopeMenu:flushResult(res, picker, prompt_bufnr, map)
       mappings.apply_keymap(prompt_bufnr, self.attach_mappings, self.custom_mappings)
     end
   else
-    actions.close(prompt_bufnr)
+    local ret = tools.get_window_id_from_buffer_id(prompt_bufnr)
+    if ret ~= nil then
+      actions.close(prompt_bufnr)
+    end
   end
 end
 

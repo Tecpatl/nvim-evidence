@@ -13,6 +13,8 @@ local NextCardMode = {
 }
 
 ---@class Menu
+---@field now_buf_id number
+---@field now_win_id number
 ---@field tbl SqlTable
 ---@field select_tags number[]
 ---@field is_select_tag_and boolean
@@ -22,6 +24,7 @@ local NextCardMode = {
 ---@field tag_tree_exclude_ids table
 ---@field convert_tag_son_id number
 ---@field merge_tag_son_id number
+---@field suggest_tag_ids number[]
 ---@field win_buf WinBuf
 ---@field model Model
 ---@field helper MenuHelper
@@ -46,6 +49,8 @@ end
 function Menu:getInstance()
   if not self.instance then
     self.instance = setmetatable({
+      now_buf_id = -1,
+      now_win_id = -1,
       is_setup = false,
       select_tags = {},
       is_select_tag_and = true,
@@ -59,6 +64,7 @@ function Menu:getInstance()
       model = {},
       helper = require("evidence.view.menu_helper"),
       telescope_menu = telescopeMenu:new(),
+      suggest_tag_ids = {},
     }, self)
   end
   return self.instance
@@ -111,7 +117,7 @@ function Menu:nextCard()
     return
   end
   local item = items[1]
-  self.win_buf:viewContent(item)
+  self.win_buf:viewContent(self.now_buf_id, item)
 end
 
 function Menu:setNextCard()
@@ -133,7 +139,76 @@ end
 
 ---@return CardItem
 function Menu:getNowItem()
-  return self.win_buf:getInfo().item
+  return self.win_buf:getNowInfo(self.now_buf_id).item
+end
+
+---@class BufferHelper
+---@field id number
+---@field name string
+---@field foo function
+
+---@return TelescopeMenu
+function Menu:setBufferList()
+  local info = self.win_buf:getAllInfo()
+  local items = {}
+  for k, v in pairs(info) do
+    table.insert(items, {
+      info = {
+        id = v.buf,
+      },
+      name = v.name,
+      foo = function()
+        local info = self.win_buf:remainOne()
+        self.win_buf:openSplitWin(info.win_id, { v.buf })
+        if info.buf_id ~= v.buf then
+          self.win_buf:closeBufId(info.buf_id)
+        end
+      end,
+    })
+  end
+  return {
+    prompt_title = "Evidence setBufferList",
+    menu_item = {},
+    main_foo = function(value)
+      local typename = type(value)
+      if typename == "table" then
+        local buf_ids = {}
+        for _, item in pairs(value) do
+          table.insert(buf_ids, item.info.id)
+        end
+        local info = self.win_buf:remainOne()
+        self.win_buf:openSplitWin(info.win_id, buf_ids)
+        if not tools.isInTable(info.buf_id, buf_ids) then
+          self.win_buf:closeBufId(info.buf_id)
+        end
+      end
+    end,
+    previewer = self.helper:createBasicPreviewer({}),
+    process_work = self.helper:createBufferProcessWork(items),
+    custom_mappings = {
+      ["i"] = {
+        --- keymap help
+        ["<c-h>"] = function()
+          print("<c-d>:delBuffer <c-e>:addNewEmptyBuffer")
+        end,
+        ["<c-e>"] = function(prompt_bufnr)
+          self.win_buf:createSplitWin(self.now_win_id) -- will close telescope while create new win
+        end,
+        ["<c-d>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local select_item = action_state.get_selected_entry()
+          if select_item == nil then
+            return
+          end
+          local single = select_item.value
+          local v = single.info
+          self.win_buf:delete(v.id)
+          local res = self:setBufferList()
+          self.telescope_menu:flushResult(res, picker, prompt_bufnr)
+        end,
+      },
+    },
+  }
 end
 
 ---@return TelescopeMenu
@@ -146,7 +221,7 @@ function Menu:fuzzyFindCard()
     menu_item = {},
     main_foo = nil,
     previewer = self.helper:createCardPreviewer(),
-    process_work = self.helper:createCardProcessWork(foo),
+    process_work = self.helper:createCardProcessWork(self.now_buf_id, foo),
   }
 end
 
@@ -159,14 +234,14 @@ function Menu:delCard()
 end
 
 function Menu:answer()
-  self.win_buf:switchFold(false)
+  self.win_buf:switchFold(self.now_buf_id, false)
 end
 
 function Menu:editCard()
   if not tools.confirmCheck("editCard") then
     return
   end
-  local buf_id = self.win_buf:getInfo().buf
+  local buf_id = self.win_buf:getNowInfo(self.now_buf_id).buf
   local content = vim.api.nvim_buf_get_lines(buf_id, 0, -1, false)
   local content_str = table.concat(content, "\n")
   local file_type = vim.api.nvim_buf_get_option(buf_id, "filetype")
@@ -175,7 +250,7 @@ function Menu:editCard()
   end
   self.model:editCard(self:getNowItem().id, { content = content_str, file_type = file_type })
   local item = self.model:getItemById(self:getNowItem().id)
-  self.win_buf:viewContent(item)
+  self.win_buf:viewContent(self.now_buf_id, item)
 end
 
 function Menu:infoCard()
@@ -226,6 +301,7 @@ function Menu:addTag()
 end
 
 function Menu:setTagsForNowCardMain()
+  self.suggest_tag_ids = {}
   local card_id = self:getNowItem().id
   local now_tag_tree_exclude_ids = self.model:getIdsFromItem(self.model:findIncludeTagsByCard(card_id))
   return self:setTagsForNowCardTree(-1, now_tag_tree_exclude_ids, true)
@@ -287,11 +363,41 @@ function Menu:setTagsForNowCardList(now_tag_tree_exclude_ids, is_add_mode)
         --- keymap help
         ["<c-h>"] = function()
           print(
-            "<c-x>:setTagsForNowCardTree <c-v>:setTagsForNowCardTreeAutoLocation <c-e>:addTagsForNowCard <c-d>:delTagsForNowCard"
+            "<c-x>:setTagsForNowCardTree <c-l>:setTreeAutoLocation <c-e>:addTagsForNowCard <c-d>:delTagsForNowCard <c-v>:replaceWithSuggestion"
           )
         end,
-        --- convert tree auto location
+        --- replace with suggestion tags
         ["<c-v>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          if self.suggest_tag_ids == {} then
+            print("suggest_tag_ids empty")
+            return
+          end
+          local tagItems = self.model:findTagByIds(self.suggest_tag_ids)
+          if tagItems == nil then
+            error("findTagByIds")
+          end
+          if not tools.confirmCheck(
+            "replaceWithSuggestion:" .. tools.array2Str(tools.getValArrayFromItem(tagItems, "name"))
+          )
+          then
+            return
+          end
+          self.model:delCardAllTag(card_id)
+          for _, v in ipairs(tagItems) do
+            local ret = self.model:insertCardTagById(card_id, v.id)
+            if ret == false then
+              print("insertCardTagById failed")
+              return
+            end
+          end
+          now_tag_tree_exclude_ids =
+          self.model:getIdsFromItem(self.model:findIncludeTagsByCard(card_id, true))
+          local res = self:setTagsForNowCardList(now_tag_tree_exclude_ids, true)
+          self.telescope_menu:flushResult(res, picker, prompt_bufnr)
+        end,
+        --- convert tree auto location
+        ["<c-l>"] = function(prompt_bufnr)
           local picker = action_state.get_current_picker(prompt_bufnr)
           now_tag_tree_exclude_ids = self.model:getIdsFromItem(self.model:findIncludeTagsByCard(card_id))
           local select_item = action_state.get_selected_entry()
@@ -429,7 +535,38 @@ function Menu:setTagsForNowCardTree(now_tag_id, now_tag_tree_exclude_ids, is_add
       ["i"] = {
         --- keymap help
         ["<c-h>"] = function(prompt_bufnr)
-          print("<c-x>:setTagsForNowCardList <c-e>:addTagsForNowCard <c-d>:delTagsForNowCard")
+          print(
+            "<c-x>:setTagsForNowCardList <c-e>:addTagsForNowCard <c-d>:delTagsForNowCard <c-v>:replaceWithSuggestion"
+          )
+        end,
+        --- replace with suggestion tags
+        ["<c-v>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          if self.suggest_tag_ids == {} then
+            print("suggest_tag_ids empty")
+            return
+          end
+          local tagItems = self.model:findTagByIds(self.suggest_tag_ids)
+          if tagItems == nil then
+            error("findTagByIds")
+          end
+          if not tools.confirmCheck(
+            "replaceWithSuggestion:" .. tools.array2Str(tools.getValArrayFromItem(tagItems, "name"))
+          )
+          then
+            return
+          end
+          self.model:delCardAllTag(card_id)
+          for _, v in ipairs(tagItems) do
+            local ret = self.model:insertCardTagById(card_id, v.id)
+            if ret == false then
+              print("insertCardTagById failed")
+              return
+            end
+          end
+          now_tag_tree_exclude_ids = self.model:getIdsFromItem(self.model:findIncludeTagsByCard(card_id))
+          local res = self:setTagsForNowCardTree(now_tag_id, now_tag_tree_exclude_ids, true)
+          self.telescope_menu:flushResult(res, picker, prompt_bufnr)
         end,
         --- convert list
         ["<c-x>"] = function(prompt_bufnr)
@@ -477,20 +614,44 @@ function Menu:setTagsForNowCardTree(now_tag_id, now_tag_tree_exclude_ids, is_add
   }
 end
 
-function Menu:addCard()
+---@param content_str string
+---@param file_type? string
+function Menu:addCardSplit(content_str, file_type)
+  if not tools.confirmCheck("addCardSplit") then
+    return
+  end
+  local father_card_id = self:getNowItem().id
+  local father_tags = self.model:findIncludeTagsByCard(father_card_id)
+  self.suggest_tag_ids = tools.getValArrayFromItem(father_tags, "id")
+  local info = self.win_buf:createSplitWin(self.now_win_id) -- will close telescope while create new win
+  self:setNowBufWinId(info.buf_id, info.win_id)
+  if file_type == nil or file_type == "" then
+    file_type = "markdown"
+  end
+  local card_id = self.model:addNewCard(content_str, file_type)
+  local item = self.model:getItemById(card_id)
+  self.win_buf:viewContent(info.buf_id, item)
+  local ret = self:setTagsForNowCardTree(-1, {}, true)
+  self.telescope_menu:start(ret) -- should start new telescope
+end
+
+---@param content_str? string
+function Menu:addCard(content_str)
   if not tools.confirmCheck("addCard") then
     return
   end
-  local buf_id = self.win_buf:getInfo().buf
-  local content = vim.api.nvim_buf_get_lines(buf_id, 0, -1, false)
-  local content_str = table.concat(content, "\n")
+  local buf_id = self.win_buf:getNowInfo(self.now_buf_id).buf
+  if content_str == nil then
+    local content = vim.api.nvim_buf_get_lines(buf_id, 0, -1, false)
+    content_str = table.concat(content, "\n")
+  end
   local file_type = vim.api.nvim_buf_get_option(buf_id, "filetype")
   if not file_type or file_type == "" then
     file_type = "markdown"
   end
   local card_id = self.model:addNewCard(content_str, file_type)
   local item = self.model:getItemById(card_id)
-  self.win_buf:viewContent(item)
+  self.win_buf:viewContent(self.now_buf_id, item)
   return self:setTagsForNowCardTree(-1, {}, true)
 end
 
@@ -505,8 +666,7 @@ function Menu:tagList()
   local items = {}
   if type(tags) == "table" then
     for _, v in ipairs(tags) do
-      table.insert(items, { name = v.name,
-        info = { id = v.id, name = v.name }, foo = nil })
+      table.insert(items, { name = v.name, info = { id = v.id, name = v.name }, foo = nil })
     end
   end
   return {
@@ -517,10 +677,10 @@ function Menu:tagList()
       ["i"] = {
         --- keymap help
         ["<c-h>"] = function(prompt_bufnr)
-          print("<c-x>:tagTree <c-v>:tagTreeAutoLocation")
+          print("<c-x>:tagTree <c-l>:tagTreeAutoLocation")
         end,
         --- tagTree auto location
-        ["<c-v>"] = function(prompt_bufnr)
+        ["<c-l>"] = function(prompt_bufnr)
           local picker = action_state.get_current_picker(prompt_bufnr)
           local select_item = action_state.get_selected_entry()
           if select_item == nil then
@@ -859,7 +1019,7 @@ function Menu:findCardBySelectTags()
     menu_item = {},
     main_foo = nil,
     previewer = self.helper:createCardPreviewer(),
-    process_work = self.helper:createCardProcessWork(foo),
+    process_work = self.helper:createCardProcessWork(self.now_buf_id, foo),
   }
 end
 
@@ -876,7 +1036,7 @@ function Menu:findReviewCard()
     main_foo = nil,
     previewer = self.helper:createCardPreviewer(),
     card_entry_maker = function(entry)
-      return self.helper:card_entry_maker(entry)
+      return self.helper:card_entry_maker(self.now_buf_id, entry)
     end,
   }
 end
@@ -894,7 +1054,7 @@ function Menu:findNewCard()
     main_foo = nil,
     previewer = self.helper:createCardPreviewer(),
     card_entry_maker = function(entry)
-      return self.helper:card_entry_maker(entry)
+      return self.helper:card_entry_maker(self.now_buf_id, entry)
     end,
   }
 end
@@ -1242,7 +1402,7 @@ function Menu:recordCardList(ways, str)
     main_foo = nil,
     previewer = self.helper:createCardPreviewer(),
     card_entry_maker = function(entry)
-      return self.helper:card_entry_maker(entry)
+      return self.helper:card_entry_maker(self.now_buf_id, entry)
     end,
   }
 end
@@ -1280,9 +1440,22 @@ function Menu:recordCard()
   }
 end
 
-function Menu:telescopeStart(menuItem)
+---@param buf_id number
+---@param win_id number
+function Menu:setNowBufWinId(buf_id, win_id)
+  self.now_buf_id = buf_id
+  self.now_win_id = win_id
+end
+
+function Menu:refreshCard()
+  self.win_buf:viewContent(self.now_buf_id, self:getNowItem())
+end
+
+---@param title string
+---@param menuItem SimpleMenu[]
+function Menu:telescopeStart(title, menuItem)
   self.telescope_menu:start({
-    prompt_title = "Evidence MainMenu " .. self:selectTagNameStr(),
+    prompt_title = "Evidence " .. title .. " " .. self:selectTagNameStr(),
     menu_item = menuItem,
   })
 end

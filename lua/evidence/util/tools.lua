@@ -244,6 +244,18 @@ local function get_window_id_from_buffer_id(buffer_id)
   return nil
 end
 
+---@return string
+local function getVisualSelection()
+  vim.cmd('noau normal! "vy"')
+  local text = vim.fn.getreg("v")
+  vim.fn.setreg("v", {})
+  if #text > 0 then
+    return text
+  else
+    return ""
+  end
+end
+
 return {
   isInTable = isInTable,
   table_concat = table_concat,
@@ -263,4 +275,5 @@ return {
   getValArrayFromItem = getValArrayFromItem,
   clear_match = clear_match,
   get_window_id_from_buffer_id = get_window_id_from_buffer_id,
+  getVisualSelection = getVisualSelection,
 }
