@@ -1018,8 +1018,8 @@ end
 
 ---@return TelescopeMenu
 function Menu:findCardBySelectTags()
-  local foo = function()
-    local res = self.model:findCardBySelectTags(self.select_tags, self.is_select_tag_and, true, 50)
+  local foo = function(prompt)
+    local res = self.model:findCardBySelectTags(self.select_tags, self.is_select_tag_and, true, 50, prompt)
     if res ~= nil then
       return tools.reverseArray(res)
     else

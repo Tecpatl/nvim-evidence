@@ -570,16 +570,24 @@ end
 ---@param is_and boolean
 ---@param contain_son boolean
 ---@param lim? number
+---@param content? string
 ---@return nil | CardItem[]
-function Model:findCardBySelectTags(tag_ids, is_and, contain_son, lim)
+function Model:findCardBySelectTags(tag_ids, is_and, contain_son, lim, content)
   if contain_son == true and is_and == false then
     tag_ids = self:findAllSonTags(tag_ids)
   end
+  if content == nil then
+    content = ""
+  end
   lim = lim or 10
   if tools.isTableEmpty(tag_ids) then
-    return self:fuzzyFindCard("", lim)
+    return self:fuzzyFindCard(content, lim)
   end
-  local item = self.tbl:findCardsByTags(tag_ids, lim, is_and)
+  local statement = nil
+  if content ~= "" then
+    statement = "c.content like '%" .. content .. "%'"
+  end
+  local item = self.tbl:findCardsByTags(tag_ids, lim, is_and, nil, statement)
   return self:cardFields2CardItems(item)
 end
 

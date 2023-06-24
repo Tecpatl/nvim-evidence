@@ -356,8 +356,9 @@ end
 ---@param limit_num? number
 ---@param is_and? boolean
 ---@param column? string
+---@param statement? string
 ---@return nil | CardField[]
-function SqlTable:findCardsByTags(tag_ids, limit_num, is_and, column)
+function SqlTable:findCardsByTags(tag_ids, limit_num, is_and, column, statement)
   if is_and == nil then
     is_and = true
   end
@@ -377,13 +378,18 @@ function SqlTable:findCardsByTags(tag_ids, limit_num, is_and, column)
       .. column
       .. " FROM "
       .. Tables.card
-      .. " AS c JOIN "
+      .. " AS c"
+      .. " JOIN "
       .. Tables.card_tag
       .. " AS ct ON c.id = ct.card_id JOIN "
       .. Tables.tag
       .. " AS t ON ct.tag_id = t.id WHERE t.id IN ("
       .. tag_str
-      .. ") GROUP BY c.id"
+      .. ") "
+  if statement ~= nil and statement ~= "" then
+    query = query .. " and " .. statement
+  end
+  query = query .. " GROUP BY c.id"
   if is_and then
     query = query .. " HAVING COUNT(DISTINCT t.id) = " .. cnt
   end
