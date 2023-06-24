@@ -890,12 +890,25 @@ function Menu:setSelectTagsTreeMode(now_tag_id, is_and, is_add_mode)
       ["i"] = {
         --- keymap help
         ["<c-h>"] = function(prompt_bufnr)
-          print("<c-x>:switchList <c-e>:addSelectTag <c-d>:delSelectTag")
+          print("<c-x>:switchList <c-e>:addSelectTag <c-d>:delSelectTag <c-v>:replaceNowCardTags")
         end,
         --- switchList
         ["<c-x>"] = function(prompt_bufnr)
           local picker = action_state.get_current_picker(prompt_bufnr)
           local res = self:setSelectTagsListMode(is_and, true)
+          self.telescope_menu:flushResult(res, picker, prompt_bufnr)
+        end,
+        --- replaceNowCardTags
+        ["<c-v>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local card_id = self:getNowItem().id
+          local tags = self.model:findIncludeTagsByCard(card_id)
+          if tags == nil then
+            print("tags empty")
+            return
+          end
+          self.select_tags = tools.getValArrayFromItem(tags, "id")
+          local res = self:setSelectTagsTreeMode(-1, is_and, true)
           self.telescope_menu:flushResult(res, picker, prompt_bufnr)
         end,
         --- addSelectTag
@@ -964,13 +977,26 @@ function Menu:setSelectTagsListMode(is_and, is_add_mode)
       ["i"] = {
         --- keymap help
         ["<c-h>"] = function(prompt_bufnr)
-          print("<c-x>:switchTree <c-e>:addSelectTag <c-d>:delSelectTag")
+          print("<c-x>:switchTree <c-e>:addSelectTag <c-d>:delSelectTag <c-v>:replaceNowCardTags")
         end,
         --- switchTree
         ["<c-x>"] = function(prompt_bufnr)
           local picker = action_state.get_current_picker(prompt_bufnr)
           local select_item = action_state.get_selected_entry()
           local res = self:setSelectTagsTreeMode(-1, is_and, true)
+          self.telescope_menu:flushResult(res, picker, prompt_bufnr)
+        end,
+        --- replaceNowCardTags
+        ["<c-v>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local card_id = self:getNowItem().id
+          local tags = self.model:findIncludeTagsByCard(card_id)
+          if tags == nil then
+            print("tags empty")
+            return
+          end
+          self.select_tags = tools.getValArrayFromItem(tags, "id")
+          local res = self:setSelectTagsListMode(is_and, true)
           self.telescope_menu:flushResult(res, picker, prompt_bufnr)
         end,
         --- addSelectTag
