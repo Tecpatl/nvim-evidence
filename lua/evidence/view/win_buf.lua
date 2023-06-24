@@ -167,6 +167,12 @@ function WinBufImpl:viewContent(form)
   --vim.api.nvim_feedkeys("zx", "n", false)
 end
 
+---@class HighlightWord
+---@field id number
+---@field name string
+---@field guibg string
+---@field guifg string
+
 ---@class WinBuf
 ---@field _ WinBufImpl[]
 ---@field model Model
@@ -174,6 +180,8 @@ end
 ---@field instance WinBuf
 ---@field divider string
 ---@field data_ table
+---@field highlight_words_ HighlightWord[]
+---@field highlight_lim number
 local WinBuf = {}
 
 WinBuf.__index = function(self, key)
@@ -198,6 +206,8 @@ function WinBuf:getInstance()
       model = {},
       is_setup = false,
       divider = "================",
+      highlight_words_ = {},
+      highlight_lim = 3,
     }, self)
   end
   return self.instance
@@ -215,9 +225,37 @@ function WinBuf:setup(data, divider)
     self.divider = divider
   end
   WinBuf.__index = WinBuf
-  vim.api.nvim_command("highlight EvidenceWordHidden guibg=purple guifg=purple")
   self.data_ = data
   self._ = {}
+  self:initHighlight(self.highlight_lim)
+end
+
+---@param count number
+function WinBuf:initHighlight(count)
+  local colors = tools.generateDistinctColors(count)
+  for i = #colors, 1, -1 do
+    local color = colors[i]
+    local name = "EvidenceWordHidden" .. i
+    table.insert(self.highlight_words_, { id = i, name = name, guibg = color, guifg = color })
+    vim.api.nvim_command("highlight " .. name .. " guibg=" .. color .. " guifg=" .. color)
+  end
+end
+
+---@param win_id number
+function WinBuf:addHighlight(win_id)
+  for _, v in ipairs(self.highlight_words_) do
+    vim.api.nvim_win_call(win_id, function()
+      local pattern = "{{<\\[" .. v.id .. "\\]" .. "\\_.\\{-\\}" .. "\\[" .. v.id .. "\\]>}}"
+      vim.fn.matchadd(v.name, pattern)
+    end)
+  end
+end
+
+---@param win_id number
+function WinBuf:delHighlight(win_id)
+  for _, v in ipairs(self.highlight_words_) do
+    tools.clear_match(v.name, win_id)
+  end
 end
 
 ---@class WinBufInfo
@@ -316,13 +354,17 @@ function WinBuf:switchFold(buf_id, is_fold)
   if is_fold then
     content = self:extractString(content)
     if winid ~= nil then
-      vim.api.nvim_win_call(winid, function()
-        vim.fn.matchadd("EvidenceWordHidden", "{{<\\_.\\{-}>}}")
-      end)
+      -- todo
+      --vim.api.nvim_win_call(winid, function()
+      --  vim.fn.matchadd("EvidenceWordHidden", "{{<\\_.\\{-\\}>}}")
+      --end)
+      self:addHighlight(winid)
     end
   else
     if winid ~= nil then
-      tools.clear_match("EvidenceWordHidden", winid)
+      self:delHighlight(winid)
+      -- todo
+      --tools.clear_match("EvidenceWordHidden", winid)
     end
   end
   buf_item:viewContent(content)
