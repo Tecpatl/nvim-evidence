@@ -120,7 +120,3 @@ orgmode 适用于安排有风险不稳定的计划或短期任务. (指南针)
 - 各种find带fuzzy(英文首字母简写)
 
 - findCardBySelectTags add fuzzy
-
-- 多级分隔符规则列表, 方便处理递归情况
-
-- 将visual 选中的文本快速生成新卡片(询问是否带上父卡片的tags), 或变分隔符填空
