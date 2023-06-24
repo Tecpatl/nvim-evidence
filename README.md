@@ -26,10 +26,6 @@ orgmode 适用于安排有风险不稳定的计划或短期任务. (指南针)
 
   https://www.youtube.com/watch?v=SoCBgbiWhjw
 
-- multi winbuf && visual select color highlight hidden
-
-  https://www.youtube.com/watch?v=A0g7XXBKoB8
-
 ### Install && Setup (lazy for example) 
 
 ```lua
@@ -89,7 +85,7 @@ orgmode 适用于安排有风险不稳定的计划或短期任务. (指南针)
 
 - findNewCard:  开启新卡片且满足select_tags的搜索弹出作为当前卡片
 
-- recordCard: 根据visit, insert, delete, edit 四个方式查看最近处理过的卡片
+- recordCard: 根据visit, insert, delete, edit 四个方式查看最近处理过的卡片 (区分活跃和已删除卡片)
 
 - setBufferList: 增删查管理多个winbuf
 
