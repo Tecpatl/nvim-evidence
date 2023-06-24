@@ -183,4 +183,51 @@ function MenuHelper:createBasicPreviewer(opts)
   })
 end
 
+---@param content string
+---@return number
+function MenuHelper:getNewDividerId(content)
+  local pattern = [[{{<%[(%d+)%].-%[(%d+)%]>}}]]
+  local ids = { 0 } -- id start with 1
+  for match in string.gmatch(content, pattern) do
+    table.insert(ids, tonumber(match))
+  end
+  return tools.findMinMissingNumber(ids, 255)
+end
+
+---@param bufnr number
+---@param region SelectRegion
+---@param prefixStr string
+---@param suffixStr string
+function MenuHelper:addPrefixAndSuffix(bufnr, region, prefixStr, suffixStr)
+  local INT_MAX = 2147483647
+  --vim.api.nvim_set_current_win(tmp_win_id)
+  --print(vim.inspect(region))
+  local startRow = region.startRow
+  local startCol = region.startCol
+  local endRow = region.endRow
+  local endCol = region.endCol
+
+  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+
+  --print(vim.inspect(lines))
+  --print(vim.inspect(startRow .. " " .. startCol))
+  --print(vim.inspect(endRow .. " " .. endCol))
+
+  for row = startRow, endRow do
+    local line = lines[row]
+    if row == startRow then
+      line = tools.insertStringAtPosition(line, startCol - 1, prefixStr)
+    end
+    if row == endRow then
+      if endCol == INT_MAX then
+        line = line .. suffixStr
+      else
+        line = tools.insertStringAtPosition(line, endCol + #prefixStr, suffixStr)
+      end
+    end
+    lines[row] = line
+  end
+  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+end
+
 return MenuHelper:getInstance()

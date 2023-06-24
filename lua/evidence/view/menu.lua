@@ -12,7 +12,14 @@ local NextCardMode = {
   rand = 3,
 }
 
+---@class SelectRegion
+---@field startRow number
+---@field startCol number
+---@field endRow number
+---@field endCol number
+
 ---@class Menu
+---@field select_region SelectRegion
 ---@field now_buf_id number
 ---@field now_win_id number
 ---@field tbl SqlTable
@@ -50,6 +57,7 @@ function Menu:getInstance()
   if not self.instance then
     self.instance = setmetatable({
       now_buf_id = -1,
+      select_region = {},
       now_win_id = -1,
       is_setup = false,
       select_tags = {},
@@ -231,6 +239,10 @@ function Menu:delCard()
   end
   self.model:delCard(self:getNowItem().id)
   self:nextCard()
+end
+
+function Menu:hidden()
+  self.win_buf:switchFold(self.now_buf_id, true)
 end
 
 function Menu:answer()
@@ -1442,13 +1454,30 @@ end
 
 ---@param buf_id number
 ---@param win_id number
-function Menu:setNowBufWinId(buf_id, win_id)
+---@param select_region? SelectRegion
+function Menu:setNowBufWinId(buf_id, win_id, select_region)
   self.now_buf_id = buf_id
   self.now_win_id = win_id
+  if select_region ~= nil then
+    self.select_region = select_region
+  end
 end
 
 function Menu:refreshCard()
   self.win_buf:viewContent(self.now_buf_id, self:getNowItem())
+end
+
+function Menu:addDivider()
+  if self.select_region == {} then
+    error("addDivider select_region empty")
+  end
+  local content = vim.api.nvim_buf_get_lines(self.now_buf_id, 0, -1, false)
+  local content_str = table.concat(content, "\n")
+  local new_id = self.helper:getNewDividerId(content_str)
+  local prefixStr = "{{<[" .. new_id .. "] "
+  local suffixStr = " [" .. new_id .. "]>}}"
+  self.helper:addPrefixAndSuffix(self.now_buf_id, self.select_region, prefixStr, suffixStr)
+  self.select_region = {}
 end
 
 ---@param title string

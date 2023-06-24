@@ -1,4 +1,5 @@
 require("evidence.util.dumper")
+local bit = require("bit")
 
 local function isInTable(v, tb)
   for _, value in ipairs(tb) do
@@ -256,6 +257,106 @@ local function getVisualSelection()
   end
 end
 
+---@param arr number[]
+---@param lim number
+---@return number
+local function findMinMissingNumber(arr, lim)
+  local bitmapSize = math.ceil(lim / 32)
+  local bitmap = {}
+
+  for _, num in ipairs(arr) do
+    local index = math.floor(num / 32) + 1
+    local bitPos = num % 32
+
+    bitmap[index] = bit.bor(bitmap[index] or 0, bit.lshift(1, bitPos))
+  end
+
+  for i = 1, bitmapSize do
+    if not bitmap[i] or bitmap[i] ~= 0xFFFFFFFF then
+      for j = 0, 31 do
+        if not (bitmap[i] and bit.band(bit.rshift(bitmap[i], j), 1) == 1) then
+          return (i - 1) * 32 + j
+        end
+      end
+    end
+  end
+
+  return -1
+end
+
+---@param count number
+---@return string[]
+local function generateDistinctColors(count)
+  local colors = {}
+
+  local step = 360 / count
+
+  for i = 1, count do
+    local hue = (i - 1) * step
+
+    local h = hue / 360
+    local s = 1
+    local v = 1
+
+    local r, g, b
+    if s == 0 then
+      r, g, b = v, v, v
+    else
+      local i = math.floor(h * 6)
+      local f = h * 6 - i
+      local p = v * (1 - s)
+      local q = v * (1 - s * f)
+      local t = v * (1 - s * (1 - f))
+
+      if i % 6 == 0 then
+        r, g, b = v, t, p
+      elseif i % 6 == 1 then
+        r, g, b = q, v, p
+      elseif i % 6 == 2 then
+        r, g, b = p, v, t
+      elseif i % 6 == 3 then
+        r, g, b = p, q, v
+      elseif i % 6 == 4 then
+        r, g, b = t, p, v
+      else
+        r, g, b = v, p, q
+      end
+    end
+    local hex = string.format("#%02X%02X%02X", r * 255, g * 255, b * 255)
+    table.insert(colors, hex)
+  end
+
+  return colors
+end
+
+-- 在字符串的指定下标位置处添加新的字符串
+---@param originalString string
+---@param position number
+---@param newString string
+local function insertStringAtPosition(originalString, position, newString)
+  local firstPart = originalString:sub(1, position)
+  local secondPart = originalString:sub(position + 1)
+  local finalString = firstPart .. newString .. secondPart
+  return finalString
+end
+
+---@return SelectRegion | {}
+local function getVisualSelectPos()
+  local a1, a2, a3, a4 = unpack(vim.fn.getpos("'<"))
+  local b1, b2, b3, b4 = unpack(vim.fn.getpos("'>"))
+  --print(vim.inspect(a1 .. " " .. a2 .. " " .. a3 .. " " .. a4))
+  --print(vim.inspect(b1 .. " " .. b2 .. " " .. b3 .. " " .. b4))
+  if a2 == 0 and a3 == 0 and b2 == 0 and b3 == 0 then
+    return {}
+  end
+  return {
+    startRow = a2,
+    startCol = a3,
+    endRow = b2,
+    endCol = b3,
+  }
+end
+
 return {
   isInTable = isInTable,
   table_concat = table_concat,
@@ -276,4 +377,8 @@ return {
   clear_match = clear_match,
   get_window_id_from_buffer_id = get_window_id_from_buffer_id,
   getVisualSelection = getVisualSelection,
+  findMinMissingNumber = findMinMissingNumber,
+  generateDistinctColors = generateDistinctColors,
+  insertStringAtPosition = insertStringAtPosition,
+  getVisualSelectPos = getVisualSelectPos,
 }

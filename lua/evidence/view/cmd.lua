@@ -53,6 +53,12 @@ local normalMenu = {
 		end,
 	},
 	{
+		name = "hidden",
+		foo = function()
+			return menu:hidden()
+		end,
+	},
+	{
 		name = "answer",
 		foo = function()
 			return menu:answer()
@@ -201,18 +207,23 @@ local visualMenu = {
 		end,
 	},
 	{
-		name = "divider",
+		name = "addDivider",
 		foo = function()
-			--todo
+			menu:addDivider()
 		end,
 	},
 }
 
+---@param is_region? boolean
 ---@return WinBufIdInfo
-local function setNowBufWin()
+local function setNowBufWin(is_region)
 	local now_win_id = vim.api.nvim_get_current_win()
 	local now_buf_id = vim.api.nvim_get_current_buf()
-	menu:setNowBufWinId(now_buf_id, now_win_id)
+	local region = {}
+	if is_region == true then
+		region = tools.getVisualSelectPos()
+	end
+	menu:setNowBufWinId(now_buf_id, now_win_id, region)
 	return {
 		win_id = now_win_id,
 		buf_id = now_buf_id,
@@ -224,10 +235,9 @@ local function startVisual(content)
 	if not checkStartInSelfBuf() then
 		return
 	end
-	local info = setNowBufWin()
+	local info = setNowBufWin(true)
 	file_type = vim.api.nvim_buf_get_option(info.buf_id, "filetype")
 	visual_content = content
-	menu:setNowBufWinId(info.buf_id, info.win_id)
 	menu:telescopeStart("VisualMenu", visualMenu)
 end
 
