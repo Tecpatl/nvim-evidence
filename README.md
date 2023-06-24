@@ -36,6 +36,10 @@ orgmode 适用于安排有风险不稳定的计划或短期任务. (指南针)
          config = function()
              local user_data = {
                 uri = "~/sql/v1",
+                is_record = true,
+                key_map = {
+                    visual_cmd = "<leader>Ev",
+                },
                 parameter = {
                     request_retention = 0.7,
                     maximum_interval = 100,
@@ -59,7 +63,7 @@ orgmode 适用于安排有风险不稳定的计划或短期任务. (指南针)
 
 ### 当前卡片card操作   
 
-- addCard: 将缓冲区内容生成新卡片
+- addCard: 将缓冲区内容生成新卡片, 支持选中内容直接生成
 
 - nextCard: 弹出下一个待处理卡片(30%新卡片,70%旧卡片), 如果有select_tags, 会在tags集合中选中下一个
 
@@ -82,6 +86,12 @@ orgmode 适用于安排有风险不稳定的计划或短期任务. (指南针)
 - findNewCard:  开启新卡片且满足select_tags的搜索弹出作为当前卡片
 
 - recordCard: 根据visit, insert, delete, edit 四个方式查看最近处理过的卡片
+
+- setBufferList: 增删查管理多个winbuf
+
+- refreshCard: 刷新卡片, 重置缓冲区修改内容
+
+- addDivider: 对选中内容进行颜色遮盖, 模拟填空题
 
 ### 对tags操作 
 
@@ -118,5 +128,3 @@ orgmode 适用于安排有风险不稳定的计划或短期任务. (指南针)
 - card如果希望关联到另一个card, 或尽量通过建立共同的tag实现
 
 - 各种find带fuzzy(英文首字母简写)
-
-- findCardBySelectTags add fuzzy
