@@ -26,6 +26,10 @@ orgmode 适用于安排有风险不稳定的计划或短期任务. (指南针)
 
   https://www.youtube.com/watch?v=SoCBgbiWhjw
 
+- multi winbuf && visual select color highlight hidden
+
+  https://www.youtube.com/watch?v=A0g7XXBKoB8
+
 ### Install && Setup (lazy for example) 
 
 ```lua
