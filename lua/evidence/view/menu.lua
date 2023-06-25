@@ -170,7 +170,7 @@ function Menu:setBufferList()
       },
       name = v.name,
       foo = function()
-        local info = self.win_buf:remainOne()
+        local info = self.win_buf:remainOneWin()
         self.win_buf:openSplitWin(info.win_id, { v.buf })
         if info.buf_id ~= v.buf then
           self.win_buf:closeBufId(info.buf_id)
@@ -188,7 +188,7 @@ function Menu:setBufferList()
         for _, item in pairs(value) do
           table.insert(buf_ids, item.info.id)
         end
-        local info = self.win_buf:remainOne()
+        local info = self.win_buf:remainOneWin()
         self.win_buf:openSplitWin(info.win_id, buf_ids)
         if not tools.isInTable(info.buf_id, buf_ids) then
           self.win_buf:closeBufId(info.buf_id)
