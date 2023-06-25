@@ -147,7 +147,11 @@ end
 
 ---@return CardItem
 function Menu:getNowItem()
-  return self.win_buf:getNowInfo(self.now_buf_id).item
+  local item = self.win_buf:getNowInfo(self.now_buf_id).item
+  if not self.model:checkCardExistById(item.id) then
+    error("now card empty")
+  end
+  return item
 end
 
 ---@class BufferHelper

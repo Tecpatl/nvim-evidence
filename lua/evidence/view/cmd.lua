@@ -33,16 +33,6 @@ local function setup(data)
 end
 
 ---@type SimpleMenu[]
-local emptyNormalMenu = {
-  {
-    name = "addCard",
-    foo = function()
-      return menu:addCard()
-    end,
-  },
-}
-
----@type SimpleMenu[]
 local emptyVisualMenu = {
   {
     name = "addCard",
@@ -53,7 +43,7 @@ local emptyVisualMenu = {
 }
 
 ---@type SimpleMenu[]
-local normalMenu = {
+local emptyNormalMenu = {
   {
     name = "addCard",
     foo = function()
@@ -67,57 +57,9 @@ local normalMenu = {
     end,
   },
   {
-    name = "delCard",
-    foo = function()
-      return menu:delCard()
-    end,
-  },
-  {
-    name = "hidden",
-    foo = function()
-      return menu:hidden()
-    end,
-  },
-  {
-    name = "answer",
-    foo = function()
-      return menu:answer()
-    end,
-  },
-  {
-    name = "editCard",
-    foo = function()
-      return menu:editCard()
-    end,
-  },
-  {
-    name = "infoCard",
-    foo = function()
-      return menu:infoCard()
-    end,
-  },
-  {
-    name = "scoreCard",
-    foo = function()
-      return menu:scoreCard()
-    end,
-  },
-  {
     name = "findCard",
     foo = function()
       return menu:fuzzyFindCard()
-    end,
-  },
-  {
-    name = "findTagsByNowCard",
-    foo = function()
-      return menu:findTagsByNowCard()
-    end,
-  },
-  {
-    name = "setTagsForNowCard",
-    foo = function()
-      return menu:setTagsForNowCardMain()
     end,
   },
   {
@@ -210,29 +152,75 @@ local normalMenu = {
       return menu:setBufferList()
     end,
   },
+}
+
+---@type SimpleMenu[]
+local normalMenu = tools.table_concat({
   {
     name = "refreshCard",
     foo = function()
       return menu:refreshCard()
     end,
   },
-}
-
----@type SimpleMenu[]
-local visualMenu = {
   {
-    name = "addCard",
+    name = "findTagsByNowCard",
     foo = function()
-      return menu:addCardSplit(visual_content, file_type)
+      return menu:findTagsByNowCard()
     end,
   },
+  {
+    name = "setTagsForNowCard",
+    foo = function()
+      return menu:setTagsForNowCardMain()
+    end,
+  },
+  {
+    name = "delCard",
+    foo = function()
+      return menu:delCard()
+    end,
+  },
+  {
+    name = "hidden",
+    foo = function()
+      return menu:hidden()
+    end,
+  },
+  {
+    name = "answer",
+    foo = function()
+      return menu:answer()
+    end,
+  },
+  {
+    name = "editCard",
+    foo = function()
+      return menu:editCard()
+    end,
+  },
+  {
+    name = "infoCard",
+    foo = function()
+      return menu:infoCard()
+    end,
+  },
+  {
+    name = "scoreCard",
+    foo = function()
+      return menu:scoreCard()
+    end,
+  },
+}, emptyNormalMenu)
+
+---@type SimpleMenu[]
+local visualMenu = tools.table_concat({
   {
     name = "addDivider",
     foo = function()
       menu:addDivider()
     end,
   },
-}
+}, emptyVisualMenu)
 
 ---@param is_region? boolean
 ---@return WinBufIdInfo
@@ -258,11 +246,13 @@ local function startVisual(content)
   local info = setNowBufWin(true)
   file_type = vim.api.nvim_buf_get_option(info.buf_id, "filetype")
   visual_content = content
+  local msg = "EmptyVisualMenu"
   local menuList = emptyVisualMenu
   if winBuf:checkSelfBufValid(info.buf_id) then
     menuList = visualMenu
+    msg = "visualMenu"
   end
-  menu:telescopeStart("VisualMenu", menuList)
+  menu:telescopeStart(msg, menuList)
 end
 
 local function startNormal()
@@ -270,11 +260,13 @@ local function startNormal()
     return
   end
   local info = setNowBufWin()
+  local msg = "EmptyNormalMenu"
   local menuList = emptyNormalMenu
   if winBuf:checkSelfBufValid(info.buf_id) then
     menuList = normalMenu
+    msg = "NormalMenu"
   end
-  menu:telescopeStart("NormalMenu", menuList)
+  menu:telescopeStart(msg, menuList)
 end
 
 ---@param data ModelTableParam
