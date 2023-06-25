@@ -165,8 +165,9 @@ end
 
 ---@param limit_num number
 ---@param access_ways AccessWayType[]
+---@param statement? string
 ---@return RecordCardField | nil
-function SqlTable:findRecordCard(limit_num, access_ways)
+function SqlTable:findRecordCard(limit_num, access_ways, statement)
   --- output insert is_active column judge card is exist
   local query = "SELECT rc.*, case when c.id is not null then 1 else 0 end as is_active FROM "
       .. Tables.record_card
@@ -183,6 +184,9 @@ function SqlTable:findRecordCard(limit_num, access_ways)
       way_str = way_str .. val
     end
     query = query .. " where rc.access_way in (" .. way_str .. " ) "
+  end
+  if statement ~= nil and statement ~= "" then
+    query = query .. " and " .. statement
   end
 
   if limit_num ~= nil and limit_num ~= -1 then

@@ -599,10 +599,15 @@ function Model:findRecordCardRaw(access_ways)
   return self:recordCardFields2RecordCardItems(items)
 end
 
+---@param content string
 ---@param access_ways AccessWayType[]
 ---@return CardItem[] | nil
-function Model:findRecordCard(access_ways)
-  local items = self.tbl:findRecordCard(-1, access_ways)
+function Model:findRecordCard(content, access_ways)
+  local statement = nil
+  if content ~= "" then
+    statement = "rc.content like '%" .. content .. "%'"
+  end
+  local items = self.tbl:findRecordCard(-1, access_ways, statement)
   return self:recordCardFields2CardItems(items)
 end
 

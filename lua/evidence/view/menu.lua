@@ -1429,19 +1429,20 @@ end
 ---@param str string
 ---@return TelescopeMenu
 function Menu:recordCardList(ways, str)
-  local items = self.model:findRecordCard(ways)
-  if items == nil then
-    items = {}
+  local foo = function(prompt)
+    local items = self.model:findRecordCard(prompt, ways)
+    if items == nil then
+      items = {}
+    end
+    items = tools.reverseArray(items)
+    return items
   end
-  items = tools.reverseArray(items)
   return {
     prompt_title = "Evidence recordCard {" .. str .. "}",
-    menu_item = items,
+    menu_item = {},
     main_foo = nil,
     previewer = self.helper:createCardPreviewer(),
-    card_entry_maker = function(entry)
-      return self.helper:card_entry_maker(self.now_buf_id, entry)
-    end,
+    process_work = self.helper:createCardProcessWork(self.now_buf_id, foo),
   }
 end
 
