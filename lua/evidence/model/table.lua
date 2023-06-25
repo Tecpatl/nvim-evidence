@@ -24,6 +24,7 @@ local SqlInfo = {}
 ---@field file_type string "markdown" | "org"
 ---@field timestamp Timestamp
 ---@field access_way AccessWayType
+---@field is_active number 1|0
 
 ---@class TagField
 ---@field id number
@@ -166,7 +167,13 @@ end
 ---@param access_ways AccessWayType[]
 ---@return RecordCardField | nil
 function SqlTable:findRecordCard(limit_num, access_ways)
-  local query = "SELECT * FROM " .. Tables.record_card
+  --- output insert is_active column judge card is exist
+  local query = "SELECT rc.*, case when c.id is not null then 1 else 0 end as is_active FROM "
+      .. Tables.record_card
+      .. " as rc "
+      .. " left join "
+      .. Tables.card
+      .. " as c on rc.card_id=c.id "
   if not tools.isTableEmpty(access_ways) then
     local way_str = ""
     for key, val in pairs(access_ways) do
@@ -175,8 +182,9 @@ function SqlTable:findRecordCard(limit_num, access_ways)
       end
       way_str = way_str .. val
     end
-    query = query .. " where access_way in (" .. way_str .. " ) "
+    query = query .. " where rc.access_way in (" .. way_str .. " ) "
   end
+
   if limit_num ~= nil and limit_num ~= -1 then
     query = query .. " LIMIT " .. limit_num
   end

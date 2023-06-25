@@ -53,7 +53,7 @@ function MenuHelper:createCardPreviewer()
       return entry.value.id
     end,
     define_preview = function(self, entry, status)
-      local content = entry.display:gsub("\\n", "\n")
+      local content = entry.ordinal:gsub("\\n", "\n")
       local formTbl = tools.str2table(content)
       vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, formTbl)
       local file_type = entry.value.file_type
@@ -72,7 +72,7 @@ function MenuHelper:createCardPreviewer()
 end
 
 ---@param buf_id number
----@param entry table
+---@param entry CardItem
 function MenuHelper:card_entry_maker(buf_id, entry)
   if entry.content == nil then
     return
@@ -81,10 +81,18 @@ function MenuHelper:card_entry_maker(buf_id, entry)
     winBuf:viewContent(buf_id, entry)
   end
   local content = entry.content:gsub("\n", "\\n")
+  local bar_content = content 
+  if entry.is_active ~= nil then
+    if entry.is_active == 1 then
+      bar_content = "[active]" .. bar_content
+    else
+      bar_content = "[inactive]" .. bar_content
+    end
+  end
   return {
     value = entry,
     ordinal = content,
-    display = content,
+    display = bar_content,
   }
 end
 

@@ -1425,8 +1425,8 @@ function Menu:mergeTagStart()
   }
 end
 
----@params ways number[]
----@params str string
+---@param ways number[]
+---@param str string
 ---@return TelescopeMenu
 function Menu:recordCardList(ways, str)
   local items = self.model:findRecordCard(ways)
