@@ -337,8 +337,14 @@ end
 ---@param buf_id number
 ---@param item CardItem
 ---@param is_fold? boolean
-function WinBuf:viewContent(buf_id, item, is_fold)
-  self.model:insertRecordCard(item.id, tblInfo.AccessWay.visit)
+---@param is_record? boolean
+function WinBuf:viewContent(buf_id, item, is_fold, is_record)
+  if is_record == nil then
+    is_record = true
+  end
+  if is_record then
+    self.model:insertRecordCard(item.id, tblInfo.AccessWay.visit)
+  end
   local buf_item = self:getNowBufItem(buf_id)
   is_fold = is_fold or true
   buf_item.item = item
@@ -463,9 +469,22 @@ end
 ---@param buf_id number
 ---@return boolean
 function WinBuf:checkSelfBuf(buf_id)
-  for key, item in pairs(self._) do
-    if buf_id == item.buf then
+  for key, buf_item in pairs(self._) do
+    if buf_id == buf_item.buf then
       return true
+    end
+  end
+  return false
+end
+
+---@param buf_id number
+---@return boolean
+function WinBuf:checkSelfBufValid(buf_id)
+  for key, buf_item in pairs(self._) do
+    if buf_id == buf_item.buf then
+      local ret = self.model:checkCardExistById(buf_item.item.id)
+      buf_item.item.is_active = ret
+      return ret
     end
   end
   return false

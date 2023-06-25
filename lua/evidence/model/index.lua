@@ -11,6 +11,7 @@ local queue = require("evidence.util.queue")
 ---@field due Timestamp
 ---@field card Card
 ---@field file_type string "markdown" | "org"
+---@field is_active? boolean
 
 ---@class RecordCardItem
 ---@field id number
@@ -598,10 +599,15 @@ function Model:findRecordCardRaw(access_ways)
   return self:recordCardFields2RecordCardItems(items)
 end
 
+---@param content string
 ---@param access_ways AccessWayType[]
 ---@return CardItem[] | nil
-function Model:findRecordCard(access_ways)
-  local items = self.tbl:findRecordCard(-1, access_ways)
+function Model:findRecordCard(content, access_ways)
+  local statement = nil
+  if content ~= "" then
+    statement = "rc.content like '%" .. content .. "%'"
+  end
+  local items = self.tbl:findRecordCard(-1, access_ways, statement)
   return self:recordCardFields2CardItems(items)
 end
 
@@ -609,6 +615,12 @@ end
 ---@return CardField
 function Model:findCardById(id)
   return self.tbl:findCardById(id)
+end
+
+---@param id number
+---@return boolean
+function Model:checkCardExistById(id)
+  return self.tbl:checkCardExistById(id)
 end
 
 ---@param card_id number

@@ -24,6 +24,7 @@ local SqlInfo = {}
 ---@field file_type string "markdown" | "org"
 ---@field timestamp Timestamp
 ---@field access_way AccessWayType
+---@field is_active boolean
 
 ---@class TagField
 ---@field id number
@@ -162,11 +163,25 @@ function SqlTable:findCardById(id)
   end
 end
 
+---@param id number
+---@return boolean
+function SqlTable:checkCardExistById(id)
+  local ret = self:findCard(1, "id=" .. id)
+  return ret ~= nil
+end
+
 ---@param limit_num number
 ---@param access_ways AccessWayType[]
+---@param statement? string
 ---@return RecordCardField | nil
-function SqlTable:findRecordCard(limit_num, access_ways)
-  local query = "SELECT * FROM " .. Tables.record_card
+function SqlTable:findRecordCard(limit_num, access_ways, statement)
+  --- output insert is_active column judge card is exist
+  local query = "SELECT rc.*, case when c.id is not null then 1 else 0 end as is_active FROM "
+      .. Tables.record_card
+      .. " as rc "
+      .. " left join "
+      .. Tables.card
+      .. " as c on rc.card_id=c.id "
   if not tools.isTableEmpty(access_ways) then
     local way_str = ""
     for key, val in pairs(access_ways) do
@@ -175,12 +190,26 @@ function SqlTable:findRecordCard(limit_num, access_ways)
       end
       way_str = way_str .. val
     end
-    query = query .. " where access_way in (" .. way_str .. " ) "
+    query = query .. " where rc.access_way in (" .. way_str .. " ) "
   end
+  if statement ~= nil and statement ~= "" then
+    query = query .. " and " .. statement
+  end
+
   if limit_num ~= nil and limit_num ~= -1 then
     query = query .. " LIMIT " .. limit_num
   end
-  return self:eval(query)
+  local ret = self:eval(query)
+  if ret ~= nil then
+    for k, v in ipairs(ret) do
+      if v.is_active == 1 then
+        v.is_active = true
+      else
+        v.is_active = false
+      end
+    end
+  end
+  return ret
 end
 
 ---@param card_id number
