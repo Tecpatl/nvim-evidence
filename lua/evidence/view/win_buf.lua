@@ -435,19 +435,29 @@ function WinBuf:closeAll()
 end
 
 ---@return WinBufIdInfo
-function WinBuf:remainOne()
-  local tbl = self._
-  if #tbl < 1 then
-    error("remainOne empty")
+function WinBuf:remainOneWin()
+  local one_win_id = -1
+  local one_buf_id = -1
+  for key, item_buf in ipairs(self._) do
+    local win_id = tools.get_window_id_from_buffer_id(item_buf.buf)
+    if win_id ~= nil then
+      one_win_id = win_id
+      one_buf_id = item_buf.buf
+      break
+    end
   end
-  for i = #tbl, 2, -1 do
-    tbl[i]:bufferClose()
+  if one_win_id == -1 then
+    error("remainOneWin all closed")
   end
-  local buf_id = tbl[1].buf
-  local win_id = tools.get_window_id_from_buffer_id(buf_id)
+  for key, item_buf in ipairs(self._) do
+    local win_id = tools.get_window_id_from_buffer_id(item_buf.buf)
+    if win_id ~= nil and win_id ~= one_win_id then
+      item_buf:bufferClose()
+    end
+  end
   return {
-    buf_id = buf_id,
-    win_id = win_id,
+    buf_id = one_buf_id,
+    win_id = one_win_id,
   }
 end
 
@@ -482,7 +492,10 @@ end
 function WinBuf:checkSelfBufValid(buf_id)
   for key, buf_item in pairs(self._) do
     if buf_id == buf_item.buf then
-      local ret = self.model:checkCardExistById(buf_item.item.id)
+      local ret = false
+      if buf_item.item.id ~= nil then
+        ret = self.model:checkCardExistById(buf_item.item.id)
+      end
       buf_item.item.is_active = ret
       return ret
     end
