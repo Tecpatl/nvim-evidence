@@ -11,7 +11,7 @@ local queue = require("evidence.util.queue")
 ---@field due Timestamp
 ---@field card Card
 ---@field file_type string "markdown" | "org"
----@field is_active? number 1|0
+---@field is_active? boolean
 
 ---@class RecordCardItem
 ---@field id number

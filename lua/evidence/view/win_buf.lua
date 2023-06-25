@@ -483,11 +483,7 @@ function WinBuf:checkSelfBufValid(buf_id)
   for key, buf_item in pairs(self._) do
     if buf_id == buf_item.buf then
       local ret = self.model:checkCardExistById(buf_item.item.id)
-      if ret then
-        buf_item.item.is_active = 1
-      else
-        buf_item.item.is_active = 0
-      end
+      buf_item.item.is_active = ret
       return ret
     end
   end

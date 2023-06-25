@@ -79,7 +79,7 @@ function MenuHelper:card_entry_maker(buf_id, entry, win_id)
     return
   end
   entry.foo = function()
-    if entry.is_active ~= nil and entry.is_active == 0 then
+    if entry.is_active ~= nil and entry.is_active == false then
       assert(win_id ~= nil)
       local info = winBuf:createSplitWin(win_id) -- will close telescope while create new win
       winBuf:viewContent(info.buf_id, entry, false, false)
@@ -90,7 +90,7 @@ function MenuHelper:card_entry_maker(buf_id, entry, win_id)
   local content = entry.content:gsub("\n", "\\n")
   local bar_content = content
   if entry.is_active ~= nil then
-    if entry.is_active == 1 then
+    if entry.is_active == true then
       bar_content = "[active]" .. bar_content
     else
       bar_content = "[inactive]" .. bar_content

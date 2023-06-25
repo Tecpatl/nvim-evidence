@@ -24,7 +24,7 @@ local SqlInfo = {}
 ---@field file_type string "markdown" | "org"
 ---@field timestamp Timestamp
 ---@field access_way AccessWayType
----@field is_active number 1|0
+---@field is_active boolean
 
 ---@class TagField
 ---@field id number
@@ -199,7 +199,17 @@ function SqlTable:findRecordCard(limit_num, access_ways, statement)
   if limit_num ~= nil and limit_num ~= -1 then
     query = query .. " LIMIT " .. limit_num
   end
-  return self:eval(query)
+  local ret = self:eval(query)
+  if ret ~= nil then
+    for k, v in ipairs(ret) do
+      if v.is_active == 1 then
+        v.is_active = true
+      else
+        v.is_active = false
+      end
+    end
+  end
+  return ret
 end
 
 ---@param card_id number
