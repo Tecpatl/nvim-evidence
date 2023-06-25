@@ -163,6 +163,13 @@ function SqlTable:findCardById(id)
   end
 end
 
+---@param id number
+---@return boolean
+function SqlTable:checkCardExistById(id)
+  local ret = self:findCard(1, "id=" .. id)
+  return ret ~= nil
+end
+
 ---@param limit_num number
 ---@param access_ways AccessWayType[]
 ---@param statement? string

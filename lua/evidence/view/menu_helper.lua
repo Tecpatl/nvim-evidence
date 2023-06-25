@@ -73,15 +73,22 @@ end
 
 ---@param buf_id number
 ---@param entry CardItem
-function MenuHelper:card_entry_maker(buf_id, entry)
+---@param win_id? number
+function MenuHelper:card_entry_maker(buf_id, entry, win_id)
   if entry.content == nil then
     return
   end
   entry.foo = function()
+    if entry.is_active ~= nil and entry.is_active == 0 then
+      assert(win_id ~= nil)
+      local info = winBuf:createSplitWin(win_id) -- will close telescope while create new win
+      winBuf:viewContent(info.buf_id, entry, false, false)
+      return
+    end
     winBuf:viewContent(buf_id, entry)
   end
   local content = entry.content:gsub("\n", "\\n")
-  local bar_content = content 
+  local bar_content = content
   if entry.is_active ~= nil then
     if entry.is_active == 1 then
       bar_content = "[active]" .. bar_content
@@ -106,7 +113,8 @@ end
 
 ---@param buf_id number
 ---@param foo function
-function MenuHelper:createCardProcessWork(buf_id, foo)
+---@param win_id? number
+function MenuHelper:createCardProcessWork(buf_id, foo, win_id)
   return function(prompt, process_result, process_complete)
     self.prompt = prompt
     local x = foo(prompt)
@@ -116,7 +124,7 @@ function MenuHelper:createCardProcessWork(buf_id, foo)
       return
     end
     for _, v in ipairs(x) do
-      process_result(self:card_entry_maker(buf_id, v))
+      process_result(self:card_entry_maker(buf_id, v, win_id))
     end
     process_complete()
   end

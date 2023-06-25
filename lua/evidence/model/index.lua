@@ -617,6 +617,12 @@ function Model:findCardById(id)
   return self.tbl:findCardById(id)
 end
 
+---@param id number
+---@return boolean
+function Model:checkCardExistById(id)
+  return self.tbl:checkCardExistById(id)
+end
+
 ---@param card_id number
 ---@param access_way AccessWayType
 function Model:insertRecordCard(card_id, access_way)
