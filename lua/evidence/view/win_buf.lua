@@ -207,7 +207,7 @@ function WinBuf:getInstance()
       is_setup = false,
       divider = "================",
       highlight_words_ = {},
-      highlight_lim = 3,
+      highlight_lim = 30,
     }, self)
   end
   return self.instance
