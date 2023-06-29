@@ -5,23 +5,17 @@ local tools = require("evidence.util.tools")
 local set = require("evidence.util.set")
 local queue = require("evidence.util.queue")
 
----@class CardItem
----@field id number
----@field content string
----@field due Timestamp
----@field card Card
----@field file_type string "markdown" | "org"
----@field is_active? boolean
+---@alias CardItem CardField
 
----@class RecordCardItem
----@field id number
----@field card_id number
----@field content string
----@field due Timestamp
----@field card Card
----@field file_type string "markdown" | "org"
----@field timestamp Timestamp
----@field access_way AccessWayType
+---@alias RecordCardItem RecordCardField
+
+-----@class RecordCardItem
+-----@field id number
+-----@field card_id number
+-----@field content string
+-----@field file_type string "markdown" | "org"
+-----@field timestamp Timestamp
+-----@field access_way AccessWayType
 
 ---@class ModelTableParam
 ---@field uri string
@@ -96,7 +90,11 @@ function Model:addNewCard(content, file_type)
   local card_info = _.Card:new()
   file_type = file_type or "markdown"
 
-  return self.tbl:insertCard(content, card_info:dumpStr(), card_info.due, file_type)
+  local card_id = self.tbl:insertCard(content, file_type)
+  local info = card_info:dumpStr()
+  local due = card_info.due
+  self.tbl:insertFsrs(card_id, info, due, { 0 })
+  return card_id
 end
 
 ---@param id number
@@ -111,7 +109,7 @@ function Model:editTag(id, row)
   self.tbl:editTag(id, row)
 end
 
----@return nil | CardField[]
+---@return nil | CardItem[]
 function Model:findAllCards()
   return self.tbl:findCard()
 end
@@ -125,15 +123,20 @@ function Model:getMinDueItem(tag_ids, is_and, contain_son, limit_num)
   if contain_son == true and is_and == false then
     tag_ids = self:findAllSonTags(tag_ids)
   end
-  local item = self.tbl:minCardWithTags(tag_ids, is_and, "due", "info NOT LIKE '%reps=0%'", limit_num)
-  return self:cardFields2CardItems(item)
+  if limit_num == nil then
+    limit_num = -1
+  end
+  local item = self.tbl:minDueCardWithTags(tag_ids, is_and, limit_num)
+  --return self:cardFields2CardItems(item)
+  return item
 end
 
 ---@param id number
 ---@return CardItem
 function Model:getItemById(id)
   local item = self:findCardById(id)
-  return self:cardField2CardItem(item)
+  return item
+  --return self:cardField2CardItem(item)
 end
 
 ---@param tag_ids number[]
@@ -145,8 +148,13 @@ function Model:getNewItem(tag_ids, is_and, contain_son, limit_num)
   if contain_son == true and is_and == false then
     tag_ids = self:findAllSonTags(tag_ids)
   end
-  local item = self.tbl:findCardWithTags(tag_ids, is_and, limit_num, "info LIKE '%reps=0%'")
-  return self:cardFields2CardItems(item)
+  local item = self.tbl:findCardWithTags(
+    tag_ids,
+    is_and,
+    limit_num,
+    "card.id in (select card.id from card join fsrs on fsrs.card_id=card.id where fsrs.info like '%reps=0%')"
+  )
+  return item
 end
 
 ---@param tag_ids number[]
@@ -158,7 +166,7 @@ function Model:getRandomItem(tag_ids, is_and, contain_son, limit_num)
     tag_ids = self:findAllSonTags(tag_ids)
   end
   local item = self.tbl:findCardWithTags(tag_ids, is_and, limit_num, "", true)
-  return self:cardFields2CardItems(item)
+  return item
 end
 
 ---@param name string
@@ -186,78 +194,94 @@ function Model:fuzzyFindCard(content, lim)
   else
     item = self.tbl:findCard(lim)
   end
-  return self:cardFields2CardItems(item)
+  return item
+  --return self:cardFields2CardItems(item)
 end
 
----@param item CardField
----@return CardItem
-function Model:cardField2CardItem(item)
-  return tools.merge(item, {
-    card = self:convertRealCard(item),
-  })
-end
+-----@param item CardField
+-----@return CardItem
+--function Model:cardField2CardItem(item)
+--  return {
+--    id = item.id,
+--    content = item.content,
+--    file_type = item.file_type,
+--    is_active = true,
+--  }
+--  --return tools.merge(item, {
+--  --  card = self:convertRealCard(item),
+--  --})
+--end
 
----@param item RecordCardField
----@return CardItem
-function Model:recordCardField2CardItem(item)
-  item.id = item.card_id
-  item.card_id = nil
-  item.timestamp = nil
-  item.access_way = nil
-  return tools.merge(item, {
-    card = self:convertRealCard(item),
-  })
-end
+-----@param item RecordCardField
+-----@return CardItem
+--function Model:recordCardField2CardItem(item)
+--  item.id = item.card_id
+--  item.card_id = nil
+--  item.timestamp = nil
+--  item.access_way = nil
+--  return {
+--    id = item.card_id,
+--    content = item.content,
+--    file_type = item.file_type,
+--    is_active = item.is_active,
+--  }
+--  --return tools.merge(item, {
+--  --  card = self:convertRealCard(item),
+--  --})
+--end
 
----@param item RecordCardField
----@return RecordCardItem
-function Model:recordCardField2RecordCardItem(item)
-  return tools.merge(item, {
-    card = self:convertRealCard(item),
-  })
-end
+--
+-----@param item RecordCardField
+-----@return RecordCardItem
+--function Model:recordCardField2RecordCardItem(item)
+--  return tools.merge(item, {
+--    card = self:convertRealCard(item),
+--  })
+--end
 
----@param item CardField | nil
----@return CardItem[] | nil
-function Model:cardFields2CardItems(item)
-  if type(item) == "table" then
-    local arr = {}
-    for _, v in ipairs(item) do
-      table.insert(arr, self:cardField2CardItem(v))
-    end
-    return arr
-  else
-    return nil
-  end
-end
+-----@param item CardField | nil
+-----@return CardItem[] | nil
+--function Model:cardFields2CardItems(item)
+--  if type(item) == "table" then
+--    local arr = {}
+--    for _, v in ipairs(item) do
+--      table.insert(arr, self:cardField2CardItem(v))
+--    end
+--    return arr
+--  else
+--    return nil
+--  end
+--end
 
----@param item RecordCardField[] | nil
----@return CardItem[] | nil
-function Model:recordCardFields2CardItems(item)
-  if type(item) == "table" then
-    local arr = {}
-    for _, v in ipairs(item) do
-      table.insert(arr, self:recordCardField2CardItem(v))
-    end
-    return arr
-  else
-    return nil
-  end
-end
+--
+-----@param item RecordCardField[] | nil
+-----@return CardItem[] | nil
+--function Model:recordCardFields2CardItems(item)
+--  if type(item) == "table" then
+--    local arr = {}
+--    for _, v in ipairs(item) do
+--      table.insert(arr, self:recordCardField2CardItem(v))
+--    end
+--    return arr
+--  else
+--    return nil
+--  end
+--end
 
----@param item RecordCardField[] | nil
----@return RecordCardItem[]|nil
-function Model:recordCardFields2RecordCardItems(item)
-  if type(item) == "table" then
-    local arr = {}
-    for _, v in ipairs(item) do
-      table.insert(arr, self:recordCardField2RecordCardItem(v))
-    end
-    return arr
-  else
-    return nil
-  end
-end
+--
+-----@param item RecordCardField[] | nil
+-----@return RecordCardItem[]|nil
+--function Model:recordCardFields2RecordCardItems(item)
+--  if type(item) == "table" then
+--    local arr = {}
+--    for _, v in ipairs(item) do
+--      table.insert(arr, self:recordCardField2RecordCardItem(v))
+--    end
+--    return arr
+--  else
+--    return nil
+--  end
+--end
 
 ---@param id number
 function Model:delCard(id)
@@ -278,25 +302,75 @@ function Model:clear()
   return self.tbl:clear()
 end
 
----@param sql_card CardField | RecordCardField
----@return Card
-function Model:convertRealCard(sql_card)
-  local data = tools.parse(sql_card.info)
-  --print(vim.inspect(data))
-  return _.Card:new(data)
+-----@param sql_card CardField | RecordCardField
+-----@return Card
+--function Model:convertRealCard(sql_card)
+--  local data = tools.parse(sql_card.info)
+--  --print(vim.inspect(data))
+--  return _.Card:new(data)
+--end
+--
+
+---@param card_id number
+---@return FsrsField
+function Model:findDefaultFsrsByCard(card_id)
+  local fsrs_item = self.tbl:findDefaultFsrsByCard(card_id)
+  if fsrs_item == nil then
+    error("findDefaultFsrsByCard empty")
+  end
+  return fsrs_item
+end
+
+---@param card_id number
+---@return FsrsField
+function Model:findMinDueFsrsByCard(card_id)
+  local fsrs_items = self:findAllFsrsByCard(card_id)
+  return fsrs_items[1]
+end
+
+---@param card_id number
+---@return FsrsField[]
+function Model:findAllFsrsByCard(card_id)
+  local fsrs_items = self.tbl:findAllFsrsByCard(card_id)
+  if fsrs_items == nil then
+    error("findAllFsrsByCard fsrs_items empty")
+  end
+  return fsrs_items
+end
+
+---@param card_id number
+---@param mark_ids number[]
+function Model:resetFsrsMarks(card_id, mark_ids)
+  local fsrs_items = self:findAllFsrsByCard(card_id)
+  self.tbl:delFsrs(card_id, mark_ids, true)
+  local fsrs_item_ids = tools.getValArrayFromItem(fsrs_items, "mark_id")
+  local fsrs_item_ids_set = set.createSetFromArray(fsrs_item_ids)
+  local new_mark_ids = {}
+  for key, id in pairs(mark_ids) do
+    if not set.contains(fsrs_item_ids_set, id) then
+      table.insert(new_mark_ids, id)
+    end
+  end
+  local default_item = self:findDefaultFsrsByCard(card_id)
+  self.tbl:insertFsrs(card_id, default_item.info, default_item.due, new_mark_ids)
 end
 
 ---@param id number
+---@param mark_id number
 ---@param rating RatingType
 ---@param now_time? Timestamp
-function Model:ratingCard(id, rating, now_time)
+function Model:ratingCard(id, mark_id, rating, now_time)
+  local fsrs_item = self.tbl:findFsrsByCardMark(id, mark_id)
+  if fsrs_item == nil then
+    error("ratingCard mark not exist")
+  end
   local fsrs = self:getFsrs()
-  local sql_card = self:findCardById(id)
   now_time = now_time or os.time()
-  local new_card = fsrs:repeats(self:convertRealCard(sql_card), now_time)[rating].card
-  sql_card.due = new_card.due
-  sql_card.info = new_card:dumpStr()
-  self:editCard(id, sql_card)
+  local data = tools.parse(fsrs_item.info)
+  local new_card = fsrs:repeats(_.Card:new(data), now_time)[rating].card
+  local due = new_card.due
+  local info = new_card:dumpStr()
+  self.tbl:editFsrs(id, mark_id, { due = due, info = info })
 end
 
 ---@return nil | TagField[]
@@ -572,7 +646,7 @@ end
 ---@param contain_son boolean
 ---@param lim? number
 ---@param content? string
----@return nil | CardItem[]
+---@return nil | RecordCardItem[]
 function Model:findCardBySelectTags(tag_ids, is_and, contain_son, lim, content)
   if contain_son == true and is_and == false then
     tag_ids = self:findAllSonTags(tag_ids)
@@ -589,30 +663,33 @@ function Model:findCardBySelectTags(tag_ids, is_and, contain_son, lim, content)
     statement = "c.content like '%" .. content .. "%'"
   end
   local item = self.tbl:findCardsByTags(tag_ids, lim, is_and, nil, statement)
-  return self:cardFields2CardItems(item)
+  return item
+  --return self:cardFields2CardItems(item)
 end
 
 ---@param access_ways AccessWayType[]
 ---@return RecordCardItem[] | nil
 function Model:findRecordCardRaw(access_ways)
   local items = self.tbl:findRecordCard(-1, access_ways)
-  return self:recordCardFields2RecordCardItems(items)
+  --return self:recordCardFields2RecordCardItems(items)
+  return items
 end
 
 ---@param content string
 ---@param access_ways AccessWayType[]
----@return CardItem[] | nil
+---@return RecordCardItem[] | nil
 function Model:findRecordCard(content, access_ways)
   local statement = nil
   if content ~= "" then
     statement = "rc.content like '%" .. content .. "%'"
   end
   local items = self.tbl:findRecordCard(-1, access_ways, statement)
-  return self:recordCardFields2CardItems(items)
+  return items
+  --return self:recordCardFields2CardItems(items)
 end
 
 ---@param id number
----@return CardField
+---@return CardItem
 function Model:findCardById(id)
   return self.tbl:findCardById(id)
 end

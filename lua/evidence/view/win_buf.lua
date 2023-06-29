@@ -180,8 +180,10 @@ end
 ---@field instance WinBuf
 ---@field divider string
 ---@field data_ table
----@field highlight_words_ HighlightWord[]
+---@field hidden_highlight_words_ HighlightWord[]
+---@field fsrs_highlight_lines_ HighlightWord[]
 ---@field highlight_lim number
+---@field fsrs_mark_lim number
 local WinBuf = {}
 
 WinBuf.__index = function(self, key)
@@ -206,8 +208,10 @@ function WinBuf:getInstance()
       model = {},
       is_setup = false,
       divider = "================",
-      highlight_words_ = {},
+      hidden_highlight_words_ = {},
+      fsrs_highlight_lines_ = {},
       highlight_lim = 30,
+      fsrs_mark_lim = 30,
     }, self)
   end
   return self.instance
@@ -227,23 +231,52 @@ function WinBuf:setup(data, divider)
   WinBuf.__index = WinBuf
   self.data_ = data
   self._ = {}
-  self:initHighlight(self.highlight_lim)
+  self:initHiddenHighlight(self.highlight_lim)
+  self:initFsrsMarkHighlight(self.fsrs_mark_lim)
 end
 
 ---@param count number
-function WinBuf:initHighlight(count)
+function WinBuf:initFsrsMarkHighlight(count)
+  local colors = tools.generateDistinctColors(count)
+  for i = #colors, 1, -1 do
+    local color = colors[i]
+    local name = "EvidenceFsrsMark" .. i
+    table.insert(self.fsrs_highlight_lines_, { id = i, name = name, guifg = color })
+    vim.api.nvim_command("highlight " .. name .. " guifg=" .. color)
+  end
+end
+
+---@param win_id number
+function WinBuf:addFsrsMarkHighlight(win_id)
+  for _, v in ipairs(self.fsrs_highlight_lines_) do
+    vim.api.nvim_win_call(win_id, function()
+      local pattern = "======{\\[" .. v.id .. "\\]}======"
+      vim.fn.matchadd(v.name, pattern)
+    end)
+  end
+end
+
+---@param win_id number
+function WinBuf:delFsrsMarkHighlight(win_id)
+  for _, v in ipairs(self.fsrs_highlight_lines_) do
+    tools.clear_match(v.name, win_id)
+  end
+end
+
+---@param count number
+function WinBuf:initHiddenHighlight(count)
   local colors = tools.generateDistinctColors(count)
   for i = #colors, 1, -1 do
     local color = colors[i]
     local name = "EvidenceWordHidden" .. i
-    table.insert(self.highlight_words_, { id = i, name = name, guibg = color, guifg = color })
+    table.insert(self.hidden_highlight_words_, { id = i, name = name, guibg = color, guifg = color })
     vim.api.nvim_command("highlight " .. name .. " guibg=" .. color .. " guifg=" .. color)
   end
 end
 
 ---@param win_id number
-function WinBuf:addHighlight(win_id)
-  for _, v in ipairs(self.highlight_words_) do
+function WinBuf:addHiddenWordHighlight(win_id)
+  for _, v in ipairs(self.hidden_highlight_words_) do
     vim.api.nvim_win_call(win_id, function()
       local pattern = "{{<\\[" .. v.id .. "\\]" .. "\\_.\\{-\\}" .. "\\[" .. v.id .. "\\]>}}"
       vim.fn.matchadd(v.name, pattern)
@@ -252,8 +285,8 @@ function WinBuf:addHighlight(win_id)
 end
 
 ---@param win_id number
-function WinBuf:delHighlight(win_id)
-  for _, v in ipairs(self.highlight_words_) do
+function WinBuf:delHiddenWordHighlight(win_id)
+  for _, v in ipairs(self.hidden_highlight_words_) do
     tools.clear_match(v.name, win_id)
   end
 end
@@ -335,7 +368,7 @@ function WinBuf:extractString(inputString)
 end
 
 ---@param buf_id number
----@param item CardItem
+---@param item CardItem | RecordCardItem
 ---@param is_fold? boolean
 ---@param is_record? boolean
 function WinBuf:viewContent(buf_id, item, is_fold, is_record)
@@ -364,14 +397,17 @@ function WinBuf:switchFold(buf_id, is_fold)
       --vim.api.nvim_win_call(winid, function()
       --  vim.fn.matchadd("EvidenceWordHidden", "{{<\\_.\\{-\\}>}}")
       --end)
-      self:addHighlight(winid)
+      self:addHiddenWordHighlight(winid)
     end
   else
     if winid ~= nil then
-      self:delHighlight(winid)
+      self:delHiddenWordHighlight(winid)
       -- todo
       --tools.clear_match("EvidenceWordHidden", winid)
     end
+  end
+  if winid ~= nil then
+    self:addFsrsMarkHighlight(winid)
   end
   buf_item:viewContent(content)
 end

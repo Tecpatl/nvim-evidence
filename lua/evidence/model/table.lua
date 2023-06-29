@@ -8,19 +8,22 @@ local now_time = os.time()
 ---@field is_record boolean
 local SqlInfo = {}
 
+---@class FsrsField
+---@field id number
+---@field card_id number
+---@field mark_id number -- self default 0
+---@field due Timestamp
+---@field info string fsrs data
+
 ---@class CardField
 ---@field id number
 ---@field content string
----@field due Timestamp
----@field info string fsrs data
 ---@field file_type string "markdown" | "org"
 
 ---@class RecordCardField
 ---@field id number
 ---@field card_id number
 ---@field content string
----@field due Timestamp
----@field info string fsrs data
 ---@field file_type string "markdown" | "org"
 ---@field timestamp Timestamp
 ---@field access_way AccessWayType
@@ -41,6 +44,7 @@ local Tables = {
   tag = "tag",
   card_tag = "card_tag",
   record_card = "record_card",
+  fsrs = "fsrs",
 }
 
 ---@class SqlTable
@@ -95,9 +99,17 @@ function SqlTable:setup(data)
     create table if not exists card(
       id INTEGER primary KEY AUTOINCREMENT,
       content text NOT NULL,
+      file_type text NOT NULL
+    )]])
+
+  self.db:execute([[
+    create table if not exists fsrs(
+      card_id int NOT NULL,
+      mark_id int NOT NULL,
       due int NOT NULL,
       info text NOT NULL,
-      file_type text NOT NULL
+      PRIMARY KEY (card_id, mark_id),
+      FOREIGN KEY (card_id) REFERENCES card(id) ON DELETE CASCADE
     )]])
 
   self.db:execute([[
@@ -112,8 +124,8 @@ function SqlTable:setup(data)
       tag_id int NOT NULL,
       card_id int NOT NULL,
       PRIMARY KEY (card_id, tag_id),
-      FOREIGN KEY (card_id) REFERENCES card(id),
-      FOREIGN KEY (tag_id) REFERENCES tag(id)
+      FOREIGN KEY (card_id) REFERENCES card(id) ON DELETE CASCADE,
+      FOREIGN KEY (tag_id) REFERENCES tag(id) ON DELETE CASCADE
     )]])
 
   self.db:execute([[
@@ -121,8 +133,6 @@ function SqlTable:setup(data)
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       card_id INTEGER,
       content text NOT NULL,
-      due int NOT NULL,
-      info text NOT NULL,
       file_type text NOT NULL,
       timestamp int not null,
       access_way int not null
@@ -234,8 +244,6 @@ function SqlTable:insertRecordCard(card_id, access_way)
     self.db:insert(Tables.record_card, {
       card_id = card_id,
       content = card.content,
-      info = card.info,
-      due = card.due,
       file_type = card.file_type,
       timestamp = os.time(),
       access_way = access_way,
@@ -244,18 +252,95 @@ function SqlTable:insertRecordCard(card_id, access_way)
 end
 
 ---@param content string
----@param info string
----@param due Timestamp
 ---@param file_type? string
 ---@return number id
-function SqlTable:insertCard(content, info, due, file_type)
+function SqlTable:insertCard(content, file_type)
   if not file_type or file_type == "" then
     file_type = "markdown"
   end
-  self.db:insert(Tables.card, { content = content, info = info, due = due, file_type = file_type })
+  self.db:insert(Tables.card, { content = content, file_type = file_type })
   local id = self:getLastId()
   self:insertRecordCard(id, tblInfo.AccessWay.insert)
   return id
+end
+
+---@param card_id number
+---@param info string
+---@param due Timestamp
+---@param mark_ids number[]
+function SqlTable:insertFsrs(card_id, info, due, mark_ids)
+  for key, mark_id in pairs(mark_ids) do
+    self.db:insert(Tables.fsrs, { card_id = card_id, info = info, due = due, mark_id = mark_id })
+  end
+end
+
+---@param card_id number
+---@return nil | FsrsField
+function SqlTable:findDefaultFsrsByCard(card_id)
+  local query = "SELECT * FROM " .. Tables.fsrs .. " where card_id=" .. card_id .. " and mark_id=0"
+  local ret = self:eval(query)
+  if ret ~= nil then
+    return ret[1]
+  end
+  return ret
+end
+
+---@param card_id number
+---@param mark_id number
+---@return nil | FsrsField
+function SqlTable:findFsrsByCardMark(card_id, mark_id)
+  local query = "SELECT * FROM " .. Tables.fsrs .. " where card_id=" .. card_id .. " and mark_id=" .. mark_id
+  local ret = self:eval(query)
+  if ret ~= nil then
+    return ret[1]
+  end
+  return ret
+end
+
+---@param card_id number
+---@return nil | FsrsField[]
+function SqlTable:findAllFsrsByCard(card_id)
+  local query = "SELECT * FROM " .. Tables.fsrs .. " where card_id=" .. card_id .. " order by due asc"
+  return self:eval(query)
+end
+
+---@param card_id number
+---@param mark_id number
+---@param row FsrsField
+function SqlTable:editFsrs(card_id, mark_id, row)
+  return self.db:update(Tables.fsrs, {
+    where = { card_id = card_id, mark_id = mark_id },
+    set = row,
+  })
+end
+
+---@param card_id number
+---@param mark_ids number[]
+---@param is_exclude boolean
+function SqlTable:delFsrs(card_id, mark_ids, is_exclude)
+  tools.removeValFromArray(mark_ids, 0)
+  if is_exclude == true then
+    table.insert(mark_ids, 0)
+  end
+  local mark_str = ""
+  for key, val in pairs(mark_ids) do
+    if mark_str ~= "" then
+      mark_str = mark_str .. ","
+    end
+    mark_str = mark_str .. val
+  end
+  if mark_str ~= "" then
+    print("delFsrs none")
+    return
+  end
+  local filter_str = ""
+  if is_exclude == true then
+    filter_str = " and not in (" .. mark_str .. ")"
+  else
+    filter_str = " and in (" .. mark_str .. ")"
+  end
+  local query = "delete from " .. Tables.fsrs .. " where card_id=" .. card_id .. filter_str
+  self.db:execute(query)
 end
 
 ---@param name string
@@ -465,7 +550,7 @@ end
 ---@param limit_num number
 ---@param statement string
 ---@param is_shuffle? boolean
----@return CardItem[]|nil
+---@return CardField[]|nil
 function SqlTable:findCardWithTags(tag_ids, is_and, limit_num, statement, is_shuffle)
   if type(tag_ids) ~= "table" or tools.isTableEmpty(tag_ids) then
     return self:findCard(limit_num, statement, is_shuffle)
@@ -506,19 +591,57 @@ end
 
 ---@param id number
 function SqlTable:delTag(id)
-  local query = "delete from " .. Tables.card_tag .. " where tag_id=" .. id
-  self.db:execute(query)
-  query = "delete from " .. Tables.tag .. " where id=" .. id
+  local query = "delete from " .. Tables.tag .. " where id=" .. id
   self.db:execute(query)
 end
 
 ---@param id number
 function SqlTable:delCard(id)
   self:insertRecordCard(id, tblInfo.AccessWay.delete)
-  local query = "delete from " .. Tables.card_tag .. " where card_id=" .. id
+  local query = "delete from " .. Tables.card .. " where id=" .. id
   self.db:execute(query)
-  query = "delete from " .. Tables.card .. " where id=" .. id
-  self.db:execute(query)
+end
+
+---@param tag_ids number[]
+---@param is_and boolean
+---@param limit_num number
+---@return nil | CardField[]
+function SqlTable:minDueCardWithTags(tag_ids, is_and, limit_num)
+  local query = ""
+  if type(tag_ids) ~= "table" or tools.isTableEmpty(tag_ids) then
+    query = [[
+    select card.* from card 
+    join fsrs on fsrs.card_id=card.id 
+    where 
+    fsrs.info NOT LIKE '%reps=0%'
+    ORDER BY fsrs.due ASC LIMIT ]] .. limit_num
+  else
+    local tag_str = ""
+    local cnt = #tag_ids
+    for key, val in pairs(tag_ids) do
+      if tag_str ~= "" then
+        tag_str = tag_str .. ","
+      end
+      tag_str = tag_str .. val
+    end
+    local is_and_str = ""
+    if is_and then
+      is_and_str = " HAVING COUNT(DISTINCT t.id) = " .. cnt
+    end
+    query = [[
+    select card.* from card 
+    join fsrs on fsrs.card_id=card.id 
+    where 
+    fsrs.card_id in  
+      (
+      SELECT c.id FROM card AS c JOIN card_tag AS ct ON c.id = ct.card_id JOIN tag AS t ON ct.tag_id = t.id 
+      WHERE t.id IN (]] .. tag_str .. [[)  GROUP BY c.id  ]] .. is_and_str .. [[ 
+      ) 
+    and 
+    fsrs.info NOT LIKE '%reps=0%'
+    ORDER BY fsrs.due ASC LIMIT ]] .. limit_num
+  end
+  return self:eval(query)
 end
 
 ---@param tag_ids number[]
@@ -527,7 +650,8 @@ end
 ---@param statement? string
 ---@param limit_num? number
 ---@return nil | CardField[]
-function SqlTable:minCardWithTags(tag_ids, is_and, column, statement, limit_num)
+function SqlTable:TODO_minCardWithTags(tag_ids, is_and, column, statement, limit_num)
+  tag_ids = { 1 }
   limit_num = limit_num or 1
   local query = ""
   if type(tag_ids) ~= "table" or tools.isTableEmpty(tag_ids) then
@@ -571,7 +695,8 @@ function SqlTable:minCardWithTags(tag_ids, is_and, column, statement, limit_num)
       query = query .. " LIMIT " .. limit_num
     end
   end
-  --print(query)
+  print(query)
+  error("minmin")
   return self:eval(query)
 end
 

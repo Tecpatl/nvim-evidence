@@ -75,9 +75,9 @@ orgmode 适用于安排有风险不稳定的计划或短期任务. (指南针)
 
 - editCard:  将缓冲区的内容更新到当前卡片里
 
-- infoCard:  打印多个卡片信息(第一项是当前卡片)
+- infoCard:  打印当前卡片的所有mark_id的fsrs信息
 
-- scoreCard:  给当前卡片打分
+- scoreCard:  给当前卡片可对长文章进行分行mark_id来打分
 
 - findCard:  开启根据卡片内容的模糊搜索弹出作为当前卡片
 
@@ -89,9 +89,11 @@ orgmode 适用于安排有风险不稳定的计划或短期任务. (指南针)
 
 - setBufferList: 增删查管理多个winbuf
 
-- refreshCard: 刷新卡片, 重置缓冲区修改内容
+- refreshCard: 刷新卡片, 重置缓冲区修改内容, 且跳转到最近需复习的mark_id记忆点行位置
 
 - addDivider: 对选中内容进行颜色遮盖, 模拟填空题
+
+- addFsrsMark: 在buffer的长文章的特定行做上标记作为一个新的fsrs记忆点
 
 ### 对tags操作 
 

@@ -357,6 +357,19 @@ local function getVisualSelectPos()
   }
 end
 
+---@param array table
+---@param element any
+local function removeValFromArray(array, element)
+  local index = 1
+  while index <= #array do
+    if array[index] == element then
+      table.remove(array, index)
+    else
+      index = index + 1
+    end
+  end
+end
+
 return {
   isInTable = isInTable,
   table_concat = table_concat,
@@ -381,4 +394,5 @@ return {
   generateDistinctColors = generateDistinctColors,
   insertStringAtPosition = insertStringAtPosition,
   getVisualSelectPos = getVisualSelectPos,
+  removeValFromArray = removeValFromArray,
 }
