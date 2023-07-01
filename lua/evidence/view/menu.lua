@@ -1564,7 +1564,7 @@ function Menu:recordCardList(ways, str)
     menu_item = {},
     main_foo = nil,
     previewer = self.helper:createCardPreviewer(),
-    process_work = self.helper:createCardProcessWork(self.now_buf_id, foo, self.now_win_id),
+    process_work = self.helper:createRecordCardProcessWork(self.now_buf_id, foo, self.now_win_id),
   }
 end
 

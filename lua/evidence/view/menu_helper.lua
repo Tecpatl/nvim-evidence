@@ -130,6 +130,26 @@ function MenuHelper:empty_maker(entry)
   }
 end
 
+
+---@param buf_id number
+---@param foo function
+---@param win_id? number
+function MenuHelper:createRecordCardProcessWork(buf_id, foo, win_id)
+  return function(prompt, process_result, process_complete)
+    self.prompt = prompt
+    local x = foo(prompt)
+    if type(x) ~= "table" then
+      process_result(self:empty_maker(prompt))
+      process_complete()
+      return
+    end
+    for _, v in ipairs(x) do
+      process_result(self:record_card_entry_maker(buf_id, v, win_id))
+    end
+    process_complete()
+  end
+end
+
 ---@param buf_id number
 ---@param foo function
 ---@param win_id? number
