@@ -216,6 +216,12 @@ local normalMenu = tools.table_concat({
       menu:addFsrsMark()
     end,
   },
+  {
+    name = "postponeFsrs",
+    foo = function()
+      return menu:postponeFsrs()
+    end,
+  },
 }, emptyNormalMenu)
 
 ---@type SimpleMenu[]

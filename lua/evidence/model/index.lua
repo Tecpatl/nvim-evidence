@@ -339,6 +339,24 @@ function Model:findAllFsrsByCard(card_id)
 end
 
 ---@param card_id number
+---@param mark_id number
+---@param next_interval  Timestamp
+function Model:postponeFsrs(card_id, mark_id, next_interval)
+  local fsrs_item = self.tbl:findFsrsByCardMark(card_id, mark_id)
+  if fsrs_item == nil then
+    print("postponeFsrs not exist")
+    return
+  end
+  local fsrs = self:getFsrs()
+  local data = tools.parse(fsrs_item.info)
+  local card_info = _.Card:new(data)
+  card_info.due = card_info.due + next_interval
+  local info = card_info:dumpStr()
+  local due = card_info.due
+  self.tbl:editFsrs(card_id, mark_id, { info = info, due = due })
+end
+
+---@param card_id number
 ---@param mark_ids number[]
 function Model:resetFsrsMarks(card_id, mark_ids)
   local fsrs_items = self:findAllFsrsByCard(card_id)
@@ -351,8 +369,10 @@ function Model:resetFsrsMarks(card_id, mark_ids)
       table.insert(new_mark_ids, id)
     end
   end
-  local default_item = self:findDefaultFsrsByCard(card_id)
-  self.tbl:insertFsrs(card_id, default_item.info, default_item.due, new_mark_ids)
+  local card_info = _.Card:new()
+  local info = card_info:dumpStr()
+  local due = card_info.due
+  self.tbl:insertFsrs(card_id, info, due, new_mark_ids)
 end
 
 ---@param id number
