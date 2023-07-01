@@ -95,6 +95,8 @@ orgmode 适用于安排有风险不稳定的计划或短期任务. (指南针)
 
 - addFsrsMark: 在buffer的长文章的特定行做上标记作为一个新的fsrs记忆点
 
+- postponeFsrs: 对当前卡片的某个mark_id进行fsrs按照分钟,小时,天来延期复习
+
 ### 对tags操作 
 
 - findTags:  开启根据tag name的模糊搜索
