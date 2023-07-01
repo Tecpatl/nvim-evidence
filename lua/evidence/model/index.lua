@@ -152,7 +152,7 @@ function Model:getNewItem(tag_ids, is_and, contain_son, limit_num)
     tag_ids,
     is_and,
     limit_num,
-    "card.id in (select card.id from card join fsrs on fsrs.card_id=card.id where fsrs.info like '%reps=0%')"
+    "c.id in (select c2.id from card as c2 join fsrs on fsrs.card_id=c2.id where fsrs.info like '%reps=0%')"
   )
   return item
 end
