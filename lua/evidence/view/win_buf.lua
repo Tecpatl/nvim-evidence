@@ -10,17 +10,20 @@ local tblInfo = require("evidence.model.info")
 ---@field buf number
 ---@field name string
 ---@field item CardItem | {}
+---@field save_cb fun():nil
 local WinBufImpl = {}
 WinBufImpl.__index = WinBufImpl
 
 ---@param name string
-function WinBufImpl:new(name)
+---@param save_cb fun():nil
+function WinBufImpl:new(name, save_cb)
   local new_buf = vim.api.nvim_create_buf(true, true)
   vim.api.nvim_buf_set_name(new_buf, name)
   return setmetatable({
     name = name,
     buf = new_buf,
     item = {},
+    save_cb = save_cb,
   }, self)
 end
 
@@ -32,6 +35,11 @@ end
 --    self.win = data.win
 --  end
 --end
+
+---@param cb fun(): nil
+function WinBufImpl:setBufferSaveCallback(cb)
+  self.save_cb = cb
+end
 
 ---@param winnr? number
 ---@return number
@@ -138,6 +146,7 @@ function WinBufImpl:openSplitWin(win_id)
     vim.api.nvim_win_set_buf(new_win_id, self.buf)
   end
   vim.keymap.set("n", "q", ":call nvim_win_close(win_getid(), v:true)<CR>", { buffer = self.buf, silent = true })
+  vim.keymap.set("n", "wq", self.save_cb, { buffer = self.buf, silent = true })
   return {
     buf_id = self.buf,
     win_id = new_win_id,
@@ -184,6 +193,7 @@ end
 ---@field fsrs_highlight_lines_ HighlightWord[]
 ---@field highlight_lim number
 ---@field fsrs_mark_lim number
+---@field save_cb fun():nil
 local WinBuf = {}
 
 WinBuf.__index = function(self, key)
@@ -212,6 +222,9 @@ function WinBuf:getInstance()
       fsrs_highlight_lines_ = {},
       highlight_lim = 30,
       fsrs_mark_lim = 30,
+      save_cb = function()
+        print("save nothing")
+      end,
     }, self)
   end
   return self.instance
@@ -432,7 +445,7 @@ end
 function WinBuf:createSplitWin(win_id, buf_id)
   local item = nil
   if buf_id == nil then
-    item = WinBufImpl:new("evidence[" .. tostring(#self._) .. "]")
+    item = WinBufImpl:new("evidence[" .. tostring(#self._) .. "]", self.save_cb)
     queue.push(self._, item)
   else
     for k, v in ipairs(self._) do
@@ -537,6 +550,14 @@ function WinBuf:checkSelfBufValid(buf_id)
     end
   end
   return false
+end
+
+---@param cb fun(): nil
+function WinBuf:setBufferSaveCallback(cb)
+  self.save_cb = cb
+  for k, v in ipairs(self._) do
+    v:setBufferSaveCallback(cb)
+  end
 end
 
 return WinBuf:getInstance()

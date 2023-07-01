@@ -1,7 +1,13 @@
 local tools = require("evidence.util.tools")
 local cmd = require("evidence.view.cmd")
 
-local user_data = {
+---@class EvidenceParam
+---@field uri string
+---@field is_record boolean
+---@field parameter Parameters
+---@field key_map table
+--
+local user_data_sample = {
   uri = "~/.config/nvim/sql/v0",
   is_record = true,
   key_map = {
@@ -19,25 +25,33 @@ local user_data = {
 local keymap = vim.keymap.set
 
 return {
+  ---@param data EvidenceParam
   setup = function(data)
-    user_data = data or user_data
+    if data == nil or data == {} then
+      error("evidence not setup")
+    end
+    cmd:setup({
+      uri = data.uri,
+      is_record = data.is_record,
+      parameter = data.parameter,
+    })
 
     vim.api.nvim_create_user_command("EvidenceNormalCmd", function()
-      cmd.startNormal()
+      cmd:startNormal()
     end, {
       nargs = 0,
     })
 
     vim.api.nvim_create_user_command("EvidenceFlush", function()
-      cmd.flush(user_data)
+      cmd:flush()
     end, {
       nargs = 0,
     })
 
     local opts = { noremap = true, silent = true }
-    keymap("v", user_data.key_map.visual_cmd, function()
+    keymap("v", data.key_map.visual_cmd, function()
       local text = tools.getVisualSelection()
-      cmd.startVisual(text)
+      cmd:startVisual(text)
     end, opts)
   end,
 }
