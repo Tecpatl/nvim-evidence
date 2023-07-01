@@ -329,15 +329,15 @@ function SqlTable:delFsrs(card_id, mark_ids, is_exclude)
     end
     mark_str = mark_str .. val
   end
-  if mark_str ~= "" then
+  if mark_str == "" then
     print("delFsrs none")
     return
   end
   local filter_str = ""
   if is_exclude == true then
-    filter_str = " and not in (" .. mark_str .. ")"
+    filter_str = " and mark_id not in (" .. mark_str .. ")"
   else
-    filter_str = " and in (" .. mark_str .. ")"
+    filter_str = " and mark_id in (" .. mark_str .. ")"
   end
   local query = "delete from " .. Tables.fsrs .. " where card_id=" .. card_id .. filter_str
   self.db:execute(query)
