@@ -272,11 +272,6 @@ function Menu:editCard()
   self.win_buf:viewContent(self.now_buf_id, item)
 end
 
---function Menu:infoCard()
---  local card = self:getNowItem().card
---  tools.printDump(card)
---end
-
 function Menu:scoreCard()
   local buf_id = self.win_buf:getNowInfo(self.now_buf_id).buf
   local content = vim.api.nvim_buf_get_lines(buf_id, 0, -1, false)
@@ -329,6 +324,74 @@ function Menu:addTag()
         print("please add a tag not exist")
       end
     end,
+  }
+end
+
+---@return TelescopeMenu|nil
+function Menu:postponeFsrs()
+  local card_id = self:getNowItem().id
+  ---@return number|nil
+  local foo = function()
+    local mark_id = tonumber(tools.uiInput("(default:0) postponeFsrs select mark_id:", ""))
+    if type(mark_id) ~= "number" then
+      print("valid number needed")
+      return
+    end
+    return mark_id
+  end
+  local items = {}
+  table.insert(items, {
+    name = "hour",
+    foo = function()
+      local mark_id = foo()
+      if mark_id == nil then
+        return
+      end
+      local hour = tonumber(tools.uiInput("hour:", ""))
+      if type(hour) ~= "number" then
+        print("valid number needed")
+        return
+      end
+      self.model:postponeFsrs(card_id, mark_id, hour * 60 * 60)
+      self:refreshCard()
+    end,
+  })
+  table.insert(items, {
+    name = "minute",
+    foo = function()
+      local mark_id = foo()
+      if mark_id == nil then
+        return
+      end
+      local minute = tonumber(tools.uiInput("minute:", ""))
+      if type(minute) ~= "number" then
+        print("valid number needed")
+        return
+      end
+      self.model:postponeFsrs(card_id, mark_id, minute * 60)
+      self:refreshCard()
+    end,
+  })
+  table.insert(items, {
+    name = "day",
+    foo = function()
+      local mark_id = foo()
+      if mark_id == nil then
+        return
+      end
+      local day = tonumber(tools.uiInput("day:", ""))
+      if type(day) ~= "number" then
+        print("valid number needed")
+        return
+      end
+      self.model:postponeFsrs(card_id, mark_id, day * 24 * 60 * 60)
+      self:refreshCard()
+    end,
+  })
+  return {
+    prompt_title = "Evidence postponeFsrs",
+    menu_item = items,
+    main_foo = function() end,
   }
 end
 
