@@ -144,6 +144,7 @@ function MenuHelper:createRecordCardProcessWork(buf_id, foo, win_id)
       return
     end
     for _, v in ipairs(x) do
+      v.id = v.card_id -- recordCard to card
       process_result(self:record_card_entry_maker(buf_id, v, win_id))
     end
     process_complete()
