@@ -26,6 +26,10 @@ orgmode 适用于安排有风险不稳定的计划或短期任务. (指南针)
 
   https://www.youtube.com/watch?v=SoCBgbiWhjw
 
+- 模拟填空题，长文章分段楼标记，复习延期，多buffer管理，record历史记录 
+
+  https://www.youtube.com/watch?v=kYaUYdm2Z6w
+
 ### Install && Setup (lazy for example) 
 
 ```lua
