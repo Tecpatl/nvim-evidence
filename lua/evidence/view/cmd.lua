@@ -3,17 +3,46 @@ local model = require("evidence.model.index")
 local tools = require("evidence.util.tools")
 local winBuf = require("evidence.view.win_buf")
 
----@type ModelTableParam
-local user_data = nil
-local is_start_ = false
-local telescope_menu = nil
-local visual_content = ""
-local file_type = ""
+---@class Cmd
+---@field user_data ModelTableParam
+---@field telescope_menu TelescopeMenu
+---@field visual_content string
+---@field file_type string
+---@field is_setup boolean
+local Cmd = {}
+
+Cmd.__index = function(self, key)
+  local value = rawget(Cmd, key)
+  if key ~= "setup" then
+    if not self.is_setup then
+      error("Class not initialized. Please call setup() first.", 2)
+    end
+  end
+  return value
+end
+
+Cmd.__newindex = function()
+  error("Attempt to modify a read-only table")
+end
+
+---@return Cmd
+function Cmd:getInstance()
+  if not self.instance then
+    self.instance = setmetatable({
+      is_setup = false,
+      user_data = {},
+      telescope_menu = {},
+      visual_content = "",
+      file_type = "",
+    }, self)
+  end
+  return self.instance
+end
 
 ---@return boolean
-local function checkStartInSelfBuf()
+function Cmd:checkStartInSelfBuf()
   local start_buf = vim.api.nvim_get_current_buf()
-  if is_start_ == false or start_buf == -1 or not winBuf:checkSelfBuf(start_buf) then
+  if start_buf == -1 or not winBuf:checkSelfBuf(start_buf) then
     print("evidence need in self buf. call flush first if buf is closed")
     return false
   end
@@ -21,15 +50,23 @@ local function checkStartInSelfBuf()
 end
 
 ---@param data ModelTableParam
-local function setup(data)
-  if is_start_ == true then
-    return
+function Cmd:setup(data)
+  if self.is_setup then
+    error("cannot setup twice")
   end
+  self.is_setup = true
   user_data = data
-  is_start_ = true
   model:setup(data)
   winBuf:setup({ model = model }, "## answer")
   menu:setup({ winBuf = winBuf, model = model })
+  winBuf:setBufferSaveCallback(function()
+    local info = self:setNowBufWin(false)
+    if winBuf:checkSelfBufValid(info.buf_id) then
+      menu:editCard()
+    else
+      print("card_id not exist cannot save")
+    end
+  end)
 end
 
 ---@type SimpleMenu[]
@@ -236,7 +273,7 @@ local visualMenu = tools.table_concat({
 
 ---@param is_region? boolean
 ---@return WinBufIdInfo
-local function setNowBufWin(is_region)
+function Cmd:setNowBufWin(is_region)
   local now_win_id = vim.api.nvim_get_current_win()
   local now_buf_id = vim.api.nvim_get_current_buf()
   local region = {}
@@ -251,11 +288,11 @@ local function setNowBufWin(is_region)
 end
 
 ---@param content string
-local function startVisual(content)
-  if not checkStartInSelfBuf() then
+function Cmd:startVisual(content)
+  if not self:checkStartInSelfBuf() then
     return
   end
-  local info = setNowBufWin(true)
+  local info = self:setNowBufWin(true)
   file_type = vim.api.nvim_buf_get_option(info.buf_id, "filetype")
   visual_content = content
   local msg = "EmptyVisualMenu"
@@ -267,11 +304,11 @@ local function startVisual(content)
   menu:telescopeStart(msg, menuList)
 end
 
-local function startNormal()
-  if not checkStartInSelfBuf() then
+function Cmd:startNormal()
+  if not self:checkStartInSelfBuf() then
     return
   end
-  local info = setNowBufWin()
+  local info = self:setNowBufWin()
   local msg = "EmptyNormalMenu"
   local menuList = emptyNormalMenu
   if winBuf:checkSelfBufValid(info.buf_id) then
@@ -281,9 +318,7 @@ local function startNormal()
   menu:telescopeStart(msg, menuList)
 end
 
----@param data ModelTableParam
-local function flush(data)
-  setup(data)
+function Cmd:flush()
   local buf_id = -1
   local now_win_id = vim.api.nvim_get_current_win()
   local now_buf_id = vim.api.nvim_get_current_buf()
@@ -307,14 +342,10 @@ local function flush(data)
     end
     winBuf:openSplitWin(now_win_id, { buf_id })
   end
-  setNowBufWin()
+  self:setNowBufWin()
   if is_next then
     menu:nextCard()
   end
 end
 
-return {
-  startNormal = startNormal,
-  startVisual = startVisual,
-  flush = flush,
-}
+return Cmd:getInstance()

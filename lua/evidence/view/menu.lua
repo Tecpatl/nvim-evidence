@@ -36,6 +36,7 @@ local NextCardMode = {
 ---@field model Model
 ---@field helper MenuHelper
 ---@field telescope_menu TelescopeMenu
+---@field is_setup boolean
 local Menu = {}
 
 Menu.__index = function(self, key)
