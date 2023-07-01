@@ -532,7 +532,7 @@ end
 ---@param is_shuffle? boolean
 ---@return nil | CardField[]
 function SqlTable:findCard(limit_num, statement, is_shuffle)
-  local query = "SELECT * FROM " .. Tables.card
+  local query = "SELECT * FROM " .. Tables.card.." as c "
   if statement ~= nil and statement ~= "" then
     query = query .. " where " .. statement
   end
