@@ -201,13 +201,19 @@ local normalMenu = tools.table_concat({
   {
     name = "infoCard",
     foo = function()
-      return menu:infoCard()
+      menu:findFsrsByNowCard()
     end,
   },
   {
     name = "scoreCard",
     foo = function()
       return menu:scoreCard()
+    end,
+  },
+  {
+    name = "addFsrsMark",
+    foo = function()
+      menu:addFsrsMark()
     end,
   },
 }, emptyNormalMenu)

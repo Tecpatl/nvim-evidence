@@ -72,20 +72,20 @@ function MenuHelper:createCardPreviewer()
 end
 
 ---@param buf_id number
----@param entry CardItem
+---@param entry RecordCardItem
 ---@param win_id? number
-function MenuHelper:card_entry_maker(buf_id, entry, win_id)
+function MenuHelper:record_card_entry_maker(buf_id, entry, win_id)
   if entry.content == nil then
     return
   end
   entry.foo = function()
-    if entry.is_active ~= nil and entry.is_active == false then
+    if entry.is_active == false then
       assert(win_id ~= nil)
       local info = winBuf:createSplitWin(win_id) -- will close telescope while create new win
       winBuf:viewContent(info.buf_id, entry, false, false)
-      return
+    else
+      winBuf:viewContent(buf_id, entry)
     end
-    winBuf:viewContent(buf_id, entry)
   end
   local content = entry.content:gsub("\n", "\\n")
   local bar_content = content
@@ -96,6 +96,25 @@ function MenuHelper:card_entry_maker(buf_id, entry, win_id)
       bar_content = "[inactive]" .. bar_content
     end
   end
+  return {
+    value = entry,
+    ordinal = content,
+    display = bar_content,
+  }
+end
+
+---@param buf_id number
+---@param entry CardItem
+---@param win_id? number
+function MenuHelper:card_entry_maker(buf_id, entry, win_id)
+  if entry.content == nil then
+    return
+  end
+  entry.foo = function()
+    winBuf:viewContent(buf_id, entry)
+  end
+  local content = entry.content:gsub("\n", "\\n")
+  local bar_content = content
   return {
     value = entry,
     ordinal = content,
@@ -208,6 +227,52 @@ function MenuHelper:getNewDividerId(content)
     table.insert(ids, tonumber(match))
   end
   return tools.findMinMissingNumber(ids, 255)
+end
+
+---@param content string
+---@return number[]
+function MenuHelper:getAllFsrsMarkIds(content)
+  local pattern = [[======{%[(%d+)%]}======]]
+  local ids = {}
+  for match in string.gmatch(content, pattern) do
+    table.insert(ids, tonumber(match))
+  end
+  return ids
+end
+
+---@param content string
+---@param mark_id number
+---@return boolean
+function MenuHelper:checkFsrsMark(content, mark_id)
+  local pattern = "======{%[" .. mark_id .. "%]}======"
+  local startPos, endPos = string.find(content, pattern)
+  return startPos ~= nil
+end
+
+---@param content string
+---@return number
+function MenuHelper:getNewFsrsMarkId(content)
+  local pattern = [[======{%[(%d+)%]}======]]
+  local ids = { 0 } -- id start with 1
+  for match in string.gmatch(content, pattern) do
+    table.insert(ids, tonumber(match))
+  end
+  return tools.findMinMissingNumber(ids, 255)
+end
+
+---@param bufnr number
+---@param line_id number
+---@param line_str string
+function MenuHelper:addFsrsMarkByLine(bufnr, line_id, line_str)
+  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  if line_id > #lines then
+    print("line_id large than buffer max lines")
+    return
+  end
+  local line = lines[line_id]
+  line = tools.insertStringAtPosition(line, 0, line_str)
+  lines[line_id] = line
+  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
 end
 
 ---@param bufnr number

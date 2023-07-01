@@ -126,6 +126,7 @@ function Menu:nextCard()
   end
   local item = items[1]
   self.win_buf:viewContent(self.now_buf_id, item)
+  self:jumpMinDueFsrs()
 end
 
 function Menu:setNextCard()
@@ -264,24 +265,39 @@ function Menu:editCard()
   if not file_type or file_type == "" then
     file_type = "markdown"
   end
-  self.model:editCard(self:getNowItem().id, { content = content_str, file_type = file_type })
-  local item = self.model:getItemById(self:getNowItem().id)
+  local card_id = self:getNowItem().id
+  self.model:editCard(card_id, { content = content_str, file_type = file_type })
+  self:resetFsrsMarks(card_id, content_str)
+  local item = self.model:getItemById(card_id)
   self.win_buf:viewContent(self.now_buf_id, item)
 end
 
-function Menu:infoCard()
-  local card = self:getNowItem().card
-  tools.printDump(card)
-end
+--function Menu:infoCard()
+--  local card = self:getNowItem().card
+--  tools.printDump(card)
+--end
 
 function Menu:scoreCard()
+  local buf_id = self.win_buf:getNowInfo(self.now_buf_id).buf
+  local content = vim.api.nvim_buf_get_lines(buf_id, 0, -1, false)
+  local content_str = table.concat(content, "\n")
+  local ids = self.helper:getAllFsrsMarkIds(content_str)
+  local mark_id = 0
+  if ids ~= {} then
+    local id = tonumber(tools.uiInput("(default:0) select mark_id:", ""))
+    if type(id) ~= "number" or (id ~= 0 and not tools.isInTable(id, ids)) then
+      print("valid number needed")
+      return
+    end
+    mark_id = id
+  end
   local rating = tonumber(tools.uiInput("scoreCard(0,1,2,3):", ""))
   if type(rating) ~= "number" or not self.helper:checkScore(rating) then
     print("input format error (0,1,2,3)")
     return
   end
   --print(rating)
-  self.model:ratingCard(self:getNowItem().id, rating)
+  self.model:ratingCard(self:getNowItem().id, mark_id, rating)
   self:nextCard()
 end
 
@@ -651,6 +667,43 @@ function Menu:addCardSplit(content_str, file_type)
   self.telescope_menu:start(ret) -- should start new telescope
 end
 
+---@param card_id number
+---@param content_str string
+function Menu:resetFsrsMarks(card_id, content_str)
+  local mark_ids = self.helper:getAllFsrsMarkIds(content_str)
+  self.model:resetFsrsMarks(card_id, mark_ids)
+end
+
+function Menu:findFsrsByNowCard()
+  local now_card_id = self:getNowItem().id
+  local info = self.model:findAllFsrsByCard(now_card_id)
+  print(vim.inspect(info))
+end
+
+function Menu:jumpMinDueFsrs()
+  local card_id = self:getNowItem().id
+  local buf_id = self.win_buf:getNowInfo(self.now_buf_id).buf
+  local lines = vim.api.nvim_buf_get_lines(buf_id, 0, -1, false)
+  local fsrs_item = self.model:findMinDueFsrsByCard(card_id)
+  local win_id = tools.get_window_id_from_buffer_id(buf_id)
+  if win_id == nil then
+    print("jumpMinDueFsrs win_id not exist")
+    return
+  end
+  local mark_id = fsrs_item.mark_id
+  if mark_id == 0 then
+    vim.api.nvim_win_set_cursor(win_id, { 1, 0 })
+  else
+    for line_id, line_val in ipairs(lines) do
+      if self.helper:checkFsrsMark(line_val, mark_id) then
+        vim.api.nvim_win_set_cursor(win_id, { line_id, 0 })
+        break
+      end
+    end
+  end
+  print("jump mark_id:" .. mark_id)
+end
+
 ---@param content_str? string
 function Menu:addCard(content_str)
   if not tools.confirmCheck("addCard") then
@@ -666,6 +719,7 @@ function Menu:addCard(content_str)
     file_type = "markdown"
   end
   local card_id = self.model:addNewCard(content_str, file_type)
+  self:resetFsrsMarks(card_id, content_str)
   local item = self.model:getItemById(card_id)
   self.win_buf:viewContent(self.now_buf_id, item)
   return self:setTagsForNowCardTree(-1, {}, true)
@@ -1496,6 +1550,19 @@ end
 
 function Menu:refreshCard()
   self.win_buf:viewContent(self.now_buf_id, self:getNowItem())
+  self:jumpMinDueFsrs()
+end
+
+function Menu:addFsrsMark()
+  local content = vim.api.nvim_buf_get_lines(self.now_buf_id, 0, -1, false)
+  local content_str = table.concat(content, "\n")
+  local new_id = self.helper:getNewFsrsMarkId(content_str)
+  local line_id = tonumber(tools.uiInput("line_id:", ""))
+  if type(line_id) ~= "number" then
+    print("number needed")
+    return
+  end
+  self.helper:addFsrsMarkByLine(self.now_buf_id, line_id, "======{[" .. new_id .. "]}======")
 end
 
 function Menu:addDivider()
