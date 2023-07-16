@@ -843,13 +843,33 @@ function Menu:findTagsByNowCard()
   local items = {}
   if res ~= nil then
     for _, v in ipairs(res) do
-      table.insert(items, { name = v.name, foo = nil })
+      table.insert(items, { name = v.name, info = { id = v.id, name = v.name }, foo = nil })
     end
   end
   return {
     prompt_title = "Evidence findTagsByNowCard",
     menu_item = items,
     main_foo = nil,
+    custom_mappings = {
+      ["i"] = {
+        --- keymap help
+        ["<c-h>"] = function(prompt_bufnr)
+          print("<c-l>:tagTreeAutoLocation")
+        end,
+        --- tagTree auto location
+        ["<c-l>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local select_item = action_state.get_selected_entry()
+          if select_item == nil then
+            return
+          end
+          local single = select_item.value
+          local v = single.info
+          local res = self:tagTree(v.id)
+          self.telescope_menu:flushResult(res, picker, prompt_bufnr)
+        end,
+      },
+    },
   }
 end
 
