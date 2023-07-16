@@ -1,4 +1,5 @@
 local SqlTable = require("evidence.model.table")
+local tblInfo = require("evidence.model.info")
 local _FSRS_ = require("evidence.model.fsrs")
 local _ = _FSRS_.model
 local tools = require("evidence.util.tools")
@@ -392,6 +393,7 @@ function Model:ratingCard(id, mark_id, rating, now_time)
   local due = new_card.due
   local info = new_card:dumpStr()
   self.tbl:editFsrs(id, mark_id, { due = due, info = info })
+  self:insertRecordCard(id, tblInfo.AccessWay.score)
 end
 
 ---@return nil | TagField[]
