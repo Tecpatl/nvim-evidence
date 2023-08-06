@@ -145,7 +145,7 @@ function WinBufImpl:openSplitWin(win_id)
   if not self:checkBufValid() then
     vim.api.nvim_win_set_buf(new_win_id, self.buf)
   end
-  vim.keymap.set("n", "q", ":call nvim_win_close(win_getid(), v:true)<CR>", { buffer = self.buf, silent = true })
+  -- vim.keymap.set("n", "q", ":call nvim_win_close(win_getid(), v:true)<CR>", { buffer = self.buf, silent = true })
   vim.keymap.set("n", "wq", self.save_cb, { buffer = self.buf, silent = true })
   return {
     buf_id = self.buf,
