@@ -161,6 +161,7 @@ function WinBufImpl:viewContent(form)
   local formTbl = tools.str2table(form)
   vim.api.nvim_buf_set_lines(self.buf, 0, -1, false, formTbl)
   vim.api.nvim_buf_set_option(self.buf, "modifiable", true)
+  vim.wo.wrap = true
   if not self.item.file_type or self.item.file_type == "" then
     self.item.file_type = "markdown"
   end
