@@ -236,6 +236,25 @@ function Menu:fuzzyFindCard()
     main_foo = nil,
     previewer = self.helper:createCardPreviewer(),
     process_work = self.helper:createCardProcessWork(self.now_buf_id, foo),
+    custom_mappings = {
+      ["i"] = {
+        --- keymap help
+        ["<c-h>"] = function(prompt_bufnr)
+          print("<c-x>:findTagsByNowCard")
+        end,
+        ["<c-x>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local select_item = action_state.get_selected_entry()
+          if select_item == nil then
+            return
+          end
+          local card_id = select_item.value.id
+          local res = self:findTagsByNowCard(card_id)
+          self.telescope_menu:reset()
+          self.telescope_menu:flushResult(res, picker, prompt_bufnr)
+        end,
+      },
+    },
   }
 end
 
@@ -811,7 +830,20 @@ function Menu:tagList()
       ["i"] = {
         --- keymap help
         ["<c-h>"] = function(prompt_bufnr)
-          print("<c-x>:tagTree <c-l>:tagTreeAutoLocation")
+          print("<c-x>:tagTree <c-l>:tagTreeAutoLocation <c-u>:findCard")
+        end,
+        --- findCardBySelectTags
+        ["<c-u>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local select_item = action_state.get_selected_entry()
+          if select_item == nil then
+            return
+          end
+          local single = select_item.value
+          local v = single.info
+          local res = self:findCardBySelectTags({ v.id }, false, v.name)
+          self.telescope_menu:reset()
+          self.telescope_menu:flushResult(res, picker, prompt_bufnr)
         end,
         --- tagTree auto location
         ["<c-l>"] = function(prompt_bufnr)
@@ -836,9 +868,9 @@ function Menu:tagList()
   }
 end
 
+---@param card_id number
 ---@return TelescopeMenu
-function Menu:findTagsByNowCard()
-  local card_id = self:getNowItem().id
+function Menu:findTagsByNowCard(card_id)
   local res = self.model:findIncludeTagsByCard(card_id)
   local items = {}
   if res ~= nil then
@@ -854,7 +886,19 @@ function Menu:findTagsByNowCard()
       ["i"] = {
         --- keymap help
         ["<c-h>"] = function(prompt_bufnr)
-          print("<c-l>:tagTreeAutoLocation")
+          print("<c-l>:tagTreeAutoLocation <c-u>:findCardBySelectTags")
+        end,
+        --- findCardBySelectTags
+        ["<c-u>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local select_item = action_state.get_selected_entry()
+          if select_item == nil then
+            return
+          end
+          local single = select_item.value
+          local v = single.info
+          local res = self:findCardBySelectTags({ v.id }, false, v.name)
+          self.telescope_menu:flushResult(res, picker, prompt_bufnr)
         end,
         --- tagTree auto location
         ["<c-l>"] = function(prompt_bufnr)
@@ -1184,10 +1228,13 @@ function Menu:setSelectTagsListMode(is_and, is_add_mode)
   }
 end
 
+---@param select_tags number[]
+---@param is_select_tag_and boolean
+---@param select_tag_name_str string
 ---@return TelescopeMenu
-function Menu:findCardBySelectTags()
+function Menu:findCardBySelectTags(select_tags, is_select_tag_and, select_tag_name_str)
   local foo = function(prompt)
-    local res = self.model:findCardBySelectTags(self.select_tags, self.is_select_tag_and, true, 50, prompt)
+    local res = self.model:findCardBySelectTags(select_tags, is_select_tag_and, true, 50, prompt)
     if res ~= nil then
       return tools.reverseArray(res)
     else
@@ -1195,11 +1242,30 @@ function Menu:findCardBySelectTags()
     end
   end
   return {
-    prompt_title = "Evidence findCardBySelectTags " .. self:selectTagNameStr(),
+    prompt_title = "Evidence findCardBySelectTags " .. select_tag_name_str,
     menu_item = {},
     main_foo = nil,
     previewer = self.helper:createCardPreviewer(),
     process_work = self.helper:createCardProcessWork(self.now_buf_id, foo),
+    custom_mappings = {
+      ["i"] = {
+        --- keymap help
+        ["<c-h>"] = function(prompt_bufnr)
+          print("<c-x>:findTagsByNowCard")
+        end,
+        ["<c-x>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local select_item = action_state.get_selected_entry()
+          if select_item == nil then
+            return
+          end
+          local card_id = select_item.value.id
+          local res = self:findTagsByNowCard(card_id)
+          self.telescope_menu:reset()
+          self.telescope_menu:flushResult(res, picker, prompt_bufnr)
+        end,
+      },
+    },
   }
 end
 
@@ -1218,6 +1284,25 @@ function Menu:findReviewCard()
     card_entry_maker = function(entry)
       return self.helper:card_entry_maker(self.now_buf_id, entry)
     end,
+    custom_mappings = {
+      ["i"] = {
+        --- keymap help
+        ["<c-h>"] = function(prompt_bufnr)
+          print("<c-x>:findTagsByNowCard")
+        end,
+        ["<c-x>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local select_item = action_state.get_selected_entry()
+          if select_item == nil then
+            return
+          end
+          local card_id = select_item.value.id
+          local res = self:findTagsByNowCard(card_id)
+          self.telescope_menu:reset()
+          self.telescope_menu:flushResult(res, picker, prompt_bufnr)
+        end,
+      },
+    },
   }
 end
 
@@ -1236,6 +1321,25 @@ function Menu:findNewCard()
     card_entry_maker = function(entry)
       return self.helper:card_entry_maker(self.now_buf_id, entry)
     end,
+    custom_mappings = {
+      ["i"] = {
+        --- keymap help
+        ["<c-h>"] = function(prompt_bufnr)
+          print("<c-x>:findTagsByNowCard")
+        end,
+        ["<c-x>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local select_item = action_state.get_selected_entry()
+          if select_item == nil then
+            return
+          end
+          local card_id = select_item.value.id
+          local res = self:findTagsByNowCard(card_id)
+          self.telescope_menu:reset()
+          self.telescope_menu:flushResult(res, picker, prompt_bufnr)
+        end,
+      },
+    },
   }
 end
 
@@ -1304,8 +1408,21 @@ function Menu:tagTree(now_tag_id)
         --- keymap help
         ["<c-h>"] = function(prompt_bufnr)
           print(
-            "<c-x>:tagList <c-y>:convertTag  <c-g>:mergeTag <c-v>:paste <c-d>:delTag <c-s>:addSon <c-e>editTag"
+            "<c-x>:tagList <c-y>:convertTag  <c-g>:mergeTag <c-v>:paste <c-d>:delTag <c-s>:addSon <c-e>editTag <c-u>:findCard"
           )
+        end,
+        --- findCardBySelectTags
+        ["<c-u>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local select_item = action_state.get_selected_entry()
+          if select_item == nil then
+            return
+          end
+          local single = select_item.value
+          local v = single.info
+          local res = self:findCardBySelectTags({ v.id }, false, v.name)
+          self.telescope_menu:reset()
+          self.telescope_menu:flushResult(res, picker, prompt_bufnr)
         end,
         --- tagList
         ["<c-x>"] = function(prompt_bufnr)
