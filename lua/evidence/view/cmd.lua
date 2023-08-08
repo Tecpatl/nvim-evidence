@@ -132,7 +132,7 @@ local emptyNormalMenu = {
   {
     name = "findCardBySelectTags",
     foo = function()
-      return menu:findCardBySelectTags()
+      return menu:findCardBySelectTags(menu.select_tags, menu.is_select_tag_and, menu:selectTagNameStr())
     end,
   },
   {
@@ -202,7 +202,8 @@ local normalMenu = tools.table_concat({
   {
     name = "findTagsByNowCard",
     foo = function()
-      return menu:findTagsByNowCard()
+      local card_id = menu:getNowItem().id
+      return menu:findTagsByNowCard(card_id)
     end,
   },
   {
