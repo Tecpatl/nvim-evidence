@@ -240,7 +240,18 @@ function Menu:fuzzyFindCard()
       ["i"] = {
         --- keymap help
         ["<c-h>"] = function(prompt_bufnr)
-          print("<c-x>:findTagsByNowCard")
+          print("<c-x>:findTagsByNowCard <c-v>:vsplitBuffer")
+        end,
+        --- vsplitBuffer
+        ["<c-v>"] = function(prompt_bufnr)
+          print("xxx")
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local select_item = action_state.get_selected_entry()
+          if select_item == nil then
+            return
+          end
+          local new_buf = self.win_buf:createSplitWin(self.now_win_id) -- will close telescope while create new win
+          self.win_buf:viewContent(new_buf.buf_id, select_item.value)
         end,
         ["<c-x>"] = function(prompt_bufnr)
           local picker = action_state.get_current_picker(prompt_bufnr)
@@ -1251,7 +1262,17 @@ function Menu:findCardBySelectTags(select_tags, is_select_tag_and, select_tag_na
       ["i"] = {
         --- keymap help
         ["<c-h>"] = function(prompt_bufnr)
-          print("<c-x>:findTagsByNowCard")
+          print("<c-x>:findTagsByNowCard <c-v>:vsplitBuffer")
+        end,
+        --- vsplitBuffer
+        ["<c-v>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local select_item = action_state.get_selected_entry()
+          if select_item == nil then
+            return
+          end
+          local new_buf = self.win_buf:createSplitWin(self.now_win_id) -- will close telescope while create new win
+          self.win_buf:viewContent(new_buf.buf_id, select_item.value)
         end,
         ["<c-x>"] = function(prompt_bufnr)
           local picker = action_state.get_current_picker(prompt_bufnr)
@@ -1288,7 +1309,17 @@ function Menu:findReviewCard()
       ["i"] = {
         --- keymap help
         ["<c-h>"] = function(prompt_bufnr)
-          print("<c-x>:findTagsByNowCard")
+          print("<c-x>:findTagsByNowCard <c-v>:vsplitBuffer")
+        end,
+        --- vsplitBuffer
+        ["<c-v>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local select_item = action_state.get_selected_entry()
+          if select_item == nil then
+            return
+          end
+          local new_buf = self.win_buf:createSplitWin(self.now_win_id) -- will close telescope while create new win
+          self.win_buf:viewContent(new_buf.buf_id, select_item.value)
         end,
         ["<c-x>"] = function(prompt_bufnr)
           local picker = action_state.get_current_picker(prompt_bufnr)
@@ -1310,7 +1341,7 @@ end
 function Menu:findNewCard()
   local items = self.model:getNewItem(self.select_tags, self.is_select_tag_and, true, 50)
   if items == nil then
-    print("findReviewCard empty")
+    print("findNewCard empty")
     return nil
   end
   return {
@@ -1325,7 +1356,17 @@ function Menu:findNewCard()
       ["i"] = {
         --- keymap help
         ["<c-h>"] = function(prompt_bufnr)
-          print("<c-x>:findTagsByNowCard")
+          print("<c-x>:findTagsByNowCard <c-v>:vsplitBuffer")
+        end,
+        --- vsplitBuffer
+        ["<c-v>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local select_item = action_state.get_selected_entry()
+          if select_item == nil then
+            return
+          end
+          local new_buf = self.win_buf:createSplitWin(self.now_win_id) -- will close telescope while create new win
+          self.win_buf:viewContent(new_buf.buf_id, select_item.value)
         end,
         ["<c-x>"] = function(prompt_bufnr)
           local picker = action_state.get_current_picker(prompt_bufnr)
@@ -1702,6 +1743,29 @@ function Menu:recordCardList(ways, str)
     main_foo = nil,
     previewer = self.helper:createCardPreviewer(),
     process_work = self.helper:createRecordCardProcessWork(self.now_buf_id, foo, self.now_win_id),
+    custom_mappings = {
+      ["i"] = {
+        --- keymap help
+        ["<c-h>"] = function(prompt_bufnr)
+          print("<c-v>:vsplitBuffer")
+        end,
+        --- vsplitBuffer
+        ["<c-v>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local select_item = action_state.get_selected_entry()
+          if select_item == nil then
+            return
+          end
+          local new_buf = self.win_buf:createSplitWin(self.now_win_id) -- will close telescope while create new win
+          local entry = select_item.value
+          if entry.is_active == false then
+            self.win_buf:viewContent(new_buf.buf_id, entry, false, false)
+          else
+            self.win_buf:viewContent(new_buf.buf_id, entry)
+          end
+        end,
+      },
+    },
   }
 end
 
