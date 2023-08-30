@@ -37,6 +37,9 @@ local NextCardMode = {
 ---@field helper MenuHelper
 ---@field telescope_menu TelescopeMenu
 ---@field is_setup boolean
+---@field current_menu_title string
+---@field current_menu_item table
+---@field default_custom_mapping table
 local Menu = {}
 
 Menu.__index = function(self, key)
@@ -74,6 +77,9 @@ function Menu:getInstance()
       helper = require("evidence.view.menu_helper"),
       telescope_menu = telescopeMenu:new(),
       suggest_tag_ids = {},
+      current_menu_title = "",
+      current_menu_item = {},
+      default_custom_mapping = {},
     }, self)
   end
   return self.instance
@@ -92,6 +98,30 @@ function Menu:setup(data)
   self.win_buf = data.winBuf
   self.model = data.model
   self.helper:setup(self.model)
+  self.default_custom_mapping = {
+    ["n"] = {
+      ["<c-c>"] = "close",
+      ["<esc>"] = function() end,
+      ["<c-h>"] = function() end,
+      ["<c-l>"] = function() end,
+      ["<c-u>"] = function(prompt_bufnr)
+        local picker = action_state.get_current_picker(prompt_bufnr)
+        local res = {
+          prompt_title = self.current_menu_title,
+          menu_item = self.current_menu_item,
+          custom_mappings = self.default_custom_mapping,
+          main_foo = nil
+        }
+        self.telescope_menu:reset()
+        self.telescope_menu:flushResult(res, picker, prompt_bufnr)
+      end,
+    },
+    ["i"] = {
+      ["<c-j>"] = "move_selection_next",
+      ["<c-k>"] = "move_selection_previous",
+      ["<c-c>"] = "close",
+    },
+  }
 end
 
 function Menu:selectTagNameStr()
@@ -199,7 +229,7 @@ function Menu:setBufferList()
     end,
     previewer = self.helper:createBasicPreviewer({}),
     process_work = self.helper:createBufferProcessWork(items),
-    custom_mappings = {
+    custom_mappings = tools.merge({
       ["i"] = {
         --- keymap help
         ["<c-h>"] = function()
@@ -221,7 +251,7 @@ function Menu:setBufferList()
           self.telescope_menu:flushResult(res, picker, prompt_bufnr)
         end,
       },
-    },
+    }, self.default_custom_mapping, true),
   }
 end
 
@@ -236,15 +266,33 @@ function Menu:fuzzyFindCard()
     main_foo = nil,
     previewer = self.helper:createCardPreviewer(),
     process_work = self.helper:createCardProcessWork(self.now_buf_id, foo),
-    custom_mappings = {
+    custom_mappings = tools.merge({
       ["i"] = {
         --- keymap help
         ["<c-h>"] = function(prompt_bufnr)
-          print("<c-x>:findTagsByNowCard <c-v>:vsplitBuffer")
+          print("<c-x>:findTagsByNowCard <c-v>:vsplitBuffer <c-y>:infoCard")
+        end,
+        --infoCard
+        ["<c-y>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local select_item = action_state.get_selected_entry()
+          if select_item == nil then
+            return
+          end
+          local card_id = select_item.value.id
+          local fsrs_info = self.model:findAllFsrsByCard(card_id)
+          print(vim.inspect(fsrs_info))
+          local tag_info = self.model:findIncludeTagsByCard(card_id)
+          if type(tag_info) == "table" then
+            local res = ""
+            for _, x in ipairs(tag_info) do
+              res = res .. x.name .. " || "
+            end
+            print(vim.inspect(res))
+          end
         end,
         --- vsplitBuffer
         ["<c-v>"] = function(prompt_bufnr)
-          print("xxx")
           local picker = action_state.get_current_picker(prompt_bufnr)
           local select_item = action_state.get_selected_entry()
           if select_item == nil then
@@ -265,7 +313,7 @@ function Menu:fuzzyFindCard()
           self.telescope_menu:flushResult(res, picker, prompt_bufnr)
         end,
       },
-    },
+    }, self.default_custom_mapping, true),
   }
 end
 
@@ -484,7 +532,7 @@ function Menu:setTagsForNowCardList(now_tag_tree_exclude_ids, is_add_mode)
       now_tag_tree_exclude_ids = self.model:getIdsFromItem(self.model:findIncludeTagsByCard(card_id, true))
       return self:setTagsForNowCardList(now_tag_tree_exclude_ids, is_add_mode)
     end,
-    custom_mappings = {
+    custom_mappings = tools.merge({
       ["i"] = {
         --- keymap help
         ["<c-h>"] = function()
@@ -592,7 +640,7 @@ function Menu:setTagsForNowCardList(now_tag_tree_exclude_ids, is_add_mode)
           self.telescope_menu:flushResult(res, picker, prompt_bufnr)
         end,
       },
-    },
+    }, self.default_custom_mapping, true),
   }
 end
 
@@ -657,7 +705,7 @@ function Menu:setTagsForNowCardTree(now_tag_id, now_tag_tree_exclude_ids, is_add
       now_tag_tree_exclude_ids = self.model:getIdsFromItem(self.model:findIncludeTagsByCard(card_id))
       return self:setTagsForNowCardTree(now_tag_id, now_tag_tree_exclude_ids, is_add_mode)
     end,
-    custom_mappings = {
+    custom_mappings = tools.merge({
       ["i"] = {
         --- keymap help
         ["<c-h>"] = function(prompt_bufnr)
@@ -736,7 +784,7 @@ function Menu:setTagsForNowCardTree(now_tag_id, now_tag_tree_exclude_ids, is_add
           self.telescope_menu:flushResult(res, picker, prompt_bufnr)
         end,
       },
-    },
+    }, self.default_custom_mapping, true),
   }
 end
 
@@ -837,7 +885,7 @@ function Menu:tagList()
     prompt_title = "Evidence tagList",
     menu_item = items,
     main_foo = nil,
-    custom_mappings = {
+    custom_mappings = tools.merge({
       ["i"] = {
         --- keymap help
         ["<c-h>"] = function(prompt_bufnr)
@@ -875,7 +923,7 @@ function Menu:tagList()
           self.telescope_menu:flushResult(res, picker, prompt_bufnr)
         end,
       },
-    },
+    }, self.default_custom_mapping, true),
   }
 end
 
@@ -893,7 +941,7 @@ function Menu:findTagsByNowCard(card_id)
     prompt_title = "Evidence findTagsByNowCard",
     menu_item = items,
     main_foo = nil,
-    custom_mappings = {
+    custom_mappings = tools.merge({
       ["i"] = {
         --- keymap help
         ["<c-h>"] = function(prompt_bufnr)
@@ -924,7 +972,7 @@ function Menu:findTagsByNowCard(card_id)
           self.telescope_menu:flushResult(res, picker, prompt_bufnr)
         end,
       },
-    },
+    }, self.default_custom_mapping, true),
   }
 end
 
@@ -1083,11 +1131,21 @@ function Menu:setSelectTagsTreeMode(now_tag_id, is_and, is_add_mode)
     menu_item = items,
     --- addTag
     main_foo = function(prompt) end,
-    custom_mappings = {
+    custom_mappings = tools.merge({
       ["i"] = {
         --- keymap help
         ["<c-h>"] = function(prompt_bufnr)
-          print("<c-x>:switchList <c-e>:addSelectTag <c-d>:delSelectTag <c-v>:replaceNowCardTags")
+          print(
+            "<c-x>:switchList <c-e>:addSelectTag <c-d>:delSelectTag <c-v>:replaceNowCardTags <c-y>:findCardBySelectTags"
+          )
+        end,
+        --- findCardBySelectTags
+        ["<c-y>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local res =
+          self:findCardBySelectTags(self.select_tags, self.is_select_tag_and, self:selectTagNameStr())
+          self.telescope_menu:reset()
+          self.telescope_menu:flushResult(res, picker, prompt_bufnr)
         end,
         --- switchList
         ["<c-x>"] = function(prompt_bufnr)
@@ -1136,7 +1194,7 @@ function Menu:setSelectTagsTreeMode(now_tag_id, is_and, is_add_mode)
           self.telescope_menu:flushResult(res, picker, prompt_bufnr)
         end,
       },
-    },
+    }, self.default_custom_mapping, true),
   }
 end
 
@@ -1170,7 +1228,7 @@ function Menu:setSelectTagsListMode(is_and, is_add_mode)
     prompt_title = "Evidence setSelectTagsListMode (" .. mode_str .. ") " .. self:selectTagNameStr(),
     menu_item = items,
     main_foo = nil,
-    custom_mappings = {
+    custom_mappings = tools.merge({
       ["i"] = {
         --- keymap help
         ["<c-h>"] = function(prompt_bufnr)
@@ -1235,7 +1293,7 @@ function Menu:setSelectTagsListMode(is_and, is_add_mode)
           self.telescope_menu:flushResult(res, picker, prompt_bufnr)
         end,
       },
-    },
+    }, self.default_custom_mapping, true),
   }
 end
 
@@ -1258,11 +1316,45 @@ function Menu:findCardBySelectTags(select_tags, is_select_tag_and, select_tag_na
     main_foo = nil,
     previewer = self.helper:createCardPreviewer(),
     process_work = self.helper:createCardProcessWork(self.now_buf_id, foo),
-    custom_mappings = {
+    custom_mappings = tools.merge({
       ["i"] = {
         --- keymap help
         ["<c-h>"] = function(prompt_bufnr)
-          print("<c-x>:findTagsByNowCard <c-v>:vsplitBuffer")
+          print("<c-x>:findTagsByNowCard <c-v>:vsplitBuffer <c-d>:delCardRelation <c-y>infoCard")
+        end,
+        --infoCard
+        ["<c-y>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local select_item = action_state.get_selected_entry()
+          if select_item == nil then
+            return
+          end
+          local card_id = select_item.value.id
+          local fsrs_info = self.model:findAllFsrsByCard(card_id)
+          print(vim.inspect(fsrs_info))
+          local tag_info = self.model:findIncludeTagsByCard(card_id)
+          if type(tag_info) == "table" then
+            local res = ""
+            for _, x in ipairs(tag_info) do
+              res = res .. x.name .. " || "
+            end
+            print(vim.inspect(res))
+          end
+        end,
+        -- delCard
+        ["<c-d>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local select_item = action_state.get_selected_entry()
+          if select_item == nil then
+            return
+          end
+          local card_id = select_item.value.id
+          for _, tag_id in pairs(select_tags) do
+            self.model:delCardTag(card_id, tag_id)
+          end
+          local res = self:findCardBySelectTags(select_tags, is_select_tag_and, select_tag_name_str)
+          self.telescope_menu:reset()
+          self.telescope_menu:flushResult(res, picker, prompt_bufnr)
         end,
         --- vsplitBuffer
         ["<c-v>"] = function(prompt_bufnr)
@@ -1286,7 +1378,7 @@ function Menu:findCardBySelectTags(select_tags, is_select_tag_and, select_tag_na
           self.telescope_menu:flushResult(res, picker, prompt_bufnr)
         end,
       },
-    },
+    }, self.default_custom_mapping, true),
   }
 end
 
@@ -1305,11 +1397,30 @@ function Menu:findReviewCard()
     card_entry_maker = function(entry)
       return self.helper:card_entry_maker(self.now_buf_id, entry)
     end,
-    custom_mappings = {
+    custom_mappings = tools.merge({
       ["i"] = {
         --- keymap help
         ["<c-h>"] = function(prompt_bufnr)
-          print("<c-x>:findTagsByNowCard <c-v>:vsplitBuffer")
+          print("<c-x>:findTagsByNowCard <c-v>:vsplitBuffer <c-y>:infoCard")
+        end,
+        --infoCard
+        ["<c-y>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local select_item = action_state.get_selected_entry()
+          if select_item == nil then
+            return
+          end
+          local card_id = select_item.value.id
+          local fsrs_info = self.model:findAllFsrsByCard(card_id)
+          print(vim.inspect(fsrs_info))
+          local tag_info = self.model:findIncludeTagsByCard(card_id)
+          if type(tag_info) == "table" then
+            local res = ""
+            for _, x in ipairs(tag_info) do
+              res = res .. x.name .. " || "
+            end
+            print(vim.inspect(res))
+          end
         end,
         --- vsplitBuffer
         ["<c-v>"] = function(prompt_bufnr)
@@ -1333,7 +1444,7 @@ function Menu:findReviewCard()
           self.telescope_menu:flushResult(res, picker, prompt_bufnr)
         end,
       },
-    },
+    }, self.default_custom_mapping, true),
   }
 end
 
@@ -1352,11 +1463,30 @@ function Menu:findNewCard()
     card_entry_maker = function(entry)
       return self.helper:card_entry_maker(self.now_buf_id, entry)
     end,
-    custom_mappings = {
+    custom_mappings = tools.merge({
       ["i"] = {
         --- keymap help
         ["<c-h>"] = function(prompt_bufnr)
-          print("<c-x>:findTagsByNowCard <c-v>:vsplitBuffer")
+          print("<c-x>:findTagsByNowCard <c-v>:vsplitBuffer <c-y>:infoCard")
+        end,
+        --infoCard
+        ["<c-y>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local select_item = action_state.get_selected_entry()
+          if select_item == nil then
+            return
+          end
+          local card_id = select_item.value.id
+          local fsrs_info = self.model:findAllFsrsByCard(card_id)
+          print(vim.inspect(fsrs_info))
+          local tag_info = self.model:findIncludeTagsByCard(card_id)
+          if type(tag_info) == "table" then
+            local res = ""
+            for _, x in ipairs(tag_info) do
+              res = res .. x.name .. " || "
+            end
+            print(vim.inspect(res))
+          end
         end,
         --- vsplitBuffer
         ["<c-v>"] = function(prompt_bufnr)
@@ -1380,7 +1510,7 @@ function Menu:findNewCard()
           self.telescope_menu:flushResult(res, picker, prompt_bufnr)
         end,
       },
-    },
+    }, self.default_custom_mapping, true),
   }
 end
 
@@ -1444,7 +1574,7 @@ function Menu:tagTree(now_tag_id)
       self.model:convertFatherTag({ tag_id }, now_tag_id)
       return self:tagTree(now_tag_id)
     end,
-    custom_mappings = {
+    custom_mappings = tools.merge({
       ["i"] = {
         --- keymap help
         ["<c-h>"] = function(prompt_bufnr)
@@ -1599,7 +1729,7 @@ function Menu:tagTree(now_tag_id)
           end
         end,
       },
-    },
+    }, self.default_custom_mapping, true),
   }
 end
 
@@ -1743,7 +1873,7 @@ function Menu:recordCardList(ways, str)
     main_foo = nil,
     previewer = self.helper:createCardPreviewer(),
     process_work = self.helper:createRecordCardProcessWork(self.now_buf_id, foo, self.now_win_id),
-    custom_mappings = {
+    custom_mappings = tools.merge({
       ["i"] = {
         --- keymap help
         ["<c-h>"] = function(prompt_bufnr)
@@ -1765,7 +1895,7 @@ function Menu:recordCardList(ways, str)
           end
         end,
       },
-    },
+    }, self.default_custom_mapping, true),
   }
 end
 
@@ -1846,9 +1976,12 @@ end
 ---@param title string
 ---@param menuItem SimpleMenu[]
 function Menu:telescopeStart(title, menuItem)
+  self.current_menu_title = "Evidence " .. title .. " " .. self:selectTagNameStr()
+  self.current_menu_item = menuItem
   self.telescope_menu:start({
-    prompt_title = "Evidence " .. title .. " " .. self:selectTagNameStr(),
-    menu_item = menuItem,
+    prompt_title = self.current_menu_title,
+    menu_item = self.current_menu_item,
+    custom_mappings = self.default_custom_mapping,
   })
 end
 
