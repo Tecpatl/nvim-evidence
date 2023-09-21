@@ -1,7 +1,9 @@
 require("evidence.util.dumper")
 local bit = require("bit")
 
-local function isInTable(v, tb)
+local M={}
+
+function M.isInTable(v, tb)
   for _, value in ipairs(tb) do
     if value == v then
       return true
@@ -11,7 +13,7 @@ local function isInTable(v, tb)
 end
 
 -- array concat
-local function table_concat(...)
+function M.table_concat(...)
   local nargs = select("#", ...)
   local argv = { ... }
   local t = {}
@@ -32,7 +34,7 @@ end
 -- t2 merge into t1
 -- force overlay
 ---@param is_deep? boolean
-local function merge(t1, t2, is_deep)
+function M.merge(t1, t2, is_deep)
   if is_deep == nil then
     is_deep = true
   end
@@ -49,7 +51,7 @@ end
 ---@param tbl table|nil
 ---@param item? string
 ---@return string
-local function array2Str(tbl, item)
+function M.array2Str(tbl, item)
   if tbl == nil then
     return "{}"
   end
@@ -67,7 +69,7 @@ local function array2Str(tbl, item)
   return str
 end
 
-local function str2table(str)
+function M.str2table(str)
   local lines = {}
   local current_line = ""
   for c in str:gmatch(".") do
@@ -89,7 +91,7 @@ local function str2table(str)
 end
 
 --- check {{{}}}
-local function isTableEmpty(t, visited)
+function M.isTableEmpty(t, visited)
   if type(t) ~= "table" then
     return false
   end
@@ -113,7 +115,7 @@ local function isTableEmpty(t, visited)
 end
 
 ---@return integer
-local function parseDate(date_string, date_format)
+function M.parseDate(date_string, date_format)
   local year, month, day, hour, minute, second = date_string:match(date_format)
   local date_table = {
     year = tonumber(year),
@@ -127,7 +129,7 @@ local function parseDate(date_string, date_format)
   return os.time(date_table)
 end
 
-local function copy(orig)
+function M.copy(orig)
   local copy_item = {}
   for k, v in pairs(orig) do
     copy_item[k] = v
@@ -135,7 +137,7 @@ local function copy(orig)
   return copy_item
 end
 
-local function deepCopy(orig)
+function M.deepCopy(orig)
   local copy_item
   if type(orig) == "table" then
     copy_item = {}
@@ -149,7 +151,7 @@ local function deepCopy(orig)
   return copy_item
 end
 
-local function printDump(obj)
+function M.printDump(obj)
   if obj == nil then
     print("printDump nil")
   end
@@ -159,7 +161,7 @@ local function printDump(obj)
   setmetatable(obj, meta)
 end
 
-local function parse(data)
+function M.parse(data)
   local obj = loadstring(data)
   if obj then
     obj = obj()
@@ -171,13 +173,13 @@ end
 
 ---full info
 ---@return string
-local function stringify(data)
+function M.stringify(data)
   return DataDumper(data)
 end
 
 ---@param prompt string
 ---@param default string
-local function uiInput(prompt, default, ...)
+function M.uiInput(prompt, default, ...)
   if select("#", ...) > 0 then
     local arg = select(1, ...)
     return vim.fn.input(prompt, default, "customlist," .. (arg.name or ""))
@@ -187,7 +189,7 @@ end
 
 ---@param name string
 ---@return boolean
-local function confirmCheck(name)
+function M.confirmCheck(name)
   local confirm = uiInput(name .. "  (y/n):", "")
   if confirm ~= "y" then
     print(name .. " failed")
@@ -197,7 +199,7 @@ local function confirmCheck(name)
 end
 
 ---@param array table
-local function reverseArray(array)
+function M.reverseArray(array)
   local reversedArray = {}
   local length = #array
   for i = length, 1, -1 do
@@ -208,7 +210,7 @@ end
 
 ---@param items table|nil
 ---@param val string
-local function getValArrayFromItem(items, val)
+function M.getValArrayFromItem(items, val)
   local res = {}
   if type(items) == "table" then
     for _, item in pairs(items) do
@@ -220,7 +222,7 @@ end
 
 ---@param group string
 ---@param win_id? number
-local function clear_match(group, win_id)
+function M.clear_match(group, win_id)
   if win_id == nil then
     win_id = vim.fn.win_getid()
   end
@@ -234,7 +236,7 @@ end
 
 ---@param buffer_id number
 ---@return nil|number
-local function get_window_id_from_buffer_id(buffer_id)
+function M.get_window_id_from_buffer_id(buffer_id)
   local windows = vim.api.nvim_list_wins()
   for _, win_id in ipairs(windows) do
     local buf_id = vim.api.nvim_win_get_buf(win_id)
@@ -246,7 +248,7 @@ local function get_window_id_from_buffer_id(buffer_id)
 end
 
 ---@return string
-local function getVisualSelection()
+function M.getVisualSelection()
   vim.cmd('noau normal! "vy"')
   local text = vim.fn.getreg("v")
   vim.fn.setreg("v", {})
@@ -260,7 +262,7 @@ end
 ---@param arr number[]
 ---@param lim number
 ---@return number
-local function findMinMissingNumber(arr, lim)
+function M.findMinMissingNumber(arr, lim)
   local bitmapSize = math.ceil(lim / 32)
   local bitmap = {}
 
@@ -286,7 +288,7 @@ end
 
 ---@param count number
 ---@return string[]
-local function generateDistinctColors(count)
+function M.generateDistinctColors(count)
   local colors = {}
 
   local step = 360 / count
@@ -333,7 +335,7 @@ end
 ---@param originalString string
 ---@param position number
 ---@param newString string
-local function insertStringAtPosition(originalString, position, newString)
+function M.insertStringAtPosition(originalString, position, newString)
   local firstPart = originalString:sub(1, position)
   local secondPart = originalString:sub(position + 1)
   local finalString = firstPart .. newString .. secondPart
@@ -341,7 +343,7 @@ local function insertStringAtPosition(originalString, position, newString)
 end
 
 ---@return SelectRegion | {}
-local function getVisualSelectPos()
+function M.getVisualSelectPos()
   local a1, a2, a3, a4 = unpack(vim.fn.getpos("'<"))
   local b1, b2, b3, b4 = unpack(vim.fn.getpos("'>"))
   --print(vim.inspect(a1 .. " " .. a2 .. " " .. a3 .. " " .. a4))
@@ -359,7 +361,7 @@ end
 
 ---@param array table
 ---@param element any
-local function removeValFromArray(array, element)
+function M.removeValFromArray(array, element)
   local index = 1
   while index <= #array do
     if array[index] == element then
@@ -370,29 +372,15 @@ local function removeValFromArray(array, element)
   end
 end
 
-return {
-  isInTable = isInTable,
-  table_concat = table_concat,
-  merge = merge,
-  str2table = str2table,
-  isTableEmpty = isTableEmpty,
-  parseDate = parseDate,
-  copy = copy,
-  deepCopy = deepCopy,
-  printDump = printDump,
-  parse = parse,
-  stringify = stringify,
-  uiInput = uiInput,
-  confirmCheck = confirmCheck,
-  array2Str = array2Str,
-  reverseArray = reverseArray,
-  getValArrayFromItem = getValArrayFromItem,
-  clear_match = clear_match,
-  get_window_id_from_buffer_id = get_window_id_from_buffer_id,
-  getVisualSelection = getVisualSelection,
-  findMinMissingNumber = findMinMissingNumber,
-  generateDistinctColors = generateDistinctColors,
-  insertStringAtPosition = insertStringAtPosition,
-  getVisualSelectPos = getVisualSelectPos,
-  removeValFromArray = removeValFromArray,
-}
+---@param file string
+function M.file_exists(file)
+  local f = io.open(file, "r")
+  if f then
+    io.close(f)
+    return true
+  else
+    return false
+  end
+end
+
+return M

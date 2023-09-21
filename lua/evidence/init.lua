@@ -30,6 +30,9 @@ return {
     if data == nil or data == {} then
       error("evidence not setup")
     end
+    if not tools.file_exists(data.uri) then
+      return
+    end
     cmd:setup({
       uri = data.uri,
       is_record = data.is_record,
