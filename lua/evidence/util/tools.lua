@@ -40,7 +40,7 @@ function M.merge(t1, t2, is_deep)
   end
   for k, v in pairs(t2) do
     if is_deep == true and (type(v) == "table") and (type(t1[k] or false) == "table") then
-      merge(t1[k], t2[k])
+      M.merge(t1[k], t2[k])
     else
       t1[k] = v
     end
@@ -102,7 +102,7 @@ function M.isTableEmpty(t, visited)
   visited[t] = true -- 将 t 加入 visited 表中
   for _, v in pairs(t) do
     if type(v) == "table" then
-      if not isTableEmpty(v, visited) then
+      if not M.isTableEmpty(v, visited) then
         return false
       end
     else
@@ -125,7 +125,7 @@ function M.parseDate(date_string, date_format)
     min = tonumber(minute),
     sec = tonumber(second),
   }
-  assert(isTableEmpty(date_table) == false)
+  assert(M.isTableEmpty(date_table) == false)
   return os.time(date_table)
 end
 
@@ -142,9 +142,9 @@ function M.deepCopy(orig)
   if type(orig) == "table" then
     copy_item = {}
     for k, v in next, orig, nil do
-      copy_item[deepCopy(k)] = deepCopy(v)
+      copy_item[M.deepCopy(k)] = M.deepCopy(v)
     end
-    setmetatable(copy_item, deepCopy(getmetatable(orig)))
+    setmetatable(copy_item, M.deepCopy(getmetatable(orig)))
   else -- number, string, boolean, etc
     copy_item = orig
   end
@@ -190,7 +190,7 @@ end
 ---@param name string
 ---@return boolean
 function M.confirmCheck(name)
-  local confirm = uiInput(name .. "  (y/n):", "")
+  local confirm = M.uiInput(name .. "  (y/n):", "")
   if confirm ~= "y" then
     print(name .. " failed")
     return false
