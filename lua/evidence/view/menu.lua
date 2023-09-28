@@ -1320,7 +1320,7 @@ function Menu:findCardBySelectTags(select_tags, is_select_tag_and, select_tag_na
       ["i"] = {
         --- keymap help
         ["<c-h>"] = function(prompt_bufnr)
-          print("<c-x>:findTagsByNowCard <c-v>:vsplitBuffer <c-d>:delCardRelation <c-y>infoCard")
+          print("<c-x>:findTagsByNowCard <c-v>:vsplitBuffer <c-e>:delCardRelation <c-y>infoCard")
         end,
         --infoCard
         ["<c-y>"] = function(prompt_bufnr)
@@ -1342,7 +1342,7 @@ function Menu:findCardBySelectTags(select_tags, is_select_tag_and, select_tag_na
           end
         end,
         -- delCard
-        ["<c-d>"] = function(prompt_bufnr)
+        ["<c-e>"] = function(prompt_bufnr)
           local picker = action_state.get_current_picker(prompt_bufnr)
           local select_item = action_state.get_selected_entry()
           if select_item == nil then
