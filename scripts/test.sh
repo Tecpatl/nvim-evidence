@@ -14,19 +14,23 @@ echo_help() {
 	exit 1
 }
 
-default_path=${root_dir}/lua/evidence/tests/
+default_path=${root_dir}/lua/tests/
 
-min_vim="${root_dir}/scripts/minimal_init.vim"
+min_vim="${default_path}/minimal_init.lua"
+
+export mini=true
 
 while getopts 'af:' OPT; do
 	case $OPT in
-	a)
-    exec_and_check "nvim --headless --noplugin -u ${min_vim} -c \"PlenaryBustedDirectory ${default_path} { minimal_init = '${min_vim}' }\" "
-    exit 0
-    ;;
+#	a)
+#    exec_and_check "nvim --headless --noplugin -u ${min_vim} -c \"PlenaryBustedDirectory ${default_path} { minimal_init = '${min_vim}' }\" "
+#    exit 0
+#    ;;
+#lua require(\"plenary.test_harness\").test_directory_command('test {minimal_init=\"test/minimal.vim\", sequential=true}')
+#
 	f) 
     file_name="$OPTARG" 
-    exec_and_check "nvim --headless --noplugin -u ${min_vim} -c \"PlenaryBustedFile ${default_path}${file_name}\" "
+    nvim --headless --noplugin -u ${min_vim} -c "lua require(\"plenary.busted\").run(\"${default_path}${file_name}\")"
 		;;
 	?) echo_help ;;
 	esac

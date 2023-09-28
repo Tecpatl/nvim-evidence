@@ -134,3 +134,7 @@ orgmode 适用于安排有风险不稳定的计划或短期任务. (指南针)
 - 各种find带fuzzy(英文首字母简写)
 
 - 与anki移动端打通
+
+## Test
+
+bash ./scripts/test.sh -f xxx_spec.lua
