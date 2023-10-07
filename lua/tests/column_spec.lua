@@ -24,8 +24,12 @@ end
 
 describe("table", function()
   it("insertColumn", function()
-    info()
+    --info()
     -- info()
+   -- model:execute([[
+   -- ALTER TABLE record_tags add column is_add int default 0 
+   -- ]])
+
    -- model:execute([[
    -- ALTER TABLE tag add column timestamp int default 0  
    -- ]])

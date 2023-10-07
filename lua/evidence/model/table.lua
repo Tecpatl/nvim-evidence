@@ -144,6 +144,7 @@ function SqlTable:setup(data)
     CREATE TABLE IF NOT EXISTS record_tags (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       content text NOT NULL,
+      is_add int default 0,
       timestamp int not null
     )]])
 end
@@ -266,6 +267,35 @@ function SqlTable:insertRecordCard(card_id, access_way)
 end
 
 ---@param content string
+---@param is_add boolean
+function SqlTable:insertRecordTags(content, is_add)
+  if self.is_record then
+    self.db:execute([[
+      DELETE FROM record_tags
+      WHERE id IN (
+        SELECT id
+        FROM record_tags
+        ORDER BY id ASC
+        LIMIT 1
+      )
+      AND (
+        SELECT COUNT(*)
+        FROM record_tags
+      ) > 100;
+    ]])
+    local is_add_int = 0
+    if is_add then
+      is_add_int = 1
+    end
+    self.db:insert(Tables.record_tags, {
+      content = content,
+      timestamp = os.time(),
+      is_add = is_add_int,
+    })
+  end
+end
+
+---@param content string
 ---@param file_type? string
 ---@return number id
 function SqlTable:insertCard(content, file_type)
@@ -370,7 +400,7 @@ end
 ---@param row TagField
 function SqlTable:editTag(id, row)
   row["id"] = nil
-  row["timestamp"] = os.time() 
+  row["timestamp"] = os.time()
   return self.db:update(Tables.tag, {
     where = { id = id },
     set = row,
