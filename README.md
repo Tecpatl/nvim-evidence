@@ -133,7 +133,27 @@ orgmode 适用于安排有风险不稳定的计划或短期任务. (指南针)
 
 - 各种find带fuzzy(英文首字母简写)
 
+## Doing
+
 - 与anki移动端打通
+
+ 对tag表新增timestamp:
+ 
+ - 访问：用于tagList, tagTree
+ order by tag_info.timestamp
+ 
+ - 更新：addTag, setTagForNowCard list/tree
+ updateTimeStamp
+ 
+ record_tags:
+ - id
+ - str (card_id_1 \n card_id_2 ...)
+ - timestamp
+ 
+ 多个tag进行分组, 新增一个选项:
+ - 历史列表增加：setTagSelect   Or/And
+ - 上限100个
+ - tag_name用\n拼接
 
 ## Test
 
