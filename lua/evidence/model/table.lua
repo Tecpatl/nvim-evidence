@@ -33,6 +33,7 @@ local SqlInfo = {}
 ---@field id number
 ---@field name string
 ---@field father_id number
+---@field timestamp Timestamp
 
 ---@class CardTagField
 ---@field card_id number
@@ -116,7 +117,8 @@ function SqlTable:setup(data)
     create table if not exists tag(
       id INTEGER primary KEY AUTOINCREMENT,
       name text NOT NULL UNIQUE,
-      father_id int DEFAULT -1
+      father_id int DEFAULT -1,
+      timestamp int default 0
     )]])
 
   self.db:execute([[
@@ -137,6 +139,18 @@ function SqlTable:setup(data)
       timestamp int not null,
       access_way int not null
     )]])
+
+  self.db:execute([[
+    CREATE TABLE IF NOT EXISTS record_tags (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      content text NOT NULL,
+      timestamp int not null
+    )]])
+end
+
+---@param query string
+function SqlTable:execute(query)
+  self.db:execute(query)
 end
 
 ---@param query string
@@ -348,7 +362,7 @@ end
 ---@return number id
 function SqlTable:insertTag(name, father_id)
   father_id = father_id or -1
-  self.db:insert(Tables.tag, { name = name, father_id = father_id })
+  self.db:insert(Tables.tag, { name = name, father_id = father_id, timestamp = os.time() })
   return self:getLastId()
 end
 
@@ -521,6 +535,7 @@ function SqlTable:findTag(limit_num, statement)
   if statement ~= nil then
     query = query .. " where " .. statement
   end
+  query = query .. " ORDER BY timestamp DESC "
   if limit_num ~= nil and limit_num ~= -1 then
     query = query .. " LIMIT " .. limit_num
   end
@@ -532,7 +547,7 @@ end
 ---@param is_shuffle? boolean
 ---@return nil | CardField[]
 function SqlTable:findCard(limit_num, statement, is_shuffle)
-  local query = "SELECT * FROM " .. Tables.card.." as c "
+  local query = "SELECT * FROM " .. Tables.card .. " as c "
   if statement ~= nil and statement ~= "" then
     query = query .. " where " .. statement
   end
@@ -610,9 +625,9 @@ function SqlTable:minDueCardWithTags(tag_ids, is_and, limit_num)
   local query = ""
   if type(tag_ids) ~= "table" or tools.isTableEmpty(tag_ids) then
     query = [[
-    select card.* from card 
-    join fsrs on fsrs.card_id=card.id 
-    where 
+    select card.* from card
+    join fsrs on fsrs.card_id=card.id
+    where
     fsrs.info NOT LIKE '%reps=0%'
     ORDER BY fsrs.due ASC LIMIT ]] .. limit_num
   else
@@ -629,15 +644,15 @@ function SqlTable:minDueCardWithTags(tag_ids, is_and, limit_num)
       is_and_str = " HAVING COUNT(DISTINCT t.id) = " .. cnt
     end
     query = [[
-    select card.* from card 
-    join fsrs on fsrs.card_id=card.id 
-    where 
-    fsrs.card_id in  
+    select card.* from card
+    join fsrs on fsrs.card_id=card.id
+    where
+    fsrs.card_id in
       (
-      SELECT c.id FROM card AS c JOIN card_tag AS ct ON c.id = ct.card_id JOIN tag AS t ON ct.tag_id = t.id 
-      WHERE t.id IN (]] .. tag_str .. [[)  GROUP BY c.id  ]] .. is_and_str .. [[ 
-      ) 
-    and 
+      SELECT c.id FROM card AS c JOIN card_tag AS ct ON c.id = ct.card_id JOIN tag AS t ON ct.tag_id = t.id
+      WHERE t.id IN (]] .. tag_str .. [[)  GROUP BY c.id  ]] .. is_and_str .. [[
+      )
+    and
     fsrs.info NOT LIKE '%reps=0%'
     ORDER BY fsrs.due ASC LIMIT ]] .. limit_num
   end

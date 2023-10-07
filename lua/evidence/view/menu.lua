@@ -110,7 +110,7 @@ function Menu:setup(data)
           prompt_title = self.current_menu_title,
           menu_item = self.current_menu_item,
           custom_mappings = self.default_custom_mapping,
-          main_foo = nil
+          main_foo = nil,
         }
         self.telescope_menu:reset()
         self.telescope_menu:flushResult(res, picker, prompt_bufnr)
@@ -551,9 +551,10 @@ function Menu:setTagsForNowCardList(now_tag_tree_exclude_ids, is_add_mode)
           if tagItems == nil then
             error("findTagByIds")
           end
-          if not tools.confirmCheck(
-            "replaceWithSuggestion:" .. tools.array2Str(tools.getValArrayFromItem(tagItems, "name"))
-          )
+          if
+              not tools.confirmCheck(
+                "replaceWithSuggestion:" .. tools.array2Str(tools.getValArrayFromItem(tagItems, "name"))
+              )
           then
             return
           end
@@ -566,7 +567,7 @@ function Menu:setTagsForNowCardList(now_tag_tree_exclude_ids, is_add_mode)
             end
           end
           now_tag_tree_exclude_ids =
-          self.model:getIdsFromItem(self.model:findIncludeTagsByCard(card_id, true))
+              self.model:getIdsFromItem(self.model:findIncludeTagsByCard(card_id, true))
           local res = self:setTagsForNowCardList(now_tag_tree_exclude_ids, true)
           self.telescope_menu:flushResult(res, picker, prompt_bufnr)
         end,
@@ -595,7 +596,7 @@ function Menu:setTagsForNowCardList(now_tag_tree_exclude_ids, is_add_mode)
           local picker = action_state.get_current_picker(prompt_bufnr)
           if is_add_mode == false then
             now_tag_tree_exclude_ids =
-            self.model:getIdsFromItem(self.model:findIncludeTagsByCard(card_id, true))
+                self.model:getIdsFromItem(self.model:findIncludeTagsByCard(card_id, true))
             local res = self:setTagsForNowCardList(now_tag_tree_exclude_ids, true)
             self.telescope_menu:flushResult(res, picker, prompt_bufnr)
             return
@@ -615,7 +616,7 @@ function Menu:setTagsForNowCardList(now_tag_tree_exclude_ids, is_add_mode)
             return
           end
           now_tag_tree_exclude_ids =
-          self.model:getIdsFromItem(self.model:findIncludeTagsByCard(card_id, true))
+              self.model:getIdsFromItem(self.model:findIncludeTagsByCard(card_id, true))
           local res = self:setTagsForNowCardList(now_tag_tree_exclude_ids, true)
           self.telescope_menu:flushResult(res, picker, prompt_bufnr)
         end,
@@ -724,9 +725,10 @@ function Menu:setTagsForNowCardTree(now_tag_id, now_tag_tree_exclude_ids, is_add
           if tagItems == nil then
             error("findTagByIds")
           end
-          if not tools.confirmCheck(
-            "replaceWithSuggestion:" .. tools.array2Str(tools.getValArrayFromItem(tagItems, "name"))
-          )
+          if
+              not tools.confirmCheck(
+                "replaceWithSuggestion:" .. tools.array2Str(tools.getValArrayFromItem(tagItems, "name"))
+              )
           then
             return
           end
@@ -746,7 +748,7 @@ function Menu:setTagsForNowCardTree(now_tag_id, now_tag_tree_exclude_ids, is_add
         ["<c-x>"] = function(prompt_bufnr)
           local picker = action_state.get_current_picker(prompt_bufnr)
           now_tag_tree_exclude_ids =
-          self.model:getIdsFromItem(self.model:findIncludeTagsByCard(card_id, true))
+              self.model:getIdsFromItem(self.model:findIncludeTagsByCard(card_id, true))
           local res = self:setTagsForNowCardList(now_tag_tree_exclude_ids, true)
           self.telescope_menu:flushResult(res, picker, prompt_bufnr)
         end,
@@ -1143,7 +1145,7 @@ function Menu:setSelectTagsTreeMode(now_tag_id, is_and, is_add_mode)
         ["<c-y>"] = function(prompt_bufnr)
           local picker = action_state.get_current_picker(prompt_bufnr)
           local res =
-          self:findCardBySelectTags(self.select_tags, self.is_select_tag_and, self:selectTagNameStr())
+              self:findCardBySelectTags(self.select_tags, self.is_select_tag_and, self:selectTagNameStr())
           self.telescope_menu:reset()
           self.telescope_menu:flushResult(res, picker, prompt_bufnr)
         end,
@@ -1180,6 +1182,7 @@ function Menu:setSelectTagsTreeMode(now_tag_id, is_and, is_add_mode)
           end
           local single = select_item.value
           local v = single.info
+          self:updateTagTimestamp(v.id)
           table.insert(self.select_tags, v.id)
           if now_tag_id == v.id then
             now_tag_id = -1
@@ -1268,6 +1271,7 @@ function Menu:setSelectTagsListMode(is_and, is_add_mode)
           end
           local single = select_item.value
           local v = single.info
+          self:updateTagTimestamp(v.id)
           table.insert(self.select_tags, v.id)
           local res = self:setSelectTagsListMode(is_and, true)
           self.telescope_menu:flushResult(res, picker, prompt_bufnr)
@@ -1295,6 +1299,11 @@ function Menu:setSelectTagsListMode(is_and, is_add_mode)
       },
     }, self.default_custom_mapping, true),
   }
+end
+
+---@param tag_id string
+function Menu:updateTagTimestamp(tag_id)
+  self.model:editTag(tag_id, { timestamp = os.time() })
 end
 
 ---@param select_tags number[]

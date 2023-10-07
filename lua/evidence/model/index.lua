@@ -104,6 +104,11 @@ function Model:editCard(id, row)
   self.tbl:editCard(id, row)
 end
 
+---@param query string
+function Model:execute(query)
+  self.tbl:execute(query)
+end
+
 ---@param id number
 ---@param row table
 function Model:editTag(id, row)
