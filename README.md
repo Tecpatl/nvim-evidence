@@ -16,20 +16,6 @@ orgmode 适用于安排有风险不稳定的计划或短期任务. (指南针)
 
 ## Usage Scene
 
-### video 
-
-- basic function:
-
-  https://www.youtube.com/watch?v=taGRd-ZwwCU&t=602s
-
-- tags and telescope:
-
-  https://www.youtube.com/watch?v=SoCBgbiWhjw
-
-- 模拟填空题，长文章分段楼标记，复习延期，多buffer管理，record历史记录 
-
-  https://www.youtube.com/watch?v=kYaUYdm2Z6w
-
 ### Install && Setup (lazy for example) 
 
 ```lua
@@ -132,28 +118,6 @@ orgmode 适用于安排有风险不稳定的计划或短期任务. (指南针)
 - 各种提示, 悬浮提示每个卡片的tag信息
 
 - 各种find带fuzzy(英文首字母简写)
-
-## Doing
-
-- 与anki移动端打通
-
- 对tag表新增timestamp:
- 
- - 访问：用于tagList, tagTree
- order by tag_info.timestamp
- 
- - 更新：addTag, setTagForNowCard list/tree
- updateTimeStamp
- 
- record_tags:
- - id
- - str (card_id_1 \n card_id_2 ...)
- - timestamp
- 
- 多个tag进行分组, 新增一个选项:
- - 历史列表增加：setTagSelect   Or/And
- - 上限100个
- - tag_name用\n拼接
 
 ## Test
 
