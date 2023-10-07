@@ -1182,7 +1182,7 @@ function Menu:setSelectTagsTreeMode(now_tag_id, is_and, is_add_mode)
           end
           local single = select_item.value
           local v = single.info
-          self:updateTagTimestamp(v.id)
+          self.model:editTag(v.id, {})
           table.insert(self.select_tags, v.id)
           if now_tag_id == v.id then
             now_tag_id = -1
@@ -1271,7 +1271,7 @@ function Menu:setSelectTagsListMode(is_and, is_add_mode)
           end
           local single = select_item.value
           local v = single.info
-          self:updateTagTimestamp(v.id)
+          self.model:editTag(v.id, {})
           table.insert(self.select_tags, v.id)
           local res = self:setSelectTagsListMode(is_and, true)
           self.telescope_menu:flushResult(res, picker, prompt_bufnr)
@@ -1299,11 +1299,6 @@ function Menu:setSelectTagsListMode(is_and, is_add_mode)
       },
     }, self.default_custom_mapping, true),
   }
-end
-
----@param tag_id string
-function Menu:updateTagTimestamp(tag_id)
-  self.model:editTag(tag_id, { timestamp = os.time() })
 end
 
 ---@param select_tags number[]

@@ -370,6 +370,7 @@ end
 ---@param row TagField
 function SqlTable:editTag(id, row)
   row["id"] = nil
+  row["timestamp"] = os.time() 
   return self.db:update(Tables.tag, {
     where = { id = id },
     set = row,
@@ -387,6 +388,7 @@ end
 ---@param tag_id number
 function SqlTable:insertCardTag(card_id, tag_id)
   self.db:insert(Tables.card_tag, { card_id = card_id, tag_id = tag_id })
+  self:editTag(tag_id, {})
 end
 
 ---@param card_id number

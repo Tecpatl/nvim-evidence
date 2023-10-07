@@ -137,14 +137,6 @@ orgmode 适用于安排有风险不稳定的计划或短期任务. (指南针)
 
 - 与anki移动端打通
 
- 对tag表新增timestamp:
- 
- - 访问：用于tagList, tagTree
- order by tag_info.timestamp
- 
- - 更新：addTag, setTagForNowCard list/tree
- updateTimeStamp
- 
  record_tags:
  - id
  - str (card_id_1 \n card_id_2 ...)
