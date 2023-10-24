@@ -34,6 +34,7 @@ local SqlInfo = {}
 ---@field name string
 ---@field father_id number
 ---@field timestamp Timestamp
+---@field weight number
 
 ---@class CardTagField
 ---@field card_id number
@@ -118,7 +119,8 @@ function SqlTable:setup(data)
       id INTEGER primary KEY AUTOINCREMENT,
       name text NOT NULL UNIQUE,
       father_id int DEFAULT -1,
-      timestamp int default 0
+      timestamp int default 0,
+      weight int default 1
     )]])
 
   self.db:execute([[
