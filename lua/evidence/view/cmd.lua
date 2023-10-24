@@ -94,7 +94,13 @@ local emptyNormalMenu = {
     end,
   },
   {
-    name = "findCard",
+    name = "findCardById",
+    foo = function()
+      return menu:findCardById()
+    end,
+  },
+  {
+    name = "fuzzyFindCard",
     foo = function()
       return menu:fuzzyFindCard()
     end,

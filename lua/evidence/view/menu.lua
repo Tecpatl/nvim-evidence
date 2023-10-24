@@ -256,6 +256,28 @@ function Menu:setBufferList()
 end
 
 ---@return TelescopeMenu
+function Menu:findCardById()
+  local foo = function(prompt)
+    local res = {}
+    local id = tonumber(prompt)
+    if id ~= nil then
+      local val = self.model:findCardById(id)
+      if val ~= nil then
+        table.insert(res, val)
+      end
+    end
+    return res
+  end
+  return {
+    prompt_title = "Evidence FindCardById",
+    menu_item = {},
+    main_foo = nil,
+    previewer = self.helper:createCardPreviewer(),
+    process_work = self.helper:createCardProcessWork(self.now_buf_id, foo),
+  }
+end
+
+---@return TelescopeMenu
 function Menu:fuzzyFindCard()
   local foo = function(prompt)
     return self.model:fuzzyFindCard(prompt, 50)
