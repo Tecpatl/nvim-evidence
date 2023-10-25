@@ -102,7 +102,6 @@ function Menu:setup(data)
     ["n"] = {
       ["<c-c>"] = "close",
       ["<esc>"] = function() end,
-      ["<c-h>"] = function() end,
       ["<c-l>"] = function() end,
       ["<c-u>"] = function(prompt_bufnr)
         local picker = action_state.get_current_picker(prompt_bufnr)
@@ -141,18 +140,30 @@ end
 
 function Menu:nextCard()
   local items = nil
+
+  local now_select_tags = self.select_tags
+  if tools.isTableEmpty(self.select_tags) then
+    local items = self.model:findSonTags(-1)
+    now_select_tags = self.model:getIdsFromItem(items)
+  end
+  local now_select_tag = self.helper:findTagByWeight(now_select_tags)
+
+  -- TODO: single tag
   if self.next_card_mode == NextCardMode.auto then
-    items = self.helper:calcNextList(self.select_tags, self.is_select_tag_and)
+    items = self.helper:calcNextList({ now_select_tag }, false)
   elseif self.next_card_mode == NextCardMode.review then
-    items = self.model:getMinDueItem(self.select_tags, self.is_select_tag_and, true, 1)
+    items = self.model:getMinDueItem({ now_select_tag }, false, true, 1)
   elseif self.next_card_mode == NextCardMode.new then
-    items = self.model:getNewItem(self.select_tags, self.is_select_tag_and, true, 1)
+    items = self.model:getNewItem({ now_select_tag }, false, true, 1)
   elseif self.next_card_mode == NextCardMode.rand then
-    items = self.model:getRandomItem(self.select_tags, self.is_select_tag_and, true, 1)
+    items = self.model:getRandomItem({ now_select_tag }, false, true, 1)
   end
 
   if items == nil then
-    print("empty table")
+    local tag_item = self.model:findTagById(now_select_tag)
+    if tag_item then
+      print("empty table in tag:" .. tag_item.name)
+    end
     return
   end
   local item = items[1]
@@ -1581,11 +1592,15 @@ function Menu:tagTree(now_tag_id)
   end
   --print(vim.inspect(son_tags))
   if type(son_tags) == "table" then
+    table.sort(son_tags, function(a, b)
+      return a.weight > b.weight
+    end)
     for _, v in ipairs(son_tags) do
       if not tools.isInTable(v.id, self.tag_tree_exclude_ids) then
+        local new_name = "[" .. tostring(v.weight) .. "] " .. v.name
         table.insert(items, {
-          name = v.name,
-          info = { id = v.id, name = v.name },
+          name = new_name,
+          info = { id = v.id, name = v.name, weight = v.weight },
           foo = function()
             return self:tagTree(v.id)
           end,
@@ -1606,6 +1621,29 @@ function Menu:tagTree(now_tag_id)
       return self:tagTree(now_tag_id)
     end,
     custom_mappings = tools.merge({
+      ["n"] = {
+        ["<c-h>"] = function()
+          print("<c-e>:editWeight")
+        end,
+        ["<c-e>"] = function(prompt_bufnr)
+          reset_local_state()
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local select_item = action_state.get_selected_entry()
+          if select_item == nil then
+            return
+          end
+          local single = select_item.value
+          local v = single.info
+          local new_weight_str = tools.uiInput("editWeight old:" .. tostring(v.weight) .. " new:", "")
+          if new_weight_str ~= nil and new_weight_str ~= "" then
+            local new_weight = tonumber(new_weight_str)
+            self.model:editTag(v.id, { weight = new_weight })
+
+            local res = self:tagTree(now_tag_id)
+            self.telescope_menu:flushResult(res, picker, prompt_bufnr)
+          end
+        end,
+      },
       ["i"] = {
         --- keymap help
         ["<c-h>"] = function(prompt_bufnr)
