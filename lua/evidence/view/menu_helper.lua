@@ -130,7 +130,6 @@ function MenuHelper:empty_maker(entry)
   }
 end
 
-
 ---@param buf_id number
 ---@param foo function
 ---@param win_id? number
@@ -167,6 +166,47 @@ function MenuHelper:createCardProcessWork(buf_id, foo, win_id)
       process_result(self:card_entry_maker(buf_id, v, win_id))
     end
     process_complete()
+  end
+end
+
+---@param select_tags number[]
+---@return number -- tag_id
+function MenuHelper:findTagByWeight(select_tags)
+  local now_tag = -1
+  local now_select_tags = select_tags
+  local num = #select_tags
+  if num == 0 then
+    error("findTagByWeight empty")
+  elseif num == 1 then
+    now_tag = now_select_tags[1]
+  else
+    local tag_items = self.model:findTagByIds(now_select_tags)
+    local sum = 0
+    local w_map = {}
+    if type(tag_items) ~= "table" then
+      error("findTagByWeight findTagByIds nil")
+    end
+    for _, v in ipairs(tag_items) do
+      w_map[v.id] = { sum + 1, sum + v.weight }
+      sum = sum + v.weight
+    end
+    local rand = math.random(1, sum)
+    for _, v in ipairs(tag_items) do
+      if w_map[v.id][1] <= rand and w_map[v.id][2] >= rand then
+        now_tag = v.id
+        print(v.name)
+        break
+      end
+    end
+  end
+  if now_tag == -1 then
+    error("findTagByWeight now_tag = -1")
+  end
+  local son_items = self.model:findSonTags(now_tag)
+  if son_items == nil or #son_items == 0 then
+    return now_tag
+  else
+    return self:findTagByWeight(self.model:getIdsFromItem(son_items))
   end
 end
 
