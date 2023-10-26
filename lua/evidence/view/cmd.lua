@@ -154,9 +154,15 @@ local emptyNormalMenu = {
     end,
   },
   {
-    name = "setNextCard",
+    name = "setNextCardMode",
     foo = function()
-      return menu:setNextCard()
+      return menu:setNextCardMode()
+    end,
+  },
+  {
+    name = "setNextCardRatio",
+    foo = function()
+      return menu:setNextCardRatio()
     end,
   },
   {

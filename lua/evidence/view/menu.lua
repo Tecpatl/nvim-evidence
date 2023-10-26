@@ -4,8 +4,7 @@ local tblInfo = require("evidence.model.info")
 local action_state = require("telescope.actions.state")
 local telescopeMenu = require("evidence.view.telescope")
 
---- @alias NextCardMode integer
-local NextCardMode = {
+NextCardMode = {
   auto = 0,
   review = 1,
   new = 2,
@@ -20,6 +19,7 @@ local NextCardMode = {
 
 ---@class Menu
 ---@field select_region SelectRegion
+---@field next_card_ratio NextCardRatioField[]
 ---@field now_buf_id number
 ---@field now_win_id number
 ---@field tbl SqlTable
@@ -62,6 +62,23 @@ function Menu:getInstance()
     self.instance = setmetatable({
       now_buf_id = -1,
       select_region = {},
+      next_card_ratio = {
+        [NextCardMode.review] = {
+          id = NextCardMode.review,
+          name = "Review",
+          value = 50,
+        },
+        [NextCardMode.new] = {
+          id = NextCardMode.new,
+          name = "New",
+          value = 40,
+        },
+        [NextCardMode.rand] = {
+          id = NextCardMode.rand,
+          name = "Rand",
+          value = 10,
+        },
+      },
       now_win_id = -1,
       is_setup = false,
       select_tags = {},
@@ -150,7 +167,7 @@ function Menu:nextCard()
 
   -- TODO: single tag
   if self.next_card_mode == NextCardMode.auto then
-    items = self.helper:calcNextList({ now_select_tag }, false)
+    items = self.helper:calcNextList({ now_select_tag }, false, self.next_card_ratio)
   elseif self.next_card_mode == NextCardMode.review then
     items = self.model:getMinDueItem({ now_select_tag }, false, true, 1)
   elseif self.next_card_mode == NextCardMode.new then
@@ -171,7 +188,7 @@ function Menu:nextCard()
   self:jumpMinDueFsrs()
 end
 
-function Menu:setNextCard()
+function Menu:setNextCardMode()
   local items = {}
   for k, v in pairs(NextCardMode) do
     table.insert(items, {
@@ -182,7 +199,7 @@ function Menu:setNextCard()
     })
   end
   return {
-    prompt_title = "Evidence setNextCard",
+    prompt_title = "Evidence setNextCardMode",
     menu_item = items,
     main_foo = nil,
   }
@@ -900,6 +917,44 @@ function Menu:addCard(content_str)
   local item = self.model:getItemById(card_id)
   self.win_buf:viewContent(self.now_buf_id, item)
   return self:setTagsForNowCardTree(-1, {}, true)
+end
+
+---@return TelescopeMenu
+function Menu:setNextCardRatio()
+  local items = {}
+  for _, v in ipairs(self.next_card_ratio) do
+    table.insert(items, { name = v.name .. " [" .. tostring(v.value) .. "]", info = v, foo = nil })
+  end
+  return {
+    prompt_title = "Evidence setNextCardRatio",
+    menu_item = items,
+    main_foo = nil,
+    custom_mappings = tools.merge({
+      ["i"] = {
+        ["<c-h>"] = function()
+          print("<c-e>:editValue")
+        end,
+        ["<c-e>"] = function(prompt_bufnr)
+          local picker = action_state.get_current_picker(prompt_bufnr)
+          local select_item = action_state.get_selected_entry()
+          if select_item == nil then
+            return
+          end
+          local single = select_item.value
+          local v = single.info
+          local new_value_str = tools.uiInput("editValue old:" .. tostring(v.value) .. " new:", "")
+          if new_value_str ~= nil and new_value_str ~= "" then
+            local new_value = tonumber(new_value_str)
+            if new_value ~= nil then
+              self.next_card_ratio[v.id].value = new_value
+            end
+            local res = self:setNextCardRatio()
+            self.telescope_menu:flushResult(res, picker, prompt_bufnr)
+          end
+        end,
+      },
+    }, self.default_custom_mapping, true),
+  }
 end
 
 ---@return TelescopeMenu
