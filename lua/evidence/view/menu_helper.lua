@@ -7,6 +7,13 @@ local previewers = require("telescope.previewers")
 local putils = require("telescope.previewers.utils")
 local winBuf = require("evidence.view.win_buf")
 
+--- @alias NextCardMode integer
+
+---@class NextCardRatioField
+---@field id NextCardMode
+---@field value number
+---@field name string
+
 ---@class MenuHelper
 ---@field instance MenuHelper
 ---@field model Model
@@ -212,16 +219,30 @@ end
 
 ---@param select_tags number[]
 ---@param is_select_tag_and boolean
+---@param next_card_ratio NextCardRatioField
 ---@return CardItem[]|nil
-function MenuHelper:calcNextList(select_tags, is_select_tag_and)
-  local new_ratio = 40
-  local rand_ratio = 5
+function MenuHelper:calcNextList(select_tags, is_select_tag_and, next_card_ratio)
   local item = nil
-  local random = math.floor(math.random(0, 100))
-  if random > new_ratio then
+
+  local now_mode = NextCardMode.rand
+  local sum = 0
+  local w_map = {}
+  for _, v in ipairs(next_card_ratio) do
+    w_map[v.id] = { sum + 1, sum + v.value }
+    sum = sum + v.value
+  end
+  local rand = math.random(1, sum)
+  for _, v in ipairs(next_card_ratio) do
+    if w_map[v.id][1] <= rand and w_map[v.id][2] >= rand then
+      now_mode = v.id
+      break
+    end
+  end
+
+  if now_mode == NextCardMode.review then
     item = self.model:getMinDueItem(select_tags, is_select_tag_and, true, 1)
-    print("next min due")
-  elseif random > rand_ratio then
+    print("next review")
+  elseif now_mode == NextCardMode.new then
     item = self.model:getNewItem(select_tags, is_select_tag_and, true, 1)
     print("next new")
   end
