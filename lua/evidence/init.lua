@@ -6,13 +6,9 @@ local cmd = require("evidence.view.cmd")
 ---@field is_record boolean
 ---@field parameter Parameters
 ---@field key_map table
----@field pdf PdfField
-
+--
 local user_data_sample = {
   uri = "~/.config/nvim/sql/v0",
-  pdf = {
-    host = ""
-  },
   is_record = true,
   key_map = {
     visual_cmd = "<leader>Ev",
@@ -39,7 +35,6 @@ return {
     end
     cmd:setup({
       uri = data.uri,
-      pdf = data.pdf,
       is_record = data.is_record,
       parameter = data.parameter,
     })

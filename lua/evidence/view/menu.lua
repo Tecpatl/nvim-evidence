@@ -26,7 +26,6 @@ NextCardMode = {
 ---@field select_tags number[]
 ---@field is_select_tag_and boolean
 ---@field next_card_mode NextCardMode
----@field pdf PdfField
 ---@field is_mapping_convert boolean
 ---@field is_mapping_merge boolean
 ---@field tag_tree_exclude_ids table
@@ -41,7 +40,6 @@ NextCardMode = {
 ---@field current_menu_title string
 ---@field current_menu_item table
 ---@field default_custom_mapping table
----@field now_card_fsrs FsrsField
 local Menu = {}
 
 Menu.__index = function(self, key)
@@ -81,10 +79,8 @@ function Menu:getInstance()
           value = 10,
         },
       },
-      pdf = { host = "" },
       now_win_id = -1,
       is_setup = false,
-      now_card_fsrs = {},
       select_tags = {},
       is_select_tag_and = true,
       next_card_mode = NextCardMode.auto,
@@ -106,13 +102,9 @@ function Menu:getInstance()
   return self.instance
 end
 
----@class PdfField
----@field host string
-
 ---@class MenuProps
 ---@field winBuf WinBuf
 ---@field model Model
----@field pdf PdfField
 
 ---@param data MenuProps
 function Menu:setup(data)
@@ -122,9 +114,6 @@ function Menu:setup(data)
   self.is_setup = true
   self.win_buf = data.winBuf
   self.model = data.model
-  if data.pdf then
-    self.pdf = data.pdf
-  end
   self.helper:setup(self.model)
   self.default_custom_mapping = {
     ["n"] = {
@@ -890,7 +879,6 @@ function Menu:jumpMinDueFsrs()
   local buf_id = self.win_buf:getNowInfo(self.now_buf_id).buf
   local lines = vim.api.nvim_buf_get_lines(buf_id, 0, -1, false)
   local fsrs_item = self.model:findMinDueFsrsByCard(card_id)
-  self.now_card_fsrs = fsrs_item
   local win_id = tools.get_window_id_from_buffer_id(buf_id)
   if win_id == nil then
     print("jumpMinDueFsrs win_id not exist")
@@ -967,20 +955,6 @@ function Menu:setNextCardRatio()
       },
     }, self.default_custom_mapping, true),
   }
-end
-
-function Menu:showPdf()
-  local now_card = self:getNowItem()
-  local mark_id = self.now_card_fsrs.mark_id
-  if mark_id == nil then
-    print("pdf card mark_id empty")
-    return
-  end
-  if mark_id == 0 then
-    mark_id = 1
-  end
-  local url = self.pdf.host .. "/" .. now_card.id .. "/pg_" .. mark_id .. ".pdf"
-  print("pdf: " .. url)
 end
 
 ---@return TelescopeMenu

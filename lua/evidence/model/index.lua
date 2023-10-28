@@ -22,7 +22,6 @@ local queue = require("evidence.util.queue")
 ---@field uri string
 ---@field is_record boolean
 ---@field parameter Parameters
----@field pdf PdfField
 
 ---@class Model
 ---@field tbl SqlTable
