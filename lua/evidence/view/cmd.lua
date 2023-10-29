@@ -58,7 +58,7 @@ function Cmd:setup(data)
   user_data = data
   model:setup(data)
   winBuf:setup({ model = model }, "## answer")
-  menu:setup({ winBuf = winBuf, model = model })
+  menu:setup({ winBuf = winBuf, model = model, pdf = data.pdf  })
   winBuf:setBufferSaveCallback(function()
     local info = self:setNowBufWin(false)
     if winBuf:checkSelfBufValid(info.buf_id) then
@@ -163,6 +163,12 @@ local emptyNormalMenu = {
     name = "setNextCardRatio",
     foo = function()
       return menu:setNextCardRatio()
+    end,
+  },
+  {
+    name = "pdf",
+    foo = function()
+      menu:showPdf()
     end,
   },
   {
