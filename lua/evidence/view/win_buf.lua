@@ -393,7 +393,7 @@ function WinBuf:viewContent(buf_id, item, is_fold, is_record)
     self.model:insertRecordCard(item.id, tblInfo.AccessWay.visit)
   end
   local buf_item = self:getNowBufItem(buf_id)
-  is_fold = is_fold or true
+  is_fold = is_fold or false
   buf_item.item = item
   self:switchFold(buf_id, is_fold)
 end
@@ -405,7 +405,7 @@ function WinBuf:switchFold(buf_id, is_fold)
   local content = buf_item.item.content
   local winid = tools.get_window_id_from_buffer_id(buf_item.buf)
   if is_fold then
-    content = self:extractString(content)
+    --content = self:extractString(content)
     if winid ~= nil then
       -- todo
       --vim.api.nvim_win_call(winid, function()

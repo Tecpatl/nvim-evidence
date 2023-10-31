@@ -19,6 +19,7 @@ local SqlInfo = {}
 ---@field id number
 ---@field content string
 ---@field file_type string "markdown" | "org"
+---@field foo function?
 
 ---@class RecordCardField
 ---@field id number
@@ -140,13 +141,6 @@ function SqlTable:setup(data)
       file_type text NOT NULL,
       timestamp int not null,
       access_way int not null
-    )]])
-
-  self.db:execute([[
-    CREATE TABLE IF NOT EXISTS record_tags (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      content text NOT NULL,
-      timestamp int not null
     )]])
 end
 

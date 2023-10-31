@@ -70,6 +70,7 @@ function MenuHelper:createCardPreviewer()
       putils.highlighter(self.state.bufnr, file_type)
       vim.schedule(function()
         vim.api.nvim_buf_call(self.state.bufnr, function()
+          vim.wo.wrap = true
           tools.clear_match("EvidenceWord")
           vim.api.nvim_command("call matchadd('EvidenceWord','" .. this.prompt .. "')")
         end)
@@ -113,7 +114,8 @@ end
 ---@param buf_id number
 ---@param entry CardItem
 ---@param win_id? number
-function MenuHelper:card_entry_maker(buf_id, entry, win_id)
+---@param prompt? string
+function MenuHelper:card_entry_maker(buf_id, entry, win_id, prompt)
   if entry.content == nil then
     return
   end
@@ -121,10 +123,17 @@ function MenuHelper:card_entry_maker(buf_id, entry, win_id)
     winBuf:viewContent(buf_id, entry)
   end
   local content = entry.content:gsub("\n", "\\n")
+  if prompt == nil then
+    prompt = ""
+  end
   local bar_content = content
+
+  local tags = self.model:findIncludeTagsByCard(entry.id)
+  local tag_str = tools.array2Str(tags, "name")
+  local note = "card_id:" .. entry.id .. "  prompt:" .. prompt .. "  tags:" .. tag_str .. "\\n\\n" .. content
   return {
     value = entry,
-    ordinal = content,
+    ordinal = note,
     display = bar_content,
   }
 end
@@ -135,6 +144,25 @@ function MenuHelper:empty_maker(entry)
     ordinal = entry,
     display = "",
   }
+end
+
+---@param buf_id number
+---@param foo function
+---@param win_id? number
+function MenuHelper:createCardProcessWorkPromptMatch(buf_id, foo, win_id)
+  return function(prompt, process_result, process_complete)
+    self.prompt = prompt
+    local x = foo(prompt)
+    if type(x) ~= "table" then
+      process_result(self:empty_maker(prompt))
+      process_complete()
+      return
+    end
+    for _, v in ipairs(x) do
+      process_result(self:card_entry_maker(buf_id, v, win_id, prompt))
+    end
+    process_complete()
+  end
 end
 
 ---@param buf_id number

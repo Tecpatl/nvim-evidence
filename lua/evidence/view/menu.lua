@@ -312,7 +312,7 @@ function Menu:findCardById()
     menu_item = {},
     main_foo = nil,
     previewer = self.helper:createCardPreviewer(),
-    process_work = self.helper:createCardProcessWork(self.now_buf_id, foo),
+    process_work = self.helper:createCardProcessWorkPromptMatch(self.now_buf_id, foo),
   }
 end
 
@@ -326,7 +326,7 @@ function Menu:fuzzyFindCard()
     menu_item = {},
     main_foo = nil,
     previewer = self.helper:createCardPreviewer(),
-    process_work = self.helper:createCardProcessWork(self.now_buf_id, foo),
+    process_work = self.helper:createCardProcessWorkPromptMatch(self.now_buf_id, foo),
     custom_mappings = tools.merge({
       ["i"] = {
         --- keymap help
