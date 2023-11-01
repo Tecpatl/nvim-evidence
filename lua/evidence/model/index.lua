@@ -92,6 +92,8 @@ function Model:addNewCard(content, file_type)
   local card_info = _.Card:new()
   file_type = file_type or "markdown"
 
+  content = tools.remove_invalid_utf8(content)
+
   local card_id = self.tbl:insertCard(content, file_type)
   local info = card_info:dumpStr()
   local due = card_info.due
