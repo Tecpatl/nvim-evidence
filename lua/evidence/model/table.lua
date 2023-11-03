@@ -538,6 +538,16 @@ function SqlTable:findTag(limit_num, statement)
   return self:eval(query)
 end
 
+function SqlTable:alterFsrsInfo()
+  local str = [[{"scheduled_days":0,"state":0,"stability":0,"elapsed_days":0,"due":1698981335,"difficulty":0,"reps":0,"due_date":"2023-11-03 11:15:35","last_review_date":"2023-11-03 11:15:35","lapses":0}]]
+  self.db:update(Tables.fsrs, {
+    set = {
+      info = str
+    }
+  })
+  return self:eval("select * from fsrs")
+end
+
 ---@param limit_num? number
 ---@param statement? string | nil
 ---@param is_shuffle? boolean

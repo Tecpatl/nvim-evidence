@@ -409,6 +409,10 @@ function Model:findAllTags()
   return self.tbl:findTag()
 end
 
+function Model:alterFsrsInfo()
+  return self.tbl:alterFsrsInfo()
+end
+
 ---@param name string
 ---@param father_id? number
 ---@return number id

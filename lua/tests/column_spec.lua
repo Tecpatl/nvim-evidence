@@ -4,7 +4,7 @@ local _ = require("evidence.model.fsrs_models")
 local tools = require("evidence.util.tools")
 
 local data = {
-  uri = "~/.config/nvim/sql/evidence.db",
+  uri = "/root/.local/share/nvim/lazy/nvim-evidence/sql/test.db",
   is_record = false,
   parameter = {
     request_retention = 0.7,
@@ -23,8 +23,12 @@ local info = function(n)
 end
 
 describe("table", function()
+  it("alterFsrsInfo", function()
+    local res=model:alterFsrsInfo()
+    print(vim.inspect(res))
+  end)
   it("insertColumn", function()
-    info()
+    --info()
     -- info()
    -- model:execute([[
    -- ALTER TABLE tag add column timestamp int default 0  

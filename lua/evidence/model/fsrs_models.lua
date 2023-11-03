@@ -46,6 +46,23 @@ end
 
 function Card:dump()
   local format = "%Y-%m-%d %H:%M:%S"
+  return {
+    due = self.due,
+    stability = self.stability,
+    difficulty = self.difficulty,
+    elapsed_days = self.elapsed_days,
+    scheduled_days = self.scheduled_days,
+    reps = self.reps,
+    lapses = self.lapses,
+    state = self.state,
+    ---- extra ---
+    last_review_date = os.date(format, self.last_review),
+    due_date = os.date(format, self.due),
+  }
+end
+
+function Card:dump11()
+  local format = "%Y-%m-%d %H:%M:%S"
   local obj = tools.merge(self:copy(), {
     last_review_date = os.date(format, self.last_review),
     due_date = os.date(format, self.due),
@@ -153,10 +170,10 @@ end
 ---@return table<RatingType,SchedulingInfo>
 function SchedulingCards:record_log()
   return {
-        [Rating.Again] = SchedulingInfo:new(self.again),
-        [Rating.Hard] = SchedulingInfo:new(self.hard),
-        [Rating.Good] = SchedulingInfo:new(self.good),
-        [Rating.Easy] = SchedulingInfo:new(self.easy),
+    [Rating.Again] = SchedulingInfo:new(self.again),
+    [Rating.Hard] = SchedulingInfo:new(self.hard),
+    [Rating.Good] = SchedulingInfo:new(self.good),
+    [Rating.Easy] = SchedulingInfo:new(self.easy),
   }
 end
 

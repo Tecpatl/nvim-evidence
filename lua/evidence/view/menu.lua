@@ -174,6 +174,10 @@ function Menu:nextCard()
     local items = self.model:findSonTags(-1)
     now_select_tags = self.model:getIdsFromItem(items)
   end
+  if now_select_tags == nil or #now_select_tags == 0 then
+    print("empty tag")
+    return
+  end
   local now_select_tag = self.helper:findTagByWeight(now_select_tags)
 
   -- TODO: single tag

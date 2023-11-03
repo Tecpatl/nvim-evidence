@@ -1,4 +1,5 @@
-require("evidence.util.dumper")
+local json = require('cjson')
+
 local bit = require("bit")
 local iconv = require("iconv")
 
@@ -162,20 +163,22 @@ function M.printDump(obj)
   setmetatable(obj, meta)
 end
 
-function M.parse(data)
-  local obj = loadstring(data)
-  if obj then
-    obj = obj()
-    return obj
-  else
-    error("loadstring parse failed")
-  end
+---@param json_str string 
+function M.parse(json_str)
+  return json.decode(json_str)
+ -- local obj = loadstring(data)
+ -- if obj then
+ --   obj = obj()
+ --   return obj
+ -- else
+ --   error("loadstring parse failed")
+ -- end
 end
 
 ---full info
 ---@return string
-function M.stringify(data)
-  return DataDumper(data)
+function M.stringify(obj)
+  return json.encode(obj)
 end
 
 ---@param prompt string
