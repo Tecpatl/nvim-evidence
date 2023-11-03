@@ -409,8 +409,8 @@ function Model:findAllTags()
   return self.tbl:findTag()
 end
 
-function Model:alterFsrsInfo()
-  return self.tbl:alterFsrsInfo()
+function Model:alterFsrsInfo(data)
+  return self.tbl:alterFsrsInfo(data)
 end
 
 ---@param name string

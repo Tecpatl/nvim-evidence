@@ -3,10 +3,10 @@ local tools = require("evidence.util.tools")
 --- @alias RatingType integer
 --- @class Rating
 local Rating = {
-  Again = 0,
-  Hard = 1,
-  Good = 2,
-  Easy = 3,
+  Again = 1,
+  Hard = 2,
+  Good = 3,
+  Easy = 4,
 }
 
 --- @alias StateType integer
@@ -180,8 +180,6 @@ end
 --- @class Parameters
 --- @field request_retention number
 --- @field maximum_interval number
---- @field easy_bonus number
---- @field hard_factor number
 --- @field w table<number>
 local Parameters = {}
 
@@ -191,9 +189,25 @@ function Parameters:new(obj)
   local data = {
     request_retention = 0.9,
     maximum_interval = 36500,
-    easy_bonus = 1.3,
-    hard_factor = 1.2,
-    w = { 1.0, 1.0, 5.0, -0.5, -0.5, 0.2, 1.4, -0.12, 0.8, 2.0, -0.2, 0.2, 1.0 },
+    w = {
+      0.4,
+      0.6,
+      2.4,
+      5.8,
+      4.93,
+      0.94,
+      0.86,
+      0.01,
+      1.49,
+      0.14,
+      0.94,
+      2.18,
+      0.05,
+      0.34,
+      1.26,
+      0.29,
+      2.61,
+    },
   }
   tools.merge(data, obj)
   setmetatable(data, self)

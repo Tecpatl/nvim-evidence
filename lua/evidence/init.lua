@@ -11,18 +11,34 @@ local cmd = require("evidence.view.cmd")
 local user_data_sample = {
   uri = "~/.config/nvim/sql/v0",
   pdf = {
-    host = ""
+    host = "",
   },
   is_record = true,
   key_map = {
     visual_cmd = "<leader>Ev",
   },
   parameter = {
-    request_retention = 0.7,
-    maximum_interval = 100,
-    easy_bonus = 1.0,
-    hard_factor = 0.8,
-    w = { 1.0, 1.0, 5.0, -0.5, -0.5, 0.2, 1.4, -0.12, 0.8, 2.0, -0.2, 0.2, 1.0 },
+    request_retention = 0.9,
+    maximum_interval = 36500,
+    w = {
+      0.4,
+      0.6,
+      2.4,
+      5.8,
+      4.93,
+      0.94,
+      0.86,
+      0.01,
+      1.49,
+      0.14,
+      0.94,
+      2.18,
+      0.05,
+      0.34,
+      1.26,
+      0.29,
+      2.61,
+    },
   },
 }
 

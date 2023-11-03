@@ -430,9 +430,9 @@ function Menu:scoreCard()
     end
     mark_id = id
   end
-  local rating = tonumber(tools.uiInput("scoreCard(0,1,2,3):", ""))
+  local rating = tonumber(tools.uiInput("scoreCard(1[Again],2[Hard],3[Good],4[Easy]):", ""))
   if type(rating) ~= "number" or not self.helper:checkScore(rating) then
-    print("input format error (0,1,2,3)")
+    print("input format error (1,2,3,4)")
     return
   end
   --print(rating)
