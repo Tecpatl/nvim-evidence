@@ -538,6 +538,13 @@ function SqlTable:findTag(limit_num, statement)
   return self:eval(query)
 end
 
+function SqlTable:alterFsrsInfo(data)
+  self.db:update(Tables.fsrs, {
+    set = data
+  })
+  return self:eval("select * from fsrs")
+end
+
 ---@param limit_num? number
 ---@param statement? string | nil
 ---@param is_shuffle? boolean

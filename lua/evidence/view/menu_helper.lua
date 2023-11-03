@@ -283,7 +283,7 @@ end
 
 ---@return boolean
 function MenuHelper:checkScore(score)
-  return score == 0 or score == 1 or score == 2 or score == 3
+  return score == 4 or score == 1 or score == 2 or score == 3
 end
 
 ---@param entry BufferHelper

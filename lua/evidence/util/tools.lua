@@ -1,7 +1,9 @@
-require("evidence.util.dumper")
-local bit = require("bit")
+local json = require('cjson')
 
-local M={}
+local bit = require("bit")
+local iconv = require("iconv")
+
+local M = {}
 
 function M.isInTable(v, tb)
   for _, value in ipairs(tb) do
@@ -97,9 +99,9 @@ function M.isTableEmpty(t, visited)
   end
   visited = visited or {} -- 初始化 visited 表
   if visited[t] then
-    return true -- 如果 t 已经被访问过，认为它是空表
+    return true          -- 如果 t 已经被访问过，认为它是空表
   end
-  visited[t] = true -- 将 t 加入 visited 表中
+  visited[t] = true      -- 将 t 加入 visited 表中
   for _, v in pairs(t) do
     if type(v) == "table" then
       if not M.isTableEmpty(v, visited) then
@@ -161,20 +163,22 @@ function M.printDump(obj)
   setmetatable(obj, meta)
 end
 
-function M.parse(data)
-  local obj = loadstring(data)
-  if obj then
-    obj = obj()
-    return obj
-  else
-    error("loadstring parse failed")
-  end
+---@param json_str string 
+function M.parse(json_str)
+  return json.decode(json_str)
+ -- local obj = loadstring(data)
+ -- if obj then
+ --   obj = obj()
+ --   return obj
+ -- else
+ --   error("loadstring parse failed")
+ -- end
 end
 
 ---full info
 ---@return string
-function M.stringify(data)
-  return DataDumper(data)
+function M.stringify(obj)
+  return json.encode(obj)
 end
 
 ---@param prompt string
@@ -381,6 +385,18 @@ function M.file_exists(file)
   else
     return false
   end
+end
+
+function M.remove_invalid_utf8(str)
+  local cd, err = iconv.open("utf-8//IGNORE", "utf-8")
+  if not cd then
+    error("iconv open error: " .. err)
+  end
+  local result, err = cd:iconv(str)
+  if not result then
+    error("iconv error: " .. err)
+  end
+  return result
 end
 
 return M

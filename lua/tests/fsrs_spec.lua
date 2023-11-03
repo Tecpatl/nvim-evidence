@@ -36,7 +36,7 @@ describe("fsrs", function()
 		local f = FSRS.fsrs:new()
 		local card = _.Card:new()
 
-		local now = os.time({ year = 2022, month = 11, day = 29, hour = 12, min = 30, sec = 0 })
+		local now = os.time({ year = 2023, month = 11, day = 5, hour = 12, min = 30, sec = 0 })
 		local scheduling_cards = f:repeats(card, now)
 		--printFSRS(scheduling_cards)
 		--
@@ -47,7 +47,7 @@ describe("fsrs", function()
 		card = scheduling_cards[_.Rating.Good].card
 		now = card.due
 		scheduling_cards = f:repeats(card, now)
-    --
+--    --
 		card = scheduling_cards[_.Rating.Again].card
 		now = card.due
 		scheduling_cards = f:repeats(card, now)
