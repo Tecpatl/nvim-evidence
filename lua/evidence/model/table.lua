@@ -631,7 +631,7 @@ function SqlTable:minDueCardWithTags(tag_ids, is_and, limit_num)
     select card.* from card
     join fsrs on fsrs.card_id=card.id
     where
-    fsrs.info NOT LIKE '%reps=0%'
+    fsrs.info NOT LIKE '%"reps":0%'
     ORDER BY fsrs.due ASC LIMIT ]] .. limit_num
   else
     local tag_str = ""
@@ -656,7 +656,7 @@ function SqlTable:minDueCardWithTags(tag_ids, is_and, limit_num)
       WHERE t.id IN (]] .. tag_str .. [[)  GROUP BY c.id  ]] .. is_and_str .. [[
       )
     and
-    fsrs.info NOT LIKE '%reps=0%'
+    fsrs.info NOT LIKE '%"reps":0%'
     ORDER BY fsrs.due ASC LIMIT ]] .. limit_num
   end
   return self:eval(query)
