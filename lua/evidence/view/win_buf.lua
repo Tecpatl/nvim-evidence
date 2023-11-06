@@ -393,7 +393,7 @@ function WinBuf:viewContent(buf_id, item, is_fold, is_record)
     self.model:insertRecordCard(item.id, tblInfo.AccessWay.visit)
   end
   local buf_item = self:getNowBufItem(buf_id)
-  is_fold = is_fold or false
+  is_fold = is_fold or true
   buf_item.item = item
   self:switchFold(buf_id, is_fold)
 end
