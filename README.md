@@ -54,7 +54,7 @@ fsrs plugin for nvim
 
 ## Other Version
 
-    [Web-Evidence](https://github.com/Tecpatl/web-evidence)
+[Web-Evidence](https://github.com/Tecpatl/web-evidence)
 
 ## Todo
 
