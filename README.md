@@ -52,6 +52,10 @@ fsrs plugin for nvim
 
 `:EvidenceCmd` 弹出搜索框
 
+## Other Version
+
+    [Web-Evidence](https://github.com/Tecpatl/web-evidence)
+
 ## Todo
 
 - 各种提示, 悬浮提示每个卡片的tag信息
