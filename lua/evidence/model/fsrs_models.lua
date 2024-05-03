@@ -1,4 +1,4 @@
-local tools = require("evidence.util.tools")
+local tools = requireSubPlugin("evidence.util.tools")
 
 --- @alias RatingType integer
 --- @class Rating

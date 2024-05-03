@@ -1,4 +1,4 @@
-local WinBuf = require("evidence.view.win_buf")
+local WinBuf = requireSubPlugin("evidence.view.win_buf")
 WinBuf:setup({})
 
 local eq = function(a, b)

@@ -1,7 +1,7 @@
-local json = require('cjson')
+local json = requireSubPlugin('cjson')
 
-local bit = require("bit")
-local iconv = require("iconv")
+local bit = requireSubPlugin("bit")
+local iconv = requireSubPlugin("iconv")
 
 local M = {}
 

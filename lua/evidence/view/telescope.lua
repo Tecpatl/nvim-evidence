@@ -1,16 +1,16 @@
-local finders = require("telescope.finders")
-local pickers = require("telescope.pickers")
-local make_entry = require("telescope.make_entry")
-local conf = require("telescope.config").values
-local previewers = require("telescope.previewers")
-local putils = require("telescope.previewers.utils")
-local actions = require("telescope.actions")
-local entry_display = require("telescope.pickers.entry_display")
-local action_state = require("telescope.actions.state")
+local finders = requireSubPlugin("telescope.finders")
+local pickers = requireSubPlugin("telescope.pickers")
+local make_entry = requireSubPlugin("telescope.make_entry")
+local conf = requireSubPlugin("telescope.config").values
+local previewers = requireSubPlugin("telescope.previewers")
+local putils = requireSubPlugin("telescope.previewers.utils")
+local actions = requireSubPlugin("telescope.actions")
+local entry_display = requireSubPlugin("telescope.pickers.entry_display")
+local action_state = requireSubPlugin("telescope.actions.state")
 local ns_previewer = vim.api.nvim_create_namespace("telescope.previewers")
-local status1, telescope = pcall(require, "telescope")
-local tools = require("evidence.util.tools")
-local mappings = require("telescope.mappings")
+local status1, telescope = pcall(requireSubPlugin, "telescope")
+local tools = requireSubPlugin("evidence.util.tools")
+local mappings = requireSubPlugin("telescope.mappings")
 
 ---@class SimpleMenu
 ---@field name string

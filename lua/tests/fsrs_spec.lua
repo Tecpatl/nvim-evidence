@@ -1,5 +1,5 @@
-local FSRS = require("evidence.model.fsrs")
-local tools = require("evidence.util.tools")
+local FSRS = requireSubPlugin("evidence.model.fsrs")
+local tools = requireSubPlugin("evidence.util.tools")
 local _ = FSRS.model
 
 local eq = function(a, b)

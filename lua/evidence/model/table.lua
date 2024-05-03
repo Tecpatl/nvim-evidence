@@ -1,5 +1,5 @@
-local tools = require("evidence.util.tools")
-local tblInfo = require("evidence.model.info")
+local tools = requireSubPlugin("evidence.util.tools")
+local tblInfo = requireSubPlugin("evidence.model.info")
 
 local now_time = os.time()
 
@@ -60,7 +60,7 @@ SqlTable.__index = SqlTable
 
 function SqlTable:new()
   --- !! attention sql command only db:eval db:execute due to "sqlite.db" not support composite primary key and foreign keys
-  self.sql = require("sqlite.db")
+  self.sql = requireSubPlugin("sqlite.db")
   self.db = nil
   self.uri = ""
   self.is_record = false
