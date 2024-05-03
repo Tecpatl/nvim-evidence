@@ -1,4 +1,4 @@
-local _ = require("evidence.model.fsrs_models")
+local _ = requireSubPlugin("evidence.model.fsrs_models")
 
 --- @class FSRS
 --- @field p Parameters

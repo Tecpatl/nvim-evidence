@@ -1,5 +1,18 @@
-local tools = require("evidence.util.tools")
-local cmd = require("evidence.view.cmd")
+function _G.requireSubPlugin(name)
+	local status_ok, plugin = pcall(require, name)
+	if not status_ok then
+    print("error: " .. name)
+		error(" 没有找到evidence子插件：" .. name)
+		--vim.notify(" 没有找到插件：" .. name)
+		--return nil
+	end
+	return plugin
+end
+
+local tools = requireSubPlugin("evidence.util.tools")
+local cmd = requireSubPlugin("evidence.view.cmd")
+
+
 
 ---@class EvidenceParam
 ---@field uri string

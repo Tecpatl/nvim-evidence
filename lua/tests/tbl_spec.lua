@@ -1,7 +1,7 @@
-local sql = require("sqlite.db")
-local luv = require("luv")
-local tools = require("evidence.util.tools")
-local SqlTable = require("evidence.model.table")
+local sql = requireSubPlugin("sqlite.db")
+local luv = requireSubPlugin("luv")
+local tools = requireSubPlugin("evidence.util.tools")
+local SqlTable = requireSubPlugin("evidence.model.table")
 local db = SqlTable:new()
 
 describe("sqlite.db", function()

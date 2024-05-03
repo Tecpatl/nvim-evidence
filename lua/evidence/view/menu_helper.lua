@@ -1,11 +1,11 @@
-local model = require("evidence.model.index")
-local make_entry = require("telescope.make_entry")
-local finders = require("telescope.finders")
-local conf = require("telescope.config").values
-local tools = require("evidence.util.tools")
-local previewers = require("telescope.previewers")
-local putils = require("telescope.previewers.utils")
-local winBuf = require("evidence.view.win_buf")
+local model = requireSubPlugin("evidence.model.index")
+local make_entry = requireSubPlugin("telescope.make_entry")
+local finders = requireSubPlugin("telescope.finders")
+local conf = requireSubPlugin("telescope.config").values
+local tools = requireSubPlugin("evidence.util.tools")
+local previewers = requireSubPlugin("telescope.previewers")
+local putils = requireSubPlugin("telescope.previewers.utils")
+local winBuf = requireSubPlugin("evidence.view.win_buf")
 
 --- @alias NextCardMode integer
 

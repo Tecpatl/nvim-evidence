@@ -1,6 +1,6 @@
-local tools = require("evidence.util.tools")
-local queue = require("evidence.util.queue")
-local tblInfo = require("evidence.model.info")
+local tools = requireSubPlugin("evidence.util.tools")
+local queue = requireSubPlugin("evidence.util.queue")
+local tblInfo = requireSubPlugin("evidence.model.info")
 
 ---@class WinBufIdInfo
 ---@field win_id number

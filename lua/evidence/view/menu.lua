@@ -1,8 +1,8 @@
-local tools = require("evidence.util.tools")
-local set = require("evidence.util.set")
-local tblInfo = require("evidence.model.info")
-local action_state = require("telescope.actions.state")
-local telescopeMenu = require("evidence.view.telescope")
+local tools = requireSubPlugin("evidence.util.tools")
+local set = requireSubPlugin("evidence.util.set")
+local tblInfo = requireSubPlugin("evidence.model.info")
+local action_state = requireSubPlugin("telescope.actions.state")
+local telescopeMenu = requireSubPlugin("evidence.view.telescope")
 
 NextCardMode = {
   auto = 0,
@@ -95,7 +95,7 @@ function Menu:getInstance()
       merge_tag_son_id = -1,
       win_buf = {},
       model = {},
-      helper = require("evidence.view.menu_helper"),
+      helper = requireSubPlugin("evidence.view.menu_helper"),
       telescope_menu = telescopeMenu:new(),
       suggest_tag_ids = {},
       current_menu_title = "",

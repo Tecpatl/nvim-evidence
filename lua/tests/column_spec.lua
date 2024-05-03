@@ -1,6 +1,6 @@
-local model = require("evidence.model.index")
-local _ = require("evidence.model.fsrs_models")
-local tools = require("evidence.util.tools")
+local model = requireSubPlugin("evidence.model.index")
+local _ = requireSubPlugin("evidence.model.fsrs_models")
+local tools = requireSubPlugin("evidence.util.tools")
 
 local data = {
   --uri = "/root/mine/repos/web-evidence/master/prisma/test.db",

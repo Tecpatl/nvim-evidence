@@ -1,7 +1,7 @@
-local menu = require("evidence.view.menu")
-local model = require("evidence.model.index")
-local tools = require("evidence.util.tools")
-local winBuf = require("evidence.view.win_buf")
+local menu = requireSubPlugin("evidence.view.menu")
+local model = requireSubPlugin("evidence.model.index")
+local tools = requireSubPlugin("evidence.util.tools")
+local winBuf = requireSubPlugin("evidence.view.win_buf")
 
 ---@class Cmd
 ---@field user_data ModelTableParam

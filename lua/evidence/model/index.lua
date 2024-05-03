@@ -1,10 +1,10 @@
-local SqlTable = require("evidence.model.table")
-local tblInfo = require("evidence.model.info")
-local _FSRS_ = require("evidence.model.fsrs")
+local SqlTable = requireSubPlugin("evidence.model.table")
+local tblInfo = requireSubPlugin("evidence.model.info")
+local _FSRS_ = requireSubPlugin("evidence.model.fsrs")
 local _ = _FSRS_.model
-local tools = require("evidence.util.tools")
-local set = require("evidence.util.set")
-local queue = require("evidence.util.queue")
+local tools = requireSubPlugin("evidence.util.tools")
+local set = requireSubPlugin("evidence.util.set")
+local queue = requireSubPlugin("evidence.util.queue")
 
 ---@alias CardItem CardField
 
